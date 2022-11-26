@@ -1,0 +1,10 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    schema: "internal/db/migrations"
+    queries: "internal/db/sql"
+    gen:
+      go:
+        out: "internal/db/sqlcgen"
+        sql_package: "pgx/v4"
+        emit_enum_valid_method: true
