@@ -13,7 +13,7 @@ const ERROR = "error"
 type FakeLoggerRecord struct {
 	Level   string
 	Msg     string
-	Entries []entry
+	Entries []LogEntry
 }
 
 type FakeLogger struct {
@@ -25,23 +25,23 @@ func NewFakeLogger() *FakeLogger {
 	return &FakeLogger{}
 }
 
-func (l *FakeLogger) Debug(ctx context.Context, msg string, entries ...entry) {
+func (l *FakeLogger) Debug(ctx context.Context, msg string, entries ...LogEntry) {
 	l.log(ctx, DEBUG, msg, entries...)
 }
 
-func (l *FakeLogger) Info(ctx context.Context, msg string, entries ...entry) {
+func (l *FakeLogger) Info(ctx context.Context, msg string, entries ...LogEntry) {
 	l.log(ctx, INFO, msg, entries...)
 }
 
-func (l *FakeLogger) Warning(ctx context.Context, msg string, entries ...entry) {
+func (l *FakeLogger) Warning(ctx context.Context, msg string, entries ...LogEntry) {
 	l.log(ctx, WARNING, msg, entries...)
 }
 
-func (l *FakeLogger) Error(ctx context.Context, msg string, entries ...entry) {
+func (l *FakeLogger) Error(ctx context.Context, msg string, entries ...LogEntry) {
 	l.log(ctx, ERROR, msg, entries...)
 }
 
-func (l *FakeLogger) log(ctx context.Context, level string, msg string, entries ...entry) {
+func (l *FakeLogger) log(ctx context.Context, level string, msg string, entries ...LogEntry) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 	l.Logged = append(l.Logged, FakeLoggerRecord{

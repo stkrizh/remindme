@@ -16,6 +16,6 @@ type CreateUserInput struct {
 }
 
 type Repository interface {
-	Create(ctx context.Context, input CreateUserInput) (*User, error)
-	GetByID(ctx context.Context, id ID) (*User, error)
+	Create(ctx context.Context, input CreateUserInput) (User, error)
+	GetByID(ctx context.Context, id ID) (User, error)
 }

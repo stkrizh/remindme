@@ -31,3 +31,9 @@ type UserDoesNotExistError struct{}
 func (e *UserDoesNotExistError) Error() string {
 	return "user does not exists"
 }
+
+type ActivationTokenSendingError struct{}
+
+func (e *ActivationTokenSendingError) Error() string {
+	return "could not send activation token"
+}

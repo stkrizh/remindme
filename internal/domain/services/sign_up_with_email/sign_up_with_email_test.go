@@ -2,8 +2,10 @@ package signupwithemail
 
 import (
 	"context"
+	"errors"
 	"remindme/internal/domain/common"
 	"remindme/internal/domain/logging"
+	"remindme/internal/domain/services"
 	uow "remindme/internal/domain/unit_of_work"
 	"remindme/internal/domain/user"
 	"testing"
@@ -13,15 +15,16 @@ import (
 )
 
 const ACTIVATION_TOKEN = "test"
+const EMAIL = user.Email("test@test.test")
+const RAW_PASSWORD = user.RawPassword("test-password")
 
-func TestSignUpWithEmailService(t *testing.T) {
+func TestSuccess(t *testing.T) {
 	logger := logging.NewFakeLogger()
 	userRepository := user.NewFakeRepository()
 	unitOfWorkContext := uow.NewFakeUnitOfWorkContext(userRepository)
 	unitOfWork := uow.NewFakeUnitOfWork(unitOfWorkContext)
 	passwordHasher := user.NewFakePasswordHasher()
 	activationTokenGenerator := user.NewFakeActivationTokenGenerator(ACTIVATION_TOKEN)
-	activationTokenSender := user.NewFakeActivationTokenSender()
 	now := time.Now().UTC()
 
 	service := New(
@@ -29,19 +32,63 @@ func TestSignUpWithEmailService(t *testing.T) {
 		unitOfWork,
 		passwordHasher,
 		activationTokenGenerator,
-		activationTokenSender,
 		func() time.Time { return now },
 	)
 
 	context := context.Background()
-	result, err := service.Run(context, Input{Email: user.Email("test@test.com"), Password: user.RawPassword("test")})
+	result, err := service.Run(
+		context,
+		services.SignUpWithEmailInput{Email: EMAIL, Password: RAW_PASSWORD},
+	)
 
 	assert := require.New(t)
 	assert.Nil(err)
-	assert.NotNil(result)
+	assert.NotEqual(user.ID(0), result.User.ID)
+	assert.Equal(now, result.User.CreatedAt)
+	assert.True(result.User.Email.IsPresent)
+	assert.Equal(EMAIL, result.User.Email.Value)
+	assert.True(result.User.PasswordHash.IsPresent)
+	assert.NotEqual(RAW_PASSWORD, result.User.PasswordHash.Value)
+	assert.False(result.User.Identity.IsPresent)
+	assert.True(unitOfWork.Context.WasCommitCalled)
+}
 
-	assert.Equal(1, activationTokenSender.SentCount())
-	u := activationTokenSender.LastSentTo()
-	assert.Equal(common.NewOptional(user.Email("test@test.com"), true), u.Email)
-	assert.Equal(common.NewOptional(user.ActivationToken(ACTIVATION_TOKEN), true), u.ActivationToken)
+func TestEmailAlreadyExistsError(t *testing.T) {
+	logger := logging.NewFakeLogger()
+	userRepository := user.NewFakeRepository()
+	unitOfWorkContext := uow.NewFakeUnitOfWorkContext(userRepository)
+	unitOfWork := uow.NewFakeUnitOfWork(unitOfWorkContext)
+	passwordHasher := user.NewFakePasswordHasher()
+	activationTokenGenerator := user.NewFakeActivationTokenGenerator(ACTIVATION_TOKEN)
+	now := time.Now().UTC()
+
+	ctx := context.Background()
+	userRepository.Create(
+		ctx,
+		user.CreateUserInput{
+			Email:        common.NewOptional(EMAIL, true),
+			PasswordHash: common.NewOptional(user.PasswordHash("test"), true),
+			CreatedAt:    now,
+		},
+	)
+
+	service := New(
+		logger,
+		unitOfWork,
+		passwordHasher,
+		activationTokenGenerator,
+		func() time.Time { return now },
+	)
+	_, err := service.Run(
+		ctx,
+		services.SignUpWithEmailInput{Email: EMAIL, Password: RAW_PASSWORD},
+	)
+
+	assert := require.New(t)
+	assert.NotNil(err)
+
+	var expectedErr *user.EmailAlreadyExistsError
+	assert.True(errors.As(err, &expectedErr))
+	assert.False(unitOfWork.Context.WasCommitCalled)
+	assert.True(unitOfWorkContext.WasRollbackCalled)
 }

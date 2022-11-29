@@ -11,19 +11,11 @@ import (
 	"time"
 )
 
-type Input struct {
-	Email    user.Email
-	Password user.RawPassword
-}
-
-type Result struct{}
-
 type service struct {
+	log                      logging.Logger
 	unitOfWork               uow.UnitOfWork
 	passwordHasher           user.PasswordHasher
 	activationTokenGenerator user.ActivationTokenGenerator
-	activationTokenSender    user.ActivationTokenSender
-	log                      logging.Logger
 	now                      func() time.Time
 }
 
@@ -32,9 +24,8 @@ func New(
 	unitOfWork uow.UnitOfWork,
 	passwordHasher user.PasswordHasher,
 	activationTokenGenerator user.ActivationTokenGenerator,
-	activationTokenSender user.ActivationTokenSender,
 	now func() time.Time,
-) services.Service[Input, Result] {
+) services.Service[services.SignUpWithEmailInput, services.SignUpWithEmailResult] {
 	if unitOfWork == nil {
 		panic("Argument unitOfWork must not be nil.")
 	}
@@ -44,9 +35,6 @@ func New(
 	if activationTokenGenerator == nil {
 		panic("Argument activationTokenGenerator must not be nil.")
 	}
-	if activationTokenSender == nil {
-		panic("Argument activationTokenSender must not be nil.")
-	}
 	if log == nil {
 		panic("Argument logger must not be nil.")
 	}
@@ -54,13 +42,15 @@ func New(
 		unitOfWork:               unitOfWork,
 		passwordHasher:           passwordHasher,
 		activationTokenGenerator: activationTokenGenerator,
-		activationTokenSender:    activationTokenSender,
 		log:                      log,
 		now:                      now,
 	}
 }
 
-func (s *service) Run(ctx context.Context, input Input) (result Result, err error) {
+func (s *service) Run(
+	ctx context.Context,
+	input services.SignUpWithEmailInput,
+) (result services.SignUpWithEmailResult, err error) {
 	passwordHash := s.passwordHasher.HashPassword(input.Password)
 	uow, err := s.unitOfWork.Begin(ctx)
 	if err != nil {
@@ -109,16 +99,5 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		return result, err
 	}
 	s.log.Info(ctx, "New user has been created.", logging.Entry("user", createdUser))
-
-	if err = s.activationTokenSender.SendToken(ctx, *createdUser); err != nil {
-		s.log.Error(
-			ctx,
-			"Could not send activation token.",
-			logging.Entry("user", createdUser),
-			logging.Entry("err", err),
-		)
-
-	}
-	s.log.Info(ctx, "Activation token has been sent to the user.", logging.Entry("userId", createdUser.ID))
-	return result, nil
+	return services.SignUpWithEmailResult{User: createdUser}, nil
 }

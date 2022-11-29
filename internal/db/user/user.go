@@ -9,8 +9,12 @@ import (
 	"remindme/internal/domain/user"
 	"time"
 
+	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
 )
+
+const PG_UNIQUE_CONSTRAINT_ERR_CODE = "23505"
+const EMAIL_CONSTRAINT_NAME = "user_email_idx"
 
 type PgxUserRepository struct {
 	queries *sqlcgen.Queries
@@ -23,7 +27,7 @@ func NewPgxRepository(db sqlcgen.DBTX) *PgxUserRepository {
 	return &PgxUserRepository{queries: sqlcgen.New(db)}
 }
 
-func (r *PgxUserRepository) Create(ctx context.Context, input user.CreateUserInput) (*user.User, error) {
+func (r *PgxUserRepository) Create(ctx context.Context, input user.CreateUserInput) (u user.User, err error) {
 	dbuser, err := r.queries.CreateUser(ctx, sqlcgen.CreateUserParams{
 		Email:           encodeEmail(input.Email),
 		Identity:        encodeIdentity(input.Identity),
@@ -32,31 +36,40 @@ func (r *PgxUserRepository) Create(ctx context.Context, input user.CreateUserInp
 		ActivatedAt:     encodeOptionalTime(input.ActivatedAt),
 		ActivationToken: encodeActivationToken(input.ActivationToken),
 	})
-	if err != nil {
-		return nil, err
+
+	var errEmailUniqueConstraint *pgconn.PgError
+	if errors.As(err, &errEmailUniqueConstraint) {
+		if errEmailUniqueConstraint.Code == PG_UNIQUE_CONSTRAINT_ERR_CODE &&
+			errEmailUniqueConstraint.ConstraintName == EMAIL_CONSTRAINT_NAME {
+			return u, &user.EmailAlreadyExistsError{Email: input.Email.Value}
+		}
 	}
-	user := decodeUser(dbuser)
-	err = user.Validate()
+
 	if err != nil {
-		return nil, err
+		return u, err
 	}
-	return user, nil
+	u = decodeUser(dbuser)
+	err = u.Validate()
+	if err != nil {
+		return u, err
+	}
+	return u, nil
 }
 
-func (r *PgxUserRepository) GetByID(ctx context.Context, id user.ID) (*user.User, error) {
+func (r *PgxUserRepository) GetByID(ctx context.Context, id user.ID) (u user.User, err error) {
 	dbuser, err := r.queries.GetUserByID(ctx, int64(id))
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, &user.UserDoesNotExistError{}
+		return u, &user.UserDoesNotExistError{}
 	}
 	if err != nil {
-		return nil, err
+		return u, err
 	}
-	user := decodeUser(dbuser)
-	err = user.Validate()
+	u = decodeUser(dbuser)
+	err = u.Validate()
 	if err != nil {
-		return nil, err
+		return u, err
 	}
-	return user, nil
+	return u, nil
 }
 
 func encodeEmail(email c.Optional[user.Email]) sql.NullString {
@@ -79,8 +92,8 @@ func encodeOptionalTime(at c.Optional[time.Time]) sql.NullTime {
 	return sql.NullTime{Time: at.Value, Valid: at.IsPresent}
 }
 
-func decodeUser(u sqlcgen.User) *user.User {
-	return &user.User{
+func decodeUser(u sqlcgen.User) user.User {
+	return user.User{
 		ID:              user.ID(u.ID),
 		Email:           c.NewOptional(user.Email(u.Email.String), u.Email.Valid),
 		Identity:        c.NewOptional(user.Identity(u.Identity.String), u.Identity.Valid),

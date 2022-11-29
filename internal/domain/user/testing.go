@@ -20,7 +20,7 @@ func NewFakeActivationTokenSender() *FakeActivationTokenSender {
 
 func (s *FakeActivationTokenSender) SendToken(ctx context.Context, user User) error {
 	if s.ReturnError {
-		return fmt.Errorf("Could not send activation token for user %v", user)
+		return fmt.Errorf("could not send activation token for user %v", user)
 	}
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -78,26 +78,26 @@ func NewFakeRepository() *FakeRepository {
 	return &FakeRepository{Users: make(map[ID]User)}
 }
 
-func (r *FakeRepository) Create(ctx context.Context, input CreateUserInput) (*User, error) {
+func (r *FakeRepository) Create(ctx context.Context, input CreateUserInput) (u User, err error) {
 	if r.ReturnError {
-		return nil, fmt.Errorf("could not create user %v", input)
+		return u, fmt.Errorf("could not create user %v", input)
 	}
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	maxID := ID(0)
 	for id, u := range r.Users {
 		if input.Email.IsPresent && u.Email == input.Email {
-			return nil, &EmailAlreadyExistsError{Email: u.Email.Value}
+			return u, &EmailAlreadyExistsError{Email: u.Email.Value}
 		}
 		if input.Identity.IsPresent && u.Identity == input.Identity {
-			return nil, &IdentityAlreadyExistsError{Identity: u.Identity.Value}
+			return u, &IdentityAlreadyExistsError{Identity: u.Identity.Value}
 		}
 		if input.ActivationToken.IsPresent && u.ActivationToken == input.ActivationToken {
-			return nil, &ActivationTokenAlreadyExistsError{ActivationToken: u.ActivationToken.Value}
+			return u, &ActivationTokenAlreadyExistsError{ActivationToken: u.ActivationToken.Value}
 		}
 		maxID = id
 	}
-	user := User{
+	u = User{
 		ID:              maxID + 1,
 		Email:           input.Email,
 		PasswordHash:    input.PasswordHash,
@@ -106,14 +106,14 @@ func (r *FakeRepository) Create(ctx context.Context, input CreateUserInput) (*Us
 		ActivatedAt:     input.ActivatedAt,
 		ActivationToken: input.ActivationToken,
 	}
-	r.Users[user.ID] = user
-	return &user, nil
+	r.Users[u.ID] = u
+	return u, nil
 }
 
-func (r *FakeRepository) GetByID(ctx context.Context, id ID) (*User, error) {
-	user, ok := r.Users[id]
+func (r *FakeRepository) GetByID(ctx context.Context, id ID) (u User, err error) {
+	u, ok := r.Users[id]
 	if !ok {
-		return nil, &UserDoesNotExistError{}
+		return u, &UserDoesNotExistError{}
 	}
-	return &user, nil
+	return u, nil
 }
