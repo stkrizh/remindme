@@ -3,13 +3,16 @@ package http
 import (
 	"context"
 	"net/http"
-	"os"
+	"remindme/internal/config"
 	uow "remindme/internal/db/unit_of_work"
+	dl "remindme/internal/domain/logging"
 	sendactivationemail "remindme/internal/domain/services/send_activation_email"
 	signupwithemail "remindme/internal/domain/services/sign_up_with_email"
 	"remindme/internal/domain/user"
 	"remindme/internal/http/handlers"
-	"remindme/internal/logging"
+	"remindme/internal/implementations/activation"
+	"remindme/internal/implementations/logging"
+	passwordhasher "remindme/internal/implementations/password_hasher"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -17,11 +20,12 @@ import (
 )
 
 func StartApp() {
-	dbConnString := os.Getenv("POSTGRESQL_URL")
-	if dbConnString == "" {
-		panic("POSTGRESQL_URL must be set.")
+	config, err := config.Load()
+	if err != nil {
+		panic(err)
 	}
-	db, err := pgxpool.Connect(context.Background(), dbConnString)
+
+	db, err := pgxpool.Connect(context.Background(), config.PostgresqlURL)
 	if err != nil {
 		panic("Could not connect to the database.")
 	}
@@ -29,10 +33,11 @@ func StartApp() {
 
 	logger := logging.NewZapLogger()
 	defer logger.Sync()
+
 	unitOfWork := uow.NewPgxUnitOfWork(db)
 
-	passwordHasher := user.NewFakePasswordHasher()
-	activationTokenGenerator := user.NewFakeActivationTokenGenerator("test")
+	passwordHasher := passwordhasher.NewBcrypt(config.Secret, config.BcryptHasherCost)
+	activationTokenGenerator := activation.NewTokenGenerator()
 	activationTokenSender := user.NewFakeActivationTokenSender()
 
 	signUpWithEmailService := sendactivationemail.New(
@@ -49,7 +54,6 @@ func StartApp() {
 
 	router := mux.NewRouter()
 	router.Handle("/auth/signup", handlers.NewSignUpWithEmail(signUpWithEmailService))
-	// rest.NewTaskHandler(svc).Register(r)
 
 	address := "0.0.0.0:9090"
 
@@ -62,5 +66,6 @@ func StartApp() {
 		IdleTimeout:       5 * time.Second,
 	}
 
+	logger.Info(context.Background(), "Server has started.", dl.Entry("address", address))
 	srv.ListenAndServe()
 }

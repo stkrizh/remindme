@@ -13,7 +13,7 @@ type ZapLogger struct {
 }
 
 func NewZapLogger() *ZapLogger {
-	logger, err := zap.NewProduction()
+	logger, err := zap.NewProduction(zap.AddCallerSkip(1))
 	if err != nil {
 		panic("Could not create Zap logger.")
 	}

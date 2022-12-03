@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"remindme/internal/domain/services"
 	"remindme/internal/domain/user"
+
+	validation "github.com/go-ozzo/ozzo-validation"
+	"github.com/go-ozzo/ozzo-validation/is"
 )
 
 type SignUpWithEmail struct {
@@ -29,29 +32,38 @@ func (i *SignUpWithEmailInput) FromJSON(r io.Reader) error {
 	return e.Decode(i)
 }
 
+func (i SignUpWithEmailInput) Validate() error {
+	return validation.ValidateStruct(&i,
+		validation.Field(&i.Email, validation.Required, is.Email),
+		validation.Field(&i.Password, validation.Required, validation.Length(6, 256)),
+	)
+}
+
 func (s *SignUpWithEmail) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	input := SignUpWithEmailInput{}
-	err := input.FromJSON(r.Body)
-	if err != nil {
-		renderErrorResponse(rw, "Invalid request data.", http.StatusBadRequest)
+	if err := input.FromJSON(r.Body); err != nil {
+		renderErrorResponse(rw, "invalid request data", http.StatusBadRequest)
 		return
 	}
-	_, err = s.service.Run(
+	if err := input.Validate(); err != nil {
+		renderResponse(rw, err, http.StatusBadRequest)
+		return
+	}
+
+	_, err := s.service.Run(
 		r.Context(),
 		services.SignUpWithEmailInput{Email: user.Email(input.Email), Password: user.RawPassword(input.Password)},
 	)
 	if err == nil {
-		renderResponse(rw, "", http.StatusCreated)
+		renderResponse(rw, struct{}{}, http.StatusCreated)
+		return
 	}
 
 	var errEmailAlreadyExists *user.EmailAlreadyExistsError
 	if errors.As(err, &errEmailAlreadyExists) {
-		renderErrorResponse(rw, "Email already exists.", http.StatusUnprocessableEntity)
+		renderErrorResponse(rw, "email already exists", http.StatusUnprocessableEntity)
 		return
 	}
 
-	if err != nil {
-		renderErrorResponse(rw, "Internal error.", http.StatusInternalServerError)
-		return
-	}
+	renderErrorResponse(rw, "internal error", http.StatusInternalServerError)
 }

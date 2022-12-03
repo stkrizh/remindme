@@ -51,7 +51,11 @@ func (s *service) Run(
 	ctx context.Context,
 	input services.SignUpWithEmailInput,
 ) (result services.SignUpWithEmailResult, err error) {
-	passwordHash := s.passwordHasher.HashPassword(input.Password)
+	passwordHash, err := s.passwordHasher.HashPassword(input.Password)
+	if err != nil {
+		s.log.Error(ctx, "Could not hash password.", logging.Entry("err", err))
+		return result, err
+	}
 	uow, err := s.unitOfWork.Begin(ctx)
 	if err != nil {
 		s.log.Error(

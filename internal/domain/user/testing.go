@@ -58,14 +58,18 @@ func NewFakePasswordHasher() *FakePasswordHasher {
 	return &FakePasswordHasher{}
 }
 
-func (h *FakePasswordHasher) HashPassword(password RawPassword) PasswordHash {
+func (h *FakePasswordHasher) HashPassword(password RawPassword) (PasswordHash, error) {
 	hash := md5.New()
 	io.WriteString(hash, string(password))
-	return PasswordHash(fmt.Sprintf("%x", hash.Sum(nil)))
+	return PasswordHash(fmt.Sprintf("%x", hash.Sum(nil))), nil
 }
 
 func (h *FakePasswordHasher) ValidatePassword(password RawPassword, hash PasswordHash) bool {
-	return h.HashPassword(password) == hash
+	actualHash, err := h.HashPassword(password)
+	if err != nil {
+		return false
+	}
+	return actualHash == hash
 }
 
 type FakeRepository struct {

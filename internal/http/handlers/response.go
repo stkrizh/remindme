@@ -22,6 +22,6 @@ func renderResponse(rw http.ResponseWriter, res interface{}, status int) {
 		return
 	}
 
-	rw.WriteHeader(http.StatusCreated)
+	rw.WriteHeader(status)
 	rw.Write(content)
 }

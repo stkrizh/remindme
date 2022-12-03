@@ -43,6 +43,11 @@ func (s *service) Run(
 		)
 		return result, &user.ActivationTokenSendingError{}
 	}
-	s.log.Info(ctx, "Activation token has been sent to the user.", logging.Entry("userId", result.User.ID))
+	s.log.Info(
+		ctx,
+		"Activation token has been sent to the user.",
+		logging.Entry("userId", result.User.ID),
+		logging.Entry("activationToken", result.User.ActivationToken),
+	)
 	return result, err
 }
