@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"remindme/internal/domain/services"
+	signupwithemail "remindme/internal/domain/services/sign_up_with_email"
 	"remindme/internal/domain/user"
 
 	validation "github.com/go-ozzo/ozzo-validation"
@@ -13,11 +14,11 @@ import (
 )
 
 type SignUpWithEmail struct {
-	service services.Service[services.SignUpWithEmailInput, services.SignUpWithEmailResult]
+	service services.Service[signupwithemail.Input, signupwithemail.Result]
 }
 
 func NewSignUpWithEmail(
-	service services.Service[services.SignUpWithEmailInput, services.SignUpWithEmailResult],
+	service services.Service[signupwithemail.Input, signupwithemail.Result],
 ) *SignUpWithEmail {
 	return &SignUpWithEmail{service: service}
 }
@@ -52,7 +53,7 @@ func (s *SignUpWithEmail) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	_, err := s.service.Run(
 		r.Context(),
-		services.SignUpWithEmailInput{Email: user.Email(input.Email), Password: user.RawPassword(input.Password)},
+		signupwithemail.Input{Email: user.Email(input.Email), Password: user.RawPassword(input.Password)},
 	)
 	if err == nil {
 		renderResponse(rw, struct{}{}, http.StatusCreated)

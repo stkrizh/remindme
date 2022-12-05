@@ -9,6 +9,7 @@ import (
 type Config struct {
 	Secret           string
 	PostgresqlURL    string
+	RedisURL         string
 	BcryptHasherCost int
 }
 
@@ -16,6 +17,11 @@ func Load() (*Config, error) {
 	postgresqlURL := os.Getenv("POSTGRESQL_URL")
 	if postgresqlURL == "" {
 		return nil, fmt.Errorf("POSTGRESQL_URL must be set")
+	}
+
+	redisURL := os.Getenv("REDIS_URL")
+	if redisURL == "" {
+		return nil, fmt.Errorf("REDIS_URL must be set")
 	}
 
 	secret := os.Getenv("SECRET")
@@ -32,6 +38,7 @@ func Load() (*Config, error) {
 	return &Config{
 		Secret:           secret,
 		PostgresqlURL:    postgresqlURL,
+		RedisURL:         redisURL,
 		BcryptHasherCost: bcryptHasherCost,
 	}, nil
 }

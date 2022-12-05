@@ -9,7 +9,8 @@ type Context interface {
 	Rollback(ctx context.Context) error
 	Commit(ctx context.Context) error
 
-	Users() user.Repository
+	Users() user.UserRepository
+	Sessions() user.SessionRepository
 }
 
 type UnitOfWork interface {

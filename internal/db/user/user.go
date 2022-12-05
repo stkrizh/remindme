@@ -6,6 +6,7 @@ import (
 	"errors"
 	"remindme/internal/db/sqlcgen"
 	c "remindme/internal/domain/common"
+	e "remindme/internal/domain/errors"
 	"remindme/internal/domain/user"
 	"time"
 
@@ -22,7 +23,7 @@ type PgxUserRepository struct {
 
 func NewPgxRepository(db sqlcgen.DBTX) *PgxUserRepository {
 	if db == nil {
-		panic("Argument db must not be nil.")
+		panic(e.NewNilArgumentError("db"))
 	}
 	return &PgxUserRepository{queries: sqlcgen.New(db)}
 }
@@ -103,4 +104,40 @@ func decodeUser(u sqlcgen.User) user.User {
 		ActivationToken: c.NewOptional(user.ActivationToken(u.ActivationToken.String), u.ActivationToken.Valid),
 		LastLoginAt:     c.NewOptional(u.LastLoginAt.Time, u.LastLoginAt.Valid),
 	}
+}
+
+type PgxSessionRepository struct {
+	queries *sqlcgen.Queries
+}
+
+func NewPgxSessionRepository(db sqlcgen.DBTX) *PgxSessionRepository {
+	if db == nil {
+		panic(e.NewNilArgumentError("db"))
+	}
+	return &PgxSessionRepository{queries: sqlcgen.New(db)}
+}
+
+func (r *PgxSessionRepository) Create(ctx context.Context, input user.CreateSessionInput) error {
+	_, err := r.queries.CreateSession(ctx, sqlcgen.CreateSessionParams{
+		Token:     string(input.Token),
+		UserID:    int64(input.UserID),
+		CreatedAt: input.CreatedAt,
+	})
+	return err
+}
+
+func (r *PgxSessionRepository) GetUserByToken(ctx context.Context, token user.SessionToken) (u user.User, err error) {
+	dbuser, err := r.queries.GetUserBySessionToken(ctx, string(token))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return u, &user.UserDoesNotExistError{}
+	}
+	if err != nil {
+		return u, err
+	}
+	u = decodeUser(dbuser)
+	err = u.Validate()
+	if err != nil {
+		return u, err
+	}
+	return u, nil
 }

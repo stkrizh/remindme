@@ -6,13 +6,20 @@ import (
 )
 
 type FakeUnitOfWorkContext struct {
-	UserRepository    user.Repository
+	UserRepository    user.UserRepository
+	SessionRepository user.SessionRepository
 	WasRollbackCalled bool
 	WasCommitCalled   bool
 }
 
-func NewFakeUnitOfWorkContext(userRepository user.Repository) *FakeUnitOfWorkContext {
-	return &FakeUnitOfWorkContext{UserRepository: userRepository}
+func NewFakeUnitOfWorkContext(
+	userRepository user.UserRepository,
+	sessionRepository user.SessionRepository,
+) *FakeUnitOfWorkContext {
+	return &FakeUnitOfWorkContext{
+		UserRepository:    userRepository,
+		SessionRepository: sessionRepository,
+	}
 }
 
 func (c *FakeUnitOfWorkContext) Rollback(ctx context.Context) error {
@@ -25,8 +32,12 @@ func (c *FakeUnitOfWorkContext) Commit(ctx context.Context) error {
 	return nil
 }
 
-func (c *FakeUnitOfWorkContext) Users() user.Repository {
+func (c *FakeUnitOfWorkContext) Users() user.UserRepository {
 	return c.UserRepository
+}
+
+func (c *FakeUnitOfWorkContext) Sessions() user.SessionRepository {
+	return c.SessionRepository
 }
 
 type FakeUnitOfWork struct {

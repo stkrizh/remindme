@@ -31,8 +31,12 @@ func (c *pgxUnitOfWorkContext) Rollback(ctx context.Context) error {
 	return c.tx.Rollback(ctx)
 }
 
-func (c *pgxUnitOfWorkContext) Users() user.Repository {
+func (c *pgxUnitOfWorkContext) Users() user.UserRepository {
 	return dbuser.NewPgxRepository(c.tx)
+}
+
+func (c *pgxUnitOfWorkContext) Sessions() user.SessionRepository {
+	return dbuser.NewPgxSessionRepository(c.tx)
 }
 
 type PgxUnitOfWork struct {

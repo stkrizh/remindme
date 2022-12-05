@@ -9,6 +9,13 @@ import (
 	"time"
 )
 
+type Session struct {
+	ID        int64
+	Token     string
+	UserID    int64
+	CreatedAt time.Time
+}
+
 type User struct {
 	ID              int64
 	Email           sql.NullString

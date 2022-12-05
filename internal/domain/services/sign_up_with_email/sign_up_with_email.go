@@ -4,12 +4,21 @@ import (
 	"context"
 	"errors"
 	c "remindme/internal/domain/common"
+	e "remindme/internal/domain/errors"
 	"remindme/internal/domain/logging"
-	"remindme/internal/domain/services"
 	uow "remindme/internal/domain/unit_of_work"
 	"remindme/internal/domain/user"
 	"time"
 )
+
+type Input struct {
+	Email    user.Email
+	Password user.RawPassword
+}
+
+type Result struct {
+	User user.User
+}
 
 type service struct {
 	log                      logging.Logger
@@ -25,18 +34,21 @@ func New(
 	passwordHasher user.PasswordHasher,
 	activationTokenGenerator user.ActivationTokenGenerator,
 	now func() time.Time,
-) services.Service[services.SignUpWithEmailInput, services.SignUpWithEmailResult] {
+) *service {
 	if unitOfWork == nil {
-		panic("Argument unitOfWork must not be nil.")
+		panic(e.NewNilArgumentError("unitOfWork"))
 	}
 	if passwordHasher == nil {
-		panic("Argument passwordHasher must not be nil.")
+		panic(e.NewNilArgumentError("passwordHasher"))
 	}
 	if activationTokenGenerator == nil {
-		panic("Argument activationTokenGenerator must not be nil.")
+		panic(e.NewNilArgumentError("activationTokenGenerator"))
 	}
 	if log == nil {
-		panic("Argument logger must not be nil.")
+		panic(e.NewNilArgumentError("log"))
+	}
+	if now == nil {
+		panic(e.NewNilArgumentError("now"))
 	}
 	return &service{
 		unitOfWork:               unitOfWork,
@@ -47,16 +59,16 @@ func New(
 	}
 }
 
-func (s *service) Run(
-	ctx context.Context,
-	input services.SignUpWithEmailInput,
-) (result services.SignUpWithEmailResult, err error) {
+func (s *service) Run(ctx context.Context, input Input) (result Result, err error) {
 	passwordHash, err := s.passwordHasher.HashPassword(input.Password)
 	if err != nil {
 		s.log.Error(ctx, "Could not hash password.", logging.Entry("err", err))
 		return result, err
 	}
 	uow, err := s.unitOfWork.Begin(ctx)
+	if errors.Is(err, context.Canceled) {
+		return result, err
+	}
 	if err != nil {
 		s.log.Error(
 			ctx,
@@ -74,26 +86,33 @@ func (s *service) Run(
 		CreatedAt:       s.now(),
 		ActivationToken: c.NewOptional(s.activationTokenGenerator.GenerateToken(), true),
 	})
-	var emailAlreadyExistsErr *user.EmailAlreadyExistsError
-	if errors.As(err, &emailAlreadyExistsErr) {
-		s.log.Info(
-			ctx,
-			"User with the email already exists.",
-			logging.Entry("email", input.Email),
-		)
+	if errors.Is(err, context.Canceled) {
 		return result, err
 	}
 	if err != nil {
-		s.log.Error(
-			ctx,
-			"Could not create new user.",
-			logging.Entry("input", input),
-			logging.Entry("err", err),
-		)
+		var emailAlreadyExistsErr *user.EmailAlreadyExistsError
+		if errors.As(err, &emailAlreadyExistsErr) {
+			s.log.Info(
+				ctx,
+				"User with the email already exists.",
+				logging.Entry("email", input.Email),
+			)
+		} else {
+			s.log.Error(
+				ctx,
+				"Could not create new user.",
+				logging.Entry("input", input),
+				logging.Entry("err", err),
+			)
+		}
 		return result, err
 	}
 
-	if err = uow.Commit(ctx); err != nil {
+	err = uow.Commit(ctx)
+	if errors.Is(err, context.Canceled) {
+		return result, err
+	}
+	if err != nil {
 		s.log.Error(
 			ctx,
 			"Could not commit unit of work.",
@@ -102,6 +121,7 @@ func (s *service) Run(
 		)
 		return result, err
 	}
+
 	s.log.Info(ctx, "New user has been created.", logging.Entry("user", createdUser))
-	return services.SignUpWithEmailResult{User: createdUser}, nil
+	return Result{User: createdUser}, nil
 }

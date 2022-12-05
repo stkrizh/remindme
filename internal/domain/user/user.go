@@ -3,6 +3,7 @@ package user
 import (
 	"fmt"
 	c "remindme/internal/domain/common"
+	e "remindme/internal/domain/errors"
 	"time"
 )
 
@@ -26,6 +27,8 @@ type Identity string
 
 type ActivationToken string
 
+type SessionToken string
+
 type User struct {
 	ID              ID
 	Email           c.Optional[Email]
@@ -40,12 +43,12 @@ type User struct {
 func (u *User) Validate() error {
 	if u.Email.IsPresent {
 		if !u.PasswordHash.IsPresent {
-			return c.NewInvalidStateError(fmt.Sprintf("password hash is not set for user %d", u.ID))
+			return e.NewInvalidStateError(fmt.Sprintf("password hash is not set for user %d", u.ID))
 		}
 		return nil
 	}
 	if !u.Identity.IsPresent {
-		return c.NewInvalidStateError(fmt.Sprintf("neither email nor identity is not defined for user %d", u.ID))
+		return e.NewInvalidStateError(fmt.Sprintf("neither email nor identity is not defined for user %d", u.ID))
 	}
 	return nil
 }

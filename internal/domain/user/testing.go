@@ -72,17 +72,17 @@ func (h *FakePasswordHasher) ValidatePassword(password RawPassword, hash Passwor
 	return actualHash == hash
 }
 
-type FakeRepository struct {
+type FakeUserRepository struct {
 	Users       map[ID]User
 	ReturnError bool
 	lock        sync.RWMutex
 }
 
-func NewFakeRepository() *FakeRepository {
-	return &FakeRepository{Users: make(map[ID]User)}
+func NewFakeUserRepository() *FakeUserRepository {
+	return &FakeUserRepository{Users: make(map[ID]User)}
 }
 
-func (r *FakeRepository) Create(ctx context.Context, input CreateUserInput) (u User, err error) {
+func (r *FakeUserRepository) Create(ctx context.Context, input CreateUserInput) (u User, err error) {
 	if r.ReturnError {
 		return u, fmt.Errorf("could not create user %v", input)
 	}
@@ -114,10 +114,42 @@ func (r *FakeRepository) Create(ctx context.Context, input CreateUserInput) (u U
 	return u, nil
 }
 
-func (r *FakeRepository) GetByID(ctx context.Context, id ID) (u User, err error) {
+func (r *FakeUserRepository) GetByID(ctx context.Context, id ID) (u User, err error) {
 	u, ok := r.Users[id]
 	if !ok {
 		return u, &UserDoesNotExistError{}
 	}
 	return u, nil
+}
+
+type FakeSessionRepository struct {
+	UserIdByToken  map[SessionToken]ID
+	UserRepository UserRepository
+	ReturnError    bool
+	lock           sync.RWMutex
+}
+
+func NewFakeSessionRepository(userRepository UserRepository) *FakeSessionRepository {
+	return &FakeSessionRepository{
+		UserIdByToken:  make(map[SessionToken]ID),
+		UserRepository: userRepository,
+	}
+}
+
+func (r *FakeSessionRepository) Create(ctx context.Context, input CreateSessionInput) error {
+	if r.ReturnError {
+		return fmt.Errorf("could not create session %v", input)
+	}
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.UserIdByToken[input.Token] = input.UserID
+	return nil
+}
+
+func (r *FakeSessionRepository) GetUserByToken(ctx context.Context, token SessionToken) (u User, err error) {
+	userId, ok := r.UserIdByToken[token]
+	if !ok {
+		return u, &UserDoesNotExistError{}
+	}
+	return r.UserRepository.GetByID(ctx, userId)
 }

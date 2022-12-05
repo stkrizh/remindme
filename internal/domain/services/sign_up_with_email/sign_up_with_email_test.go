@@ -5,7 +5,6 @@ import (
 	"errors"
 	"remindme/internal/domain/common"
 	"remindme/internal/domain/logging"
-	"remindme/internal/domain/services"
 	uow "remindme/internal/domain/unit_of_work"
 	"remindme/internal/domain/user"
 	"testing"
@@ -20,8 +19,9 @@ const RAW_PASSWORD = user.RawPassword("test-password")
 
 func TestSuccess(t *testing.T) {
 	logger := logging.NewFakeLogger()
-	userRepository := user.NewFakeRepository()
-	unitOfWorkContext := uow.NewFakeUnitOfWorkContext(userRepository)
+	userRepository := user.NewFakeUserRepository()
+	sessionRepository := user.NewFakeSessionRepository(userRepository)
+	unitOfWorkContext := uow.NewFakeUnitOfWorkContext(userRepository, sessionRepository)
 	unitOfWork := uow.NewFakeUnitOfWork(unitOfWorkContext)
 	passwordHasher := user.NewFakePasswordHasher()
 	activationTokenGenerator := user.NewFakeActivationTokenGenerator(ACTIVATION_TOKEN)
@@ -36,10 +36,7 @@ func TestSuccess(t *testing.T) {
 	)
 
 	context := context.Background()
-	result, err := service.Run(
-		context,
-		services.SignUpWithEmailInput{Email: EMAIL, Password: RAW_PASSWORD},
-	)
+	result, err := service.Run(context, Input{Email: EMAIL, Password: RAW_PASSWORD})
 
 	assert := require.New(t)
 	assert.Nil(err)
@@ -55,8 +52,9 @@ func TestSuccess(t *testing.T) {
 
 func TestEmailAlreadyExistsError(t *testing.T) {
 	logger := logging.NewFakeLogger()
-	userRepository := user.NewFakeRepository()
-	unitOfWorkContext := uow.NewFakeUnitOfWorkContext(userRepository)
+	userRepository := user.NewFakeUserRepository()
+	sessionRepository := user.NewFakeSessionRepository(userRepository)
+	unitOfWorkContext := uow.NewFakeUnitOfWorkContext(userRepository, sessionRepository)
 	unitOfWork := uow.NewFakeUnitOfWork(unitOfWorkContext)
 	passwordHasher := user.NewFakePasswordHasher()
 	activationTokenGenerator := user.NewFakeActivationTokenGenerator(ACTIVATION_TOKEN)
@@ -79,10 +77,7 @@ func TestEmailAlreadyExistsError(t *testing.T) {
 		activationTokenGenerator,
 		func() time.Time { return now },
 	)
-	_, err := service.Run(
-		ctx,
-		services.SignUpWithEmailInput{Email: EMAIL, Password: RAW_PASSWORD},
-	)
+	_, err := service.Run(ctx, Input{Email: EMAIL, Password: RAW_PASSWORD})
 
 	assert := require.New(t)
 	assert.NotNil(err)

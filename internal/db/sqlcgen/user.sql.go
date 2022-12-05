@@ -11,6 +11,30 @@ import (
 	"time"
 )
 
+const createSession = `-- name: CreateSession :one
+INSERT INTO session (token, user_id, created_at)
+VALUES ($1, $2, $3)
+RETURNING id, token, user_id, created_at
+`
+
+type CreateSessionParams struct {
+	Token     string
+	UserID    int64
+	CreatedAt time.Time
+}
+
+func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
+	row := q.db.QueryRow(ctx, createSession, arg.Token, arg.UserID, arg.CreatedAt)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.Token,
+		&i.UserID,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO "user" (email, identity, password_hash, created_at, activated_at, activation_token) 
 VALUES ($1, $2, $3, $4, $5, $6)
@@ -55,6 +79,28 @@ SELECT id, email, identity, password_hash, created_at, activated_at, activation_
 
 func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByID, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Identity,
+		&i.PasswordHash,
+		&i.CreatedAt,
+		&i.ActivatedAt,
+		&i.ActivationToken,
+		&i.LastLoginAt,
+	)
+	return i, err
+}
+
+const getUserBySessionToken = `-- name: GetUserBySessionToken :one
+SELECT "user".id, "user".email, "user".identity, "user".password_hash, "user".created_at, "user".activated_at, "user".activation_token, "user".last_login_at FROM "user" 
+JOIN session ON "user".id = session.user_id
+WHERE session.token = $1
+`
+
+func (q *Queries) GetUserBySessionToken(ctx context.Context, token string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserBySessionToken, token)
 	var i User
 	err := row.Scan(
 		&i.ID,

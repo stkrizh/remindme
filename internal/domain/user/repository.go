@@ -15,7 +15,18 @@ type CreateUserInput struct {
 	ActivationToken c.Optional[ActivationToken]
 }
 
-type Repository interface {
+type UserRepository interface {
 	Create(ctx context.Context, input CreateUserInput) (User, error)
 	GetByID(ctx context.Context, id ID) (User, error)
+}
+
+type CreateSessionInput struct {
+	UserID    ID
+	Token     SessionToken
+	CreatedAt time.Time
+}
+
+type SessionRepository interface {
+	Create(ctx context.Context, input CreateSessionInput) error
+	GetUserByToken(ctx context.Context, token SessionToken) (User, error)
 }
