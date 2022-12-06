@@ -44,8 +44,14 @@ type FakeUnitOfWork struct {
 	Context *FakeUnitOfWorkContext
 }
 
-func NewFakeUnitOfWork(context *FakeUnitOfWorkContext) *FakeUnitOfWork {
-	return &FakeUnitOfWork{Context: context}
+func NewFakeUnitOfWork() *FakeUnitOfWork {
+	userRepository := user.NewFakeUserRepository()
+	return &FakeUnitOfWork{
+		Context: NewFakeUnitOfWorkContext(
+			userRepository,
+			user.NewFakeSessionRepository(userRepository),
+		),
+	}
 }
 
 func (u *FakeUnitOfWork) Begin(ctx context.Context) (Context, error) {

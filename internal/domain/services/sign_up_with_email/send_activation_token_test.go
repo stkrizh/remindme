@@ -5,11 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"remindme/internal/domain/logging"
-	"remindme/internal/domain/services"
 	"remindme/internal/domain/user"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
 const PASSWORD = user.RawPassword("test")
@@ -20,41 +19,57 @@ type stubSignUpService struct {
 	err error
 }
 
-func newStubSignUpService(err error) services.Service[Input, Result] {
+func newStubSignUpService(err error) *stubSignUpService {
 	return &stubSignUpService{err: err}
 }
 
 func (s *stubSignUpService) Run(ctx context.Context, input Input) (result Result, err error) {
-	if s.err != nil {
-		return result, s.err
-	}
 	return result, s.err
 }
 
-func TestActivationEmailSent(t *testing.T) {
-	logger := logging.NewFakeLogger()
-	sender := user.NewFakeActivationTokenSender()
-	stubSignUpService := newStubSignUpService(nil)
-	service := NewWithActivationTokenSending(logger, sender, stubSignUpService)
-
-	ctx := context.Background()
-	_, err := service.Run(ctx, Input{Email: EMAIL, Password: PASSWORD})
-
-	assert := require.New(t)
-	assert.Nil(err)
-	assert.Equal(1, sender.SentCount())
+type testActivationSuite struct {
+	suite.Suite
+	Logger  *logging.FakeLogger
+	Sender  *user.FakeActivationTokenSender
+	Inner   *stubSignUpService
+	Service *serviceWithActivationTokenSending
 }
 
-func TestSignUpServiceError(t *testing.T) {
-	logger := logging.NewFakeLogger()
-	sender := user.NewFakeActivationTokenSender()
-	stubSignUpService := newStubSignUpService(errTest)
-	service := NewWithActivationTokenSending(logger, sender, stubSignUpService)
+func (suite *testActivationSuite) SetupTest() {
+	suite.Logger = logging.NewFakeLogger()
+	suite.Sender = user.NewFakeActivationTokenSender()
+	suite.Inner = newStubSignUpService(nil)
+	suite.Service = NewWithActivationTokenSending(
+		suite.Logger,
+		suite.Sender,
+		suite.Inner,
+	)
+}
 
+func TestActivationSuite(t *testing.T) {
+	suite.Run(t, new(testActivationSuite))
+}
+
+func (suite *testActivationSuite) TestActivationEmailSent() {
+	ctx := context.Background()
+	_, err := suite.Service.Run(ctx, Input{Email: EMAIL, Password: PASSWORD})
+
+	assert := suite.Require()
+	assert.Nil(err)
+	assert.Equal(1, suite.Sender.SentCount())
+}
+
+func (suite *testActivationSuite) TestSignUpServiceError() {
+	service := NewWithActivationTokenSending(
+		suite.Logger,
+		suite.Sender,
+		newStubSignUpService(errTest),
+	)
 	ctx := context.Background()
 	_, err := service.Run(ctx, Input{Email: EMAIL, Password: PASSWORD})
 
-	assert := require.New(t)
+	assert := suite.Require()
 	assert.NotNil(err)
 	assert.True(errors.Is(err, errTest))
+	assert.Equal(0, suite.Sender.SentCount())
 }

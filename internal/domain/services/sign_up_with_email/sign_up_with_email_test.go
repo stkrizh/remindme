@@ -10,80 +10,78 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
-const ACTIVATION_TOKEN = "test"
-const EMAIL = user.Email("test@test.test")
-const RAW_PASSWORD = user.RawPassword("test-password")
+const (
+	ACTIVATION_TOKEN = "test"
+	EMAIL            = user.Email("test@test.test")
+	RAW_PASSWORD     = user.RawPassword("test-password")
+)
 
-func TestSuccess(t *testing.T) {
-	logger := logging.NewFakeLogger()
-	userRepository := user.NewFakeUserRepository()
-	sessionRepository := user.NewFakeSessionRepository(userRepository)
-	unitOfWorkContext := uow.NewFakeUnitOfWorkContext(userRepository, sessionRepository)
-	unitOfWork := uow.NewFakeUnitOfWork(unitOfWorkContext)
-	passwordHasher := user.NewFakePasswordHasher()
-	activationTokenGenerator := user.NewFakeActivationTokenGenerator(ACTIVATION_TOKEN)
-	now := time.Now().UTC()
+var NOW time.Time = time.Now().UTC()
 
-	service := New(
-		logger,
-		unitOfWork,
-		passwordHasher,
-		activationTokenGenerator,
-		func() time.Time { return now },
+type testSuite struct {
+	suite.Suite
+	Logger                   *logging.FakeLogger
+	UnitOfWork               *uow.FakeUnitOfWork
+	PasswordHasher           *user.FakePasswordHasher
+	ActivationTokenGenerator *user.FakeActivationTokenGenerator
+	Service                  *service
+}
+
+func (suite *testSuite) SetupTest() {
+	suite.Logger = logging.NewFakeLogger()
+	suite.UnitOfWork = uow.NewFakeUnitOfWork()
+	suite.PasswordHasher = user.NewFakePasswordHasher()
+	suite.ActivationTokenGenerator = user.NewFakeActivationTokenGenerator(ACTIVATION_TOKEN)
+	suite.Service = New(
+		suite.Logger,
+		suite.UnitOfWork,
+		suite.PasswordHasher,
+		suite.ActivationTokenGenerator,
+		func() time.Time { return NOW },
 	)
+}
 
+func TestSuite(t *testing.T) {
+	suite.Run(t, new(testSuite))
+}
+
+func (suite *testSuite) TestSuccess() {
 	context := context.Background()
-	result, err := service.Run(context, Input{Email: EMAIL, Password: RAW_PASSWORD})
+	result, err := suite.Service.Run(context, Input{Email: EMAIL, Password: RAW_PASSWORD})
 
-	assert := require.New(t)
+	assert := suite.Require()
 	assert.Nil(err)
 	assert.NotEqual(user.ID(0), result.User.ID)
-	assert.Equal(now, result.User.CreatedAt)
+	assert.Equal(NOW, result.User.CreatedAt)
 	assert.True(result.User.Email.IsPresent)
 	assert.Equal(EMAIL, result.User.Email.Value)
 	assert.True(result.User.PasswordHash.IsPresent)
 	assert.NotEqual(RAW_PASSWORD, result.User.PasswordHash.Value)
 	assert.False(result.User.Identity.IsPresent)
-	assert.True(unitOfWork.Context.WasCommitCalled)
+	assert.True(suite.UnitOfWork.Context.WasCommitCalled)
 }
 
-func TestEmailAlreadyExistsError(t *testing.T) {
-	logger := logging.NewFakeLogger()
-	userRepository := user.NewFakeUserRepository()
-	sessionRepository := user.NewFakeSessionRepository(userRepository)
-	unitOfWorkContext := uow.NewFakeUnitOfWorkContext(userRepository, sessionRepository)
-	unitOfWork := uow.NewFakeUnitOfWork(unitOfWorkContext)
-	passwordHasher := user.NewFakePasswordHasher()
-	activationTokenGenerator := user.NewFakeActivationTokenGenerator(ACTIVATION_TOKEN)
-	now := time.Now().UTC()
-
+func (suite *testSuite) TestEmailAlreadyExistsError() {
 	ctx := context.Background()
-	userRepository.Create(
+	suite.UnitOfWork.Context.UserRepository.Create(
 		ctx,
 		user.CreateUserInput{
 			Email:        common.NewOptional(EMAIL, true),
 			PasswordHash: common.NewOptional(user.PasswordHash("test"), true),
-			CreatedAt:    now,
+			CreatedAt:    NOW,
 		},
 	)
 
-	service := New(
-		logger,
-		unitOfWork,
-		passwordHasher,
-		activationTokenGenerator,
-		func() time.Time { return now },
-	)
-	_, err := service.Run(ctx, Input{Email: EMAIL, Password: RAW_PASSWORD})
+	_, err := suite.Service.Run(ctx, Input{Email: EMAIL, Password: RAW_PASSWORD})
 
-	assert := require.New(t)
+	assert := suite.Require()
 	assert.NotNil(err)
 
 	var expectedErr *user.EmailAlreadyExistsError
 	assert.True(errors.As(err, &expectedErr))
-	assert.False(unitOfWork.Context.WasCommitCalled)
-	assert.True(unitOfWorkContext.WasRollbackCalled)
+	assert.False(suite.UnitOfWork.Context.WasCommitCalled)
+	assert.True(suite.UnitOfWork.Context.WasRollbackCalled)
 }

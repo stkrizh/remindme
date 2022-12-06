@@ -72,6 +72,30 @@ func (h *FakePasswordHasher) ValidatePassword(password RawPassword, hash Passwor
 	return actualHash == hash
 }
 
+type FakeIdentityGenerator struct {
+	Identity string
+}
+
+func NewFakeIdentityGenerator(identity string) *FakeIdentityGenerator {
+	return &FakeIdentityGenerator{Identity: identity}
+}
+
+type FakeSessionTokenGenerator struct {
+	Token string
+}
+
+func NewFakeSessionTokenGenerator(token string) *FakeSessionTokenGenerator {
+	return &FakeSessionTokenGenerator{Token: token}
+}
+
+func (g *FakeSessionTokenGenerator) GenerateToken() SessionToken {
+	return SessionToken(g.Token)
+}
+
+func (g *FakeIdentityGenerator) GenerateIdentity() Identity {
+	return Identity(g.Identity)
+}
+
 type FakeUserRepository struct {
 	Users       map[ID]User
 	ReturnError bool
