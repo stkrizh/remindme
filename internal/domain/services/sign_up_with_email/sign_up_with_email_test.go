@@ -79,9 +79,7 @@ func (suite *testSuite) TestEmailAlreadyExistsError() {
 
 	assert := suite.Require()
 	assert.NotNil(err)
-
-	var expectedErr *user.EmailAlreadyExistsError
-	assert.True(errors.As(err, &expectedErr))
+	assert.True(errors.Is(err, user.ErrEmailAlreadyExists))
 	assert.False(suite.UnitOfWork.Context.WasCommitCalled)
 	assert.True(suite.UnitOfWork.Context.WasRollbackCalled)
 }

@@ -97,13 +97,13 @@ func (g *FakeIdentityGenerator) GenerateIdentity() Identity {
 }
 
 type FakeUserRepository struct {
-	Users       map[ID]User
+	Users       []User
 	ReturnError bool
 	lock        sync.RWMutex
 }
 
 func NewFakeUserRepository() *FakeUserRepository {
-	return &FakeUserRepository{Users: make(map[ID]User)}
+	return &FakeUserRepository{Users: make([]User, 0, 10)}
 }
 
 func (r *FakeUserRepository) Create(ctx context.Context, input CreateUserInput) (u User, err error) {
@@ -113,17 +113,11 @@ func (r *FakeUserRepository) Create(ctx context.Context, input CreateUserInput) 
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	maxID := ID(0)
-	for id, u := range r.Users {
+	for _, u := range r.Users {
 		if input.Email.IsPresent && u.Email == input.Email {
-			return u, &EmailAlreadyExistsError{Email: u.Email.Value}
+			return u, ErrEmailAlreadyExists
 		}
-		if input.Identity.IsPresent && u.Identity == input.Identity {
-			return u, &IdentityAlreadyExistsError{Identity: u.Identity.Value}
-		}
-		if input.ActivationToken.IsPresent && u.ActivationToken == input.ActivationToken {
-			return u, &ActivationTokenAlreadyExistsError{ActivationToken: u.ActivationToken.Value}
-		}
-		maxID = id
+		maxID = u.ID
 	}
 	u = User{
 		ID:              maxID + 1,
@@ -134,16 +128,26 @@ func (r *FakeUserRepository) Create(ctx context.Context, input CreateUserInput) 
 		ActivatedAt:     input.ActivatedAt,
 		ActivationToken: input.ActivationToken,
 	}
-	r.Users[u.ID] = u
+	r.Users = append(r.Users, u)
 	return u, nil
 }
 
 func (r *FakeUserRepository) GetByID(ctx context.Context, id ID) (u User, err error) {
-	u, ok := r.Users[id]
-	if !ok {
-		return u, &UserDoesNotExistError{}
+	for _, u := range r.Users {
+		if u.ID == id {
+			return u, nil
+		}
 	}
-	return u, nil
+	return u, ErrUserDoesNotExist
+}
+
+func (r *FakeUserRepository) GetByEmail(ctx context.Context, email Email) (u User, err error) {
+	for _, u := range r.Users {
+		if u.Email.IsPresent && u.Email.Value == email {
+			return u, nil
+		}
+	}
+	return u, ErrUserDoesNotExist
 }
 
 type FakeSessionRepository struct {
@@ -173,7 +177,7 @@ func (r *FakeSessionRepository) Create(ctx context.Context, input CreateSessionI
 func (r *FakeSessionRepository) GetUserByToken(ctx context.Context, token SessionToken) (u User, err error) {
 	userId, ok := r.UserIdByToken[token]
 	if !ok {
-		return u, &UserDoesNotExistError{}
+		return u, ErrUserDoesNotExist
 	}
 	return r.UserRepository.GetByID(ctx, userId)
 }

@@ -89,22 +89,21 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 	if errors.Is(err, context.Canceled) {
 		return result, err
 	}
+	if errors.Is(err, user.ErrEmailAlreadyExists) {
+		s.log.Info(
+			ctx,
+			"User with the email already exists.",
+			logging.Entry("email", input.Email),
+		)
+		return result, err
+	}
 	if err != nil {
-		var emailAlreadyExistsErr *user.EmailAlreadyExistsError
-		if errors.As(err, &emailAlreadyExistsErr) {
-			s.log.Info(
-				ctx,
-				"User with the email already exists.",
-				logging.Entry("email", input.Email),
-			)
-		} else {
-			s.log.Error(
-				ctx,
-				"Could not create new user.",
-				logging.Entry("input", input),
-				logging.Entry("err", err),
-			)
-		}
+		s.log.Error(
+			ctx,
+			"Could not create new user.",
+			logging.Entry("input", input),
+			logging.Entry("err", err),
+		)
 		return result, err
 	}
 

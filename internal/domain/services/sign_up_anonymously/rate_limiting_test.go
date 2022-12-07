@@ -2,7 +2,6 @@ package signupanonymously
 
 import (
 	"context"
-	"errors"
 	"net/netip"
 	"remindme/internal/domain/logging"
 	ratelimiter "remindme/internal/domain/rate_limiter"
@@ -50,6 +49,7 @@ func TestRateLimitingSuite(t *testing.T) {
 
 func (suite *testRateLimitingSuite) TestNotLimited() {
 	ctx := context.Background()
+	suite.RateLimiter.IsAllowed = true
 	_, err := suite.Service.Run(ctx, Input{IP: netip.MustParseAddr("192.168.1.1")})
 
 	assert := suite.Require()
@@ -59,11 +59,9 @@ func (suite *testRateLimitingSuite) TestNotLimited() {
 
 func (suite *testRateLimitingSuite) TestLimited() {
 	ctx := context.Background()
-	suite.RateLimiter.ReturnRateLimitError = true
-	_, err := suite.Service.Run(ctx, Input{IP: netip.MustParseAddr("192.168.1.1")})
+	suite.RateLimiter.IsAllowed = false
+	suite.Service.Run(ctx, Input{IP: netip.MustParseAddr("192.168.1.1")})
 
 	assert := suite.Require()
-	var errExpected *ratelimiter.RateLimitExceededError
-	assert.True(errors.As(err, &errExpected))
 	assert.False(suite.Inner.WasCalled)
 }

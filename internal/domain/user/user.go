@@ -4,12 +4,17 @@ import (
 	"fmt"
 	c "remindme/internal/domain/common"
 	e "remindme/internal/domain/errors"
+	"strings"
 	"time"
 )
 
 type ID int64
 
 type Email string
+
+func NewEmail(rawEmail string) Email {
+	return Email(strings.ToLower(rawEmail))
+}
 
 type PasswordHash string
 

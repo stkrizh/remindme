@@ -18,6 +18,7 @@ type CreateUserInput struct {
 type UserRepository interface {
 	Create(ctx context.Context, input CreateUserInput) (User, error)
 	GetByID(ctx context.Context, id ID) (User, error)
+	GetByEmail(ctx context.Context, email Email) (User, error)
 }
 
 type CreateSessionInput struct {

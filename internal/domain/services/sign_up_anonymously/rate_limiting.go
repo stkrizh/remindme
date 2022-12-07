@@ -2,7 +2,6 @@ package signupanonymously
 
 import (
 	"context"
-	"errors"
 	e "remindme/internal/domain/errors"
 	"remindme/internal/domain/logging"
 	ratelimiter "remindme/internal/domain/rate_limiter"
@@ -38,28 +37,15 @@ func NewWithRateLimiting(
 
 func (s *serviceWithRateLimiting) Run(ctx context.Context, input Input) (result Result, err error) {
 	rateLimitKey := "sign-up-anonymously::" + input.IP.String()
-	err = s.rateLimiter.CheckLimit(ctx, rateLimitKey, s.rateLimit)
-	if err == nil {
+	rate := s.rateLimiter.CheckLimit(ctx, rateLimitKey, s.rateLimit)
+	if rate.IsAllowed {
 		return s.inner.Run(ctx, input)
 	}
 
-	if errors.Is(err, context.Canceled) {
-		return result, err
-	}
-	var errRateLimitExceed *ratelimiter.RateLimitExceededError
-	if errors.As(err, &errRateLimitExceed) {
-		s.log.Warning(
-			ctx,
-			"Rate limit exceeded for anonymous signing up.",
-			logging.Entry("ip", input.IP),
-		)
-		return result, err
-	}
-	s.log.Error(
+	s.log.Warning(
 		ctx,
-		"Could not check rate limit for anonymous signing up.",
-		logging.Entry("input", input),
-		logging.Entry("err", err),
+		"Rate limit exceeded for anonymous signing up.",
+		logging.Entry("ip", input.IP),
 	)
-	return result, err
+	return result, ratelimiter.ErrRateLimitExceeded
 }

@@ -6,6 +6,9 @@ RETURNING *;
 -- name: GetUserByID :one
 SELECT * FROM "user" WHERE id = $1;
 
+-- name: GetUserByEmail :one
+SELECT * FROM "user" WHERE email = $1;
+
 -- name: CreateSession :one
 INSERT INTO session (token, user_id, created_at)
 VALUES ($1, $2, $3)

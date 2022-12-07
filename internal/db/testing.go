@@ -24,7 +24,7 @@ func applyMigrations(connString string) {
 	}
 	err = m.Up()
 	if !errors.Is(err, migrate.ErrNoChange) && err != nil {
-		panic(fmt.Sprintf("Could not apply DB migrations %v.", err))
+		panic(fmt.Errorf("could not apply DB migrations %w", err))
 	}
 }
 
@@ -38,15 +38,15 @@ func CreateTestPool() *pgxpool.Pool {
 	ctx := context.Background()
 	pool, err := pgxpool.Connect(ctx, connString)
 	if err != nil {
-		panic("Could not connect to the database.")
+		panic(fmt.Errorf("could not connect to the database %w", err))
 	}
 
 	return pool
 }
 
 func TruncateTables(pool *pgxpool.Pool) {
-	_, err := pool.Exec(context.Background(), "TRUNCATE \"user\"")
+	_, err := pool.Exec(context.Background(), "DELETE FROM \"user\";")
 	if err != nil {
-		panic("Could not truncate DB tables.")
+		panic(fmt.Errorf("could not truncate DB tables %w", err))
 	}
 }

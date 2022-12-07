@@ -1,12 +1,19 @@
 package ratelimiter
 
-import "context"
+import (
+	"context"
+	"errors"
+)
 
-type Interval int
+var ErrRateLimitExceeded = errors.New("rate limit exceeded")
 
-const (
-	Minute = Interval(0)
-	Hour   = Interval(1)
+type Interval struct {
+	value int
+}
+
+var (
+	Minute = Interval{}
+	Hour   = Interval{value: 1}
 )
 
 type Limit struct {
@@ -14,6 +21,18 @@ type Limit struct {
 	Interval Interval
 }
 
+type Result struct {
+	IsAllowed bool
+}
+
+func Allowed() Result {
+	return Result{IsAllowed: true}
+}
+
+func NotAllowed() Result {
+	return Result{IsAllowed: false}
+}
+
 type RateLimiter interface {
-	CheckLimit(ctx context.Context, key string, limit Limit) error
+	CheckLimit(ctx context.Context, key string, limit Limit) Result
 }

@@ -42,7 +42,7 @@ func (r *PgxUserRepository) Create(ctx context.Context, input user.CreateUserInp
 	if errors.As(err, &errEmailUniqueConstraint) {
 		if errEmailUniqueConstraint.Code == PG_UNIQUE_CONSTRAINT_ERR_CODE &&
 			errEmailUniqueConstraint.ConstraintName == EMAIL_CONSTRAINT_NAME {
-			return u, &user.EmailAlreadyExistsError{Email: input.Email.Value}
+			return u, user.ErrEmailAlreadyExists
 		}
 	}
 
@@ -57,10 +57,26 @@ func (r *PgxUserRepository) Create(ctx context.Context, input user.CreateUserInp
 	return u, nil
 }
 
+func (r *PgxUserRepository) GetByEmail(ctx context.Context, email user.Email) (u user.User, err error) {
+	dbuser, err := r.queries.GetUserByEmail(ctx, sql.NullString{String: string(email), Valid: true})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return u, user.ErrUserDoesNotExist
+	}
+	if err != nil {
+		return u, err
+	}
+	u = decodeUser(dbuser)
+	err = u.Validate()
+	if err != nil {
+		return u, err
+	}
+	return u, nil
+}
+
 func (r *PgxUserRepository) GetByID(ctx context.Context, id user.ID) (u user.User, err error) {
 	dbuser, err := r.queries.GetUserByID(ctx, int64(id))
 	if errors.Is(err, pgx.ErrNoRows) {
-		return u, &user.UserDoesNotExistError{}
+		return u, user.ErrUserDoesNotExist
 	}
 	if err != nil {
 		return u, err
@@ -129,7 +145,7 @@ func (r *PgxSessionRepository) Create(ctx context.Context, input user.CreateSess
 func (r *PgxSessionRepository) GetUserByToken(ctx context.Context, token user.SessionToken) (u user.User, err error) {
 	dbuser, err := r.queries.GetUserBySessionToken(ctx, string(token))
 	if errors.Is(err, pgx.ErrNoRows) {
-		return u, &user.UserDoesNotExistError{}
+		return u, user.ErrUserDoesNotExist
 	}
 	if err != nil {
 		return u, err

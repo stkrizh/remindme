@@ -52,8 +52,7 @@ func (s *SignUpAnonymously) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var errRateLimitExceed *ratelimiter.RateLimitExceededError
-	if errors.As(err, &errRateLimitExceed) {
+	if errors.Is(err, ratelimiter.ErrRateLimitExceeded) {
 		renderErrorResponse(rw, "rate limit exceeded", http.StatusTooManyRequests)
 		return
 	}

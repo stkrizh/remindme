@@ -35,7 +35,7 @@ func (i *SignUpWithEmailInput) FromJSON(r io.Reader) error {
 
 func (i SignUpWithEmailInput) Validate() error {
 	return validation.ValidateStruct(&i,
-		validation.Field(&i.Email, validation.Required, is.Email),
+		validation.Field(&i.Email, validation.Required, is.Email, validation.Length(0, 512)),
 		validation.Field(&i.Password, validation.Required, validation.Length(6, 256)),
 	)
 }
@@ -53,18 +53,15 @@ func (s *SignUpWithEmail) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	_, err := s.service.Run(
 		r.Context(),
-		signupwithemail.Input{Email: user.Email(input.Email), Password: user.RawPassword(input.Password)},
+		signupwithemail.Input{Email: user.NewEmail(input.Email), Password: user.RawPassword(input.Password)},
 	)
 	if err == nil {
 		renderResponse(rw, struct{}{}, http.StatusCreated)
 		return
 	}
-
-	var errEmailAlreadyExists *user.EmailAlreadyExistsError
-	if errors.As(err, &errEmailAlreadyExists) {
+	if errors.Is(err, user.ErrEmailAlreadyExists) {
 		renderErrorResponse(rw, "email already exists", http.StatusUnprocessableEntity)
 		return
 	}
-
 	renderErrorResponse(rw, "internal error", http.StatusInternalServerError)
 }

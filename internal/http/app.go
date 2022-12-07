@@ -5,8 +5,10 @@ import (
 	"net/http"
 	"remindme/internal/config"
 	uow "remindme/internal/db/unit_of_work"
+	dbuser "remindme/internal/db/user"
 	dl "remindme/internal/domain/logging"
 	drl "remindme/internal/domain/rate_limiter"
+	signinwithemail "remindme/internal/domain/services/sign_in_with_email"
 	signupanonymously "remindme/internal/domain/services/sign_up_anonymously"
 	signupwithemail "remindme/internal/domain/services/sign_up_with_email"
 	"remindme/internal/domain/user"
@@ -48,7 +50,9 @@ func StartApp() {
 	defer logger.Sync()
 
 	unitOfWork := uow.NewPgxUnitOfWork(db)
-	rateLimiter := ratelimiter.NewRedis(redisClient, now)
+	userRepository := dbuser.NewPgxRepository(db)
+	sessionRepository := dbuser.NewPgxSessionRepository(db)
+	rateLimiter := ratelimiter.NewRedis(redisClient, logger, now)
 
 	passwordHasher := passwordhasher.NewBcrypt(config.Secret, config.BcryptHasherCost)
 	activationTokenGenerator := activation.NewTokenGenerator()
@@ -79,10 +83,19 @@ func StartApp() {
 			now,
 		),
 	)
+	signInWithEmailService := signinwithemail.New(
+		logger,
+		userRepository,
+		sessionRepository,
+		passwordHasher,
+		sessionTokenGenerator,
+		now,
+	)
 
 	router := mux.NewRouter()
 	router.Handle("/auth/signup", handlers.NewSignUpWithEmail(signUpWithEmailService))
 	router.Handle("/auth/signup/anonymously", handlers.NewSignUpAnonymously(signUpAnonymouslyService))
+	router.Handle("/auth/signin", handlers.NewSignInWithEmail(signInWithEmailService))
 
 	address := "0.0.0.0:9090"
 

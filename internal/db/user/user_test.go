@@ -89,9 +89,7 @@ func (suite *testSuite) TestEmailAlreadyExistsError() {
 	assert.Nil(err)
 
 	_, err = suite.repo.Create(context.Background(), input)
-
-	expectedErr := &user.EmailAlreadyExistsError{Email: user.Email("test@test.test")}
-	assert.ErrorAs(err, &expectedErr)
+	assert.ErrorIs(err, user.ErrEmailAlreadyExists)
 }
 
 func TestSuite(t *testing.T) {

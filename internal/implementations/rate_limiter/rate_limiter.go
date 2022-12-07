@@ -2,8 +2,10 @@ package ratelimiter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	e "remindme/internal/domain/errors"
+	"remindme/internal/domain/logging"
 	ratelimiter "remindme/internal/domain/rate_limiter"
 	"time"
 
@@ -12,20 +14,24 @@ import (
 
 type Redis struct {
 	redisClient *redis.Client
+	log         logging.Logger
 	now         func() time.Time
 }
 
-func NewRedis(redisClient *redis.Client, now func() time.Time) *Redis {
+func NewRedis(redisClient *redis.Client, log logging.Logger, now func() time.Time) *Redis {
 	if redisClient == nil {
 		panic(e.NewNilArgumentError("redisClient"))
+	}
+	if log == nil {
+		panic(e.NewNilArgumentError("log"))
 	}
 	if now == nil {
 		panic(e.NewNilArgumentError("now"))
 	}
-	return &Redis{redisClient: redisClient, now: now}
+	return &Redis{redisClient: redisClient, log: log, now: now}
 }
 
-func (r *Redis) CheckLimit(ctx context.Context, key string, limit ratelimiter.Limit) error {
+func (r *Redis) CheckLimit(ctx context.Context, key string, limit ratelimiter.Limit) ratelimiter.Result {
 	var d time.Duration
 	var k string
 
@@ -37,7 +43,7 @@ func (r *Redis) CheckLimit(ctx context.Context, key string, limit ratelimiter.Li
 		k = fmt.Sprintf("%s::m%d", key, r.now().Minute())
 		d = time.Minute
 	default:
-		return fmt.Errorf("invalid rate limiting interval %v", limit.Interval)
+		panic("invalid rate limiting interval")
 	}
 
 	cmds, err := r.redisClient.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
@@ -45,12 +51,16 @@ func (r *Redis) CheckLimit(ctx context.Context, key string, limit ratelimiter.Li
 		pipe.Expire(ctx, k, d)
 		return nil
 	})
+	if errors.Is(err, context.Canceled) {
+		return ratelimiter.NotAllowed()
+	}
 	if err != nil {
-		return err
+		r.log.Error(ctx, "Could not check rate limit due to Redis client error.", logging.Entry("err", err))
+		return ratelimiter.Allowed()
 	}
 	intCmd := cmds[0].(*redis.IntCmd)
 	if intCmd.Val() > int64(limit.Value) {
-		return ratelimiter.NewRateLimiteExceededError(key)
+		return ratelimiter.NotAllowed()
 	}
-	return nil
+	return ratelimiter.Allowed()
 }

@@ -3,16 +3,16 @@ package ratelimiter
 import "context"
 
 type FakeRateLimiter struct {
-	ReturnRateLimitError bool
+	IsAllowed bool
 }
 
-func NewFakeRateLimiter(returnRateLimitError bool) *FakeRateLimiter {
-	return &FakeRateLimiter{ReturnRateLimitError: returnRateLimitError}
+func NewFakeRateLimiter(isAllowed bool) *FakeRateLimiter {
+	return &FakeRateLimiter{IsAllowed: isAllowed}
 }
 
-func (rl *FakeRateLimiter) CheckLimit(ctx context.Context, key string, limit Limit) error {
-	if rl.ReturnRateLimitError {
-		return NewRateLimiteExceededError(key)
+func (rl *FakeRateLimiter) CheckLimit(ctx context.Context, key string, limit Limit) Result {
+	if rl.IsAllowed {
+		return Result{IsAllowed: true}
 	}
-	return nil
+	return Result{IsAllowed: false}
 }
