@@ -71,25 +71,25 @@ func StartApp() {
 			now,
 		),
 	)
-	signUpAnonymouslyService := signupanonymously.NewWithRateLimiting(
+	signUpAnonymouslyService := signupanonymously.New(
+		logger,
+		unitOfWork,
+		identityGenerator,
+		sessionTokenGenerator,
+		now,
+	)
+	signInWithEmailService := signinwithemail.NewWithRateLimiting(
 		logger,
 		rateLimiter,
-		drl.Limit{Value: 3, Interval: drl.Minute},
-		signupanonymously.New(
+		drl.Limit{Interval: drl.Hour, Value: 10},
+		signinwithemail.New(
 			logger,
-			unitOfWork,
-			identityGenerator,
+			userRepository,
+			sessionRepository,
+			passwordHasher,
 			sessionTokenGenerator,
 			now,
 		),
-	)
-	signInWithEmailService := signinwithemail.New(
-		logger,
-		userRepository,
-		sessionRepository,
-		passwordHasher,
-		sessionTokenGenerator,
-		now,
 	)
 
 	router := mux.NewRouter()

@@ -73,6 +73,9 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 	if !s.passwordHasher.ValidatePassword(input.Password, u.PasswordHash.Value) {
 		return result, user.ErrInvalidCredentials
 	}
+	if !u.IsActive() {
+		return result, user.ErrUserIsNotActive
+	}
 	sessionToken := s.sessionTokenGenerator.GenerateToken()
 	err = s.sessionRepository.Create(ctx, user.CreateSessionInput{
 		UserID:    u.ID,

@@ -1,24 +1,24 @@
-package signupanonymously
+package signinwithemail
 
 import (
 	"context"
-	"net/netip"
 	"remindme/internal/domain/logging"
 	ratelimiter "remindme/internal/domain/rate_limiter"
+	"remindme/internal/domain/user"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
 )
 
-type stubSignUpAnonymouslyService struct {
+type stubSignInWithEmailService struct {
 	WasCalled bool
 }
 
-func NewStubSignUpAnonymouslyService() *stubSignUpAnonymouslyService {
-	return &stubSignUpAnonymouslyService{}
+func NewStubSignUpAnonymouslyService() *stubSignInWithEmailService {
+	return &stubSignInWithEmailService{}
 }
 
-func (s *stubSignUpAnonymouslyService) Run(ctx context.Context, input Input) (result Result, err error) {
+func (s *stubSignInWithEmailService) Run(ctx context.Context, input Input) (result Result, err error) {
 	s.WasCalled = true
 	return result, nil
 }
@@ -27,7 +27,7 @@ type testRateLimitingSuite struct {
 	suite.Suite
 	Logger      *logging.FakeLogger
 	RateLimiter *ratelimiter.FakeRateLimiter
-	Inner       *stubSignUpAnonymouslyService
+	Inner       *stubSignInWithEmailService
 	Service     *serviceWithRateLimiting
 }
 
@@ -50,7 +50,7 @@ func TestRateLimitingSuite(t *testing.T) {
 func (suite *testRateLimitingSuite) TestNotLimited() {
 	ctx := context.Background()
 	suite.RateLimiter.IsAllowed = true
-	_, err := suite.Service.Run(ctx, Input{IP: netip.MustParseAddr("192.168.1.1")})
+	_, err := suite.Service.Run(ctx, Input{Email: user.NewEmail("test@test.test"), Password: user.RawPassword("test")})
 
 	assert := suite.Require()
 	assert.Nil(err)
@@ -60,7 +60,7 @@ func (suite *testRateLimitingSuite) TestNotLimited() {
 func (suite *testRateLimitingSuite) TestLimited() {
 	ctx := context.Background()
 	suite.RateLimiter.IsAllowed = false
-	suite.Service.Run(ctx, Input{IP: netip.MustParseAddr("192.168.1.1")})
+	suite.Service.Run(ctx, Input{Email: user.NewEmail("test@test.test"), Password: user.RawPassword("test")})
 
 	assert := suite.Require()
 	assert.False(suite.Inner.WasCalled)

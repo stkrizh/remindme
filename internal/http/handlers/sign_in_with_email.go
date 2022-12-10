@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	ratelimiter "remindme/internal/domain/rate_limiter"
 	"remindme/internal/domain/services"
 	signinwithemail "remindme/internal/domain/services/sign_in_with_email"
 	"remindme/internal/domain/user"
@@ -59,8 +60,16 @@ func (s *SignInWithEmail) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		r.Context(),
 		signinwithemail.Input{Email: user.NewEmail(input.Email), Password: user.RawPassword(input.Password)},
 	)
+	if errors.Is(err, ratelimiter.ErrRateLimitExceeded) {
+		renderErrorResponse(rw, "rate limit exceeded", http.StatusTooManyRequests)
+		return
+	}
 	if errors.Is(err, user.ErrInvalidCredentials) {
 		renderErrorResponse(rw, "invalid credentials", http.StatusUnauthorized)
+		return
+	}
+	if errors.Is(err, user.ErrUserIsNotActive) {
+		renderErrorResponse(rw, "user is not active", http.StatusUnprocessableEntity)
 		return
 	}
 	if err != nil {

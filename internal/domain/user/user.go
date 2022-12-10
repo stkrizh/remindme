@@ -58,6 +58,10 @@ func (u *User) Validate() error {
 	return nil
 }
 
+func (u *User) IsActive() bool {
+	return u.ActivatedAt.IsPresent
+}
+
 func (u *User) IsAnonymous() bool {
 	if u.Email.IsPresent && u.PasswordHash.IsPresent {
 		return false

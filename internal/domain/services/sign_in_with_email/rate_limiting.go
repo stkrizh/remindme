@@ -1,4 +1,4 @@
-package signupanonymously
+package signinwithemail
 
 import (
 	"context"
@@ -36,7 +36,7 @@ func NewWithRateLimiting(
 }
 
 func (s *serviceWithRateLimiting) Run(ctx context.Context, input Input) (result Result, err error) {
-	rateLimitKey := "sign-up-anonymously::" + input.IP.String()
+	rateLimitKey := "sign-in-with-email::" + string(input.Email)
 	rate := s.rateLimiter.CheckLimit(ctx, rateLimitKey, s.rateLimit)
 	if rate.IsAllowed {
 		return s.inner.Run(ctx, input)
@@ -44,8 +44,8 @@ func (s *serviceWithRateLimiting) Run(ctx context.Context, input Input) (result 
 
 	s.log.Warning(
 		ctx,
-		"Rate limit exceeded for anonymous signing up.",
-		logging.Entry("ip", input.IP),
+		"Rate limit exceeded for signing in with email.",
+		logging.Entry("email", input.Email),
 	)
 	return result, ratelimiter.ErrRateLimitExceeded
 }
