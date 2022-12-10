@@ -11,6 +11,33 @@ import (
 	"time"
 )
 
+const activateUser = `-- name: ActivateUser :one
+UPDATE "user" 
+SET activated_at = $1::timestamp, activation_token = null
+WHERE activation_token = $2::text
+RETURNING id, email, identity, password_hash, created_at, activated_at, activation_token
+`
+
+type ActivateUserParams struct {
+	ActivatedAt     time.Time
+	ActivationToken string
+}
+
+func (q *Queries) ActivateUser(ctx context.Context, arg ActivateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, activateUser, arg.ActivatedAt, arg.ActivationToken)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Identity,
+		&i.PasswordHash,
+		&i.CreatedAt,
+		&i.ActivatedAt,
+		&i.ActivationToken,
+	)
+	return i, err
+}
+
 const createSession = `-- name: CreateSession :one
 INSERT INTO session (token, user_id, created_at)
 VALUES ($1, $2, $3)
@@ -38,7 +65,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 const createUser = `-- name: CreateUser :one
 INSERT INTO "user" (email, identity, password_hash, created_at, activated_at, activation_token) 
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, email, identity, password_hash, created_at, activated_at, activation_token, last_login_at
+RETURNING id, email, identity, password_hash, created_at, activated_at, activation_token
 `
 
 type CreateUserParams struct {
@@ -68,13 +95,12 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.CreatedAt,
 		&i.ActivatedAt,
 		&i.ActivationToken,
-		&i.LastLoginAt,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, identity, password_hash, created_at, activated_at, activation_token, last_login_at FROM "user" WHERE email = $1
+SELECT id, email, identity, password_hash, created_at, activated_at, activation_token FROM "user" WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email sql.NullString) (User, error) {
@@ -88,13 +114,12 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email sql.NullString) (Use
 		&i.CreatedAt,
 		&i.ActivatedAt,
 		&i.ActivationToken,
-		&i.LastLoginAt,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, identity, password_hash, created_at, activated_at, activation_token, last_login_at FROM "user" WHERE id = $1
+SELECT id, email, identity, password_hash, created_at, activated_at, activation_token FROM "user" WHERE id = $1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
@@ -108,13 +133,12 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 		&i.CreatedAt,
 		&i.ActivatedAt,
 		&i.ActivationToken,
-		&i.LastLoginAt,
 	)
 	return i, err
 }
 
 const getUserBySessionToken = `-- name: GetUserBySessionToken :one
-SELECT "user".id, "user".email, "user".identity, "user".password_hash, "user".created_at, "user".activated_at, "user".activation_token, "user".last_login_at FROM "user" 
+SELECT "user".id, "user".email, "user".identity, "user".password_hash, "user".created_at, "user".activated_at, "user".activation_token FROM "user" 
 JOIN session ON "user".id = session.user_id
 WHERE session.token = $1
 `
@@ -130,7 +154,6 @@ func (q *Queries) GetUserBySessionToken(ctx context.Context, token string) (User
 		&i.CreatedAt,
 		&i.ActivatedAt,
 		&i.ActivationToken,
-		&i.LastLoginAt,
 	)
 	return i, err
 }

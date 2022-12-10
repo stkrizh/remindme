@@ -89,6 +89,24 @@ func (r *PgxUserRepository) GetByID(ctx context.Context, id user.ID) (u user.Use
 	return u, nil
 }
 
+func (r *PgxUserRepository) Activate(
+	ctx context.Context,
+	token user.ActivationToken,
+	at time.Time,
+) (u user.User, err error) {
+	dbuser, err := r.queries.ActivateUser(
+		ctx,
+		sqlcgen.ActivateUserParams{ActivationToken: string(token), ActivatedAt: at},
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return u, user.ErrUserDoesNotExist
+	}
+	if err != nil {
+		return u, err
+	}
+	return decodeUser(dbuser), nil
+}
+
 func encodeEmail(email c.Optional[user.Email]) sql.NullString {
 	return sql.NullString{String: string(email.Value), Valid: email.IsPresent}
 }
@@ -118,42 +136,5 @@ func decodeUser(u sqlcgen.User) user.User {
 		CreatedAt:       u.CreatedAt,
 		ActivatedAt:     c.NewOptional(u.ActivatedAt.Time, u.ActivatedAt.Valid),
 		ActivationToken: c.NewOptional(user.ActivationToken(u.ActivationToken.String), u.ActivationToken.Valid),
-		LastLoginAt:     c.NewOptional(u.LastLoginAt.Time, u.LastLoginAt.Valid),
 	}
-}
-
-type PgxSessionRepository struct {
-	queries *sqlcgen.Queries
-}
-
-func NewPgxSessionRepository(db sqlcgen.DBTX) *PgxSessionRepository {
-	if db == nil {
-		panic(e.NewNilArgumentError("db"))
-	}
-	return &PgxSessionRepository{queries: sqlcgen.New(db)}
-}
-
-func (r *PgxSessionRepository) Create(ctx context.Context, input user.CreateSessionInput) error {
-	_, err := r.queries.CreateSession(ctx, sqlcgen.CreateSessionParams{
-		Token:     string(input.Token),
-		UserID:    int64(input.UserID),
-		CreatedAt: input.CreatedAt,
-	})
-	return err
-}
-
-func (r *PgxSessionRepository) GetUserByToken(ctx context.Context, token user.SessionToken) (u user.User, err error) {
-	dbuser, err := r.queries.GetUserBySessionToken(ctx, string(token))
-	if errors.Is(err, pgx.ErrNoRows) {
-		return u, user.ErrUserDoesNotExist
-	}
-	if err != nil {
-		return u, err
-	}
-	u = decodeUser(dbuser)
-	err = u.Validate()
-	if err != nil {
-		return u, err
-	}
-	return u, nil
 }

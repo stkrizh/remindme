@@ -18,3 +18,9 @@ RETURNING *;
 SELECT "user".* FROM "user" 
 JOIN session ON "user".id = session.user_id
 WHERE session.token = $1;
+
+-- name: ActivateUser :one
+UPDATE "user" 
+SET activated_at = @activated_at::timestamp, activation_token = null
+WHERE activation_token = @activation_token::text
+RETURNING *;

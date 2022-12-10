@@ -24,5 +24,4 @@ type User struct {
 	CreatedAt       time.Time
 	ActivatedAt     sql.NullTime
 	ActivationToken sql.NullString
-	LastLoginAt     sql.NullTime
 }

@@ -5,7 +5,9 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io"
+	c "remindme/internal/domain/common"
 	"sync"
+	"time"
 )
 
 type FakeActivationTokenSender struct {
@@ -145,6 +147,17 @@ func (r *FakeUserRepository) GetByEmail(ctx context.Context, email Email) (u Use
 	for _, u := range r.Users {
 		if u.Email.IsPresent && u.Email.Value == email {
 			return u, nil
+		}
+	}
+	return u, ErrUserDoesNotExist
+}
+
+func (r *FakeUserRepository) Activate(ctx context.Context, token ActivationToken, at time.Time) (u User, err error) {
+	for ix, u := range r.Users {
+		if !u.IsActive() && u.ActivationToken.IsPresent && u.ActivationToken.Value == token {
+			r.Users[ix].ActivatedAt = c.NewOptional(at, true)
+			r.Users[ix].ActivationToken = c.NewOptional(ActivationToken(""), false)
+			return r.Users[ix], nil
 		}
 	}
 	return u, ErrUserDoesNotExist

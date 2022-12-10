@@ -19,6 +19,7 @@ type UserRepository interface {
 	Create(ctx context.Context, input CreateUserInput) (User, error)
 	GetByID(ctx context.Context, id ID) (User, error)
 	GetByEmail(ctx context.Context, email Email) (User, error)
+	Activate(ctx context.Context, token ActivationToken, at time.Time) (User, error)
 }
 
 type CreateSessionInput struct {

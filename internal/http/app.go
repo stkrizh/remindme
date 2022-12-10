@@ -8,6 +8,7 @@ import (
 	dbuser "remindme/internal/db/user"
 	dl "remindme/internal/domain/logging"
 	drl "remindme/internal/domain/rate_limiter"
+	activateuser "remindme/internal/domain/services/activate_user"
 	signinwithemail "remindme/internal/domain/services/sign_in_with_email"
 	signupanonymously "remindme/internal/domain/services/sign_up_anonymously"
 	signupwithemail "remindme/internal/domain/services/sign_up_with_email"
@@ -21,8 +22,8 @@ import (
 	"remindme/internal/implementations/session"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/go-redis/redis/v9"
-	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
@@ -91,11 +92,17 @@ func StartApp() {
 			now,
 		),
 	)
+	activateUserService := activateuser.New(
+		logger,
+		userRepository,
+		now,
+	)
 
-	router := mux.NewRouter()
-	router.Handle("/auth/signup", handlers.NewSignUpWithEmail(signUpWithEmailService))
-	router.Handle("/auth/signup/anonymously", handlers.NewSignUpAnonymously(signUpAnonymouslyService))
-	router.Handle("/auth/signin", handlers.NewSignInWithEmail(signInWithEmailService))
+	router := chi.NewRouter()
+	router.Post("/auth/signup", handlers.NewSignUpWithEmail(signUpWithEmailService).ServeHTTP)
+	router.Post("/auth/signup/anonymously", handlers.NewSignUpAnonymously(signUpAnonymouslyService).ServeHTTP)
+	router.Post("/auth/signin", handlers.NewSignInWithEmail(signInWithEmailService).ServeHTTP)
+	router.Post("/auth/activate", handlers.NewActivateUser(activateUserService).ServeHTTP)
 
 	address := "0.0.0.0:9090"
 

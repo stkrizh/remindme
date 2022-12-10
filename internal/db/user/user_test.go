@@ -2,8 +2,9 @@ package user
 
 import (
 	"context"
+	"errors"
 	"remindme/internal/db"
-	"remindme/internal/domain/common"
+	c "remindme/internal/domain/common"
 	"remindme/internal/domain/user"
 	"testing"
 	"time"
@@ -12,7 +13,13 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-var now time.Time = time.Date(2020, 6, 6, 15, 30, 30, 0, time.UTC)
+const (
+	EMAIL            = "test@test.test"
+	PASSWORD_HASH    = "test-password-hash"
+	ACTIVATION_TOKEN = "test-activation-token"
+)
+
+var NOW time.Time = time.Date(2020, 6, 6, 15, 30, 30, 0, time.UTC)
 
 type testSuite struct {
 	suite.Suite
@@ -42,18 +49,18 @@ func (suite *testSuite) TestCreateSuccess() {
 		{
 			id: "email",
 			input: user.CreateUserInput{
-				Email:           common.NewOptional(user.Email("test@test.test"), true),
-				PasswordHash:    common.NewOptional(user.PasswordHash("test"), true),
-				CreatedAt:       now,
-				ActivationToken: common.NewOptional(user.ActivationToken("test"), true),
+				Email:           c.NewOptional(user.Email("test@test.test"), true),
+				PasswordHash:    c.NewOptional(user.PasswordHash("test"), true),
+				CreatedAt:       NOW,
+				ActivationToken: c.NewOptional(user.ActivationToken("test"), true),
 			},
 		},
 		{
 			id: "identity",
 			input: user.CreateUserInput{
-				Identity:    common.NewOptional(user.Identity("test"), true),
-				CreatedAt:   now,
-				ActivatedAt: common.NewOptional(now, true),
+				Identity:    c.NewOptional(user.Identity("test"), true),
+				CreatedAt:   NOW,
+				ActivatedAt: c.NewOptional(NOW, true),
 			},
 		},
 	}
@@ -70,7 +77,6 @@ func (suite *testSuite) TestCreateSuccess() {
 			assert.True(testcase.input.CreatedAt.Equal(u.CreatedAt))
 			assert.Equal(testcase.input.ActivatedAt, u.ActivatedAt)
 			assert.Equal(testcase.input.ActivationToken, u.ActivationToken)
-			assert.False(u.LastLoginAt.IsPresent)
 		})
 	}
 
@@ -78,10 +84,10 @@ func (suite *testSuite) TestCreateSuccess() {
 
 func (suite *testSuite) TestEmailAlreadyExistsError() {
 	input := user.CreateUserInput{
-		Email:           common.NewOptional(user.Email("test@test.test"), true),
-		PasswordHash:    common.NewOptional(user.PasswordHash("test"), true),
-		CreatedAt:       now,
-		ActivationToken: common.NewOptional(user.ActivationToken("test"), true),
+		Email:           c.NewOptional(user.Email("test@test.test"), true),
+		PasswordHash:    c.NewOptional(user.PasswordHash("test"), true),
+		CreatedAt:       NOW,
+		ActivationToken: c.NewOptional(user.ActivationToken("test"), true),
 	}
 	_, err := suite.repo.Create(context.Background(), input)
 
@@ -92,6 +98,68 @@ func (suite *testSuite) TestEmailAlreadyExistsError() {
 	assert.ErrorIs(err, user.ErrEmailAlreadyExists)
 }
 
+func (s *testSuite) TestActivateSuccess() {
+	inactiveUser := s.createInactiveUser()
+	activatedUser, err := s.repo.Activate(context.Background(), user.ActivationToken(ACTIVATION_TOKEN), NOW)
+
+	s.Nil(err)
+	s.Equal(inactiveUser.ID, activatedUser.ID)
+	s.Equal(inactiveUser.Email, activatedUser.Email)
+	s.Equal(inactiveUser.PasswordHash, activatedUser.PasswordHash)
+
+	s.True(activatedUser.IsActive())
+	s.True(activatedUser.ActivatedAt.IsPresent)
+	s.Equal(NOW, activatedUser.ActivatedAt.Value)
+}
+
+func (s *testSuite) TestActivationFailsIfTokenIsInvalid() {
+	inactiveUser := s.createInactiveUser()
+	_, err := s.repo.Activate(context.Background(), user.ActivationToken(ACTIVATION_TOKEN), NOW)
+
+	s.True(errors.Is(err, user.ErrUserDoesNotExist))
+
+	u := s.getUserByID(inactiveUser.ID)
+	s.False(u.IsActive())
+}
+
+func (s *testSuite) TestActivationFailsIfUserAlreadyActivated() {
+	s.createInactiveUser()
+
+	activatedUser, err := s.repo.Activate(context.Background(), user.ActivationToken(ACTIVATION_TOKEN), NOW)
+	s.Nil(err)
+	s.True(activatedUser.IsActive())
+
+	_, err = s.repo.Activate(context.Background(), user.ActivationToken(ACTIVATION_TOKEN), NOW)
+	s.True(errors.Is(err, user.ErrUserDoesNotExist))
+}
+
 func TestSuite(t *testing.T) {
 	suite.Run(t, new(testSuite))
+}
+
+func (s *testSuite) createInactiveUser() user.User {
+	s.T().Helper()
+	u, err := s.repo.Create(
+		context.Background(),
+		user.CreateUserInput{
+			Email:           c.NewOptional(user.NewEmail(EMAIL), true),
+			PasswordHash:    c.NewOptional(user.PasswordHash(PASSWORD_HASH), true),
+			CreatedAt:       NOW,
+			ActivationToken: c.NewOptional(user.ActivationToken(ACTIVATION_TOKEN), true),
+		},
+	)
+	if err != nil {
+		s.FailNowf("could not create user", "err: %v", err)
+	}
+	s.False(u.IsActive())
+	return u
+}
+
+func (s *testSuite) getUserByID(id user.ID) user.User {
+	s.T().Helper()
+	u, err := s.repo.GetByID(context.Background(), id)
+	if err != nil {
+		s.FailNowf("could not get user by ID", "id: %v, err: %v", id, err)
+	}
+	return u
 }

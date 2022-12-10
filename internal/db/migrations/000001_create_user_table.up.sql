@@ -5,8 +5,7 @@ CREATE TABLE IF NOT EXISTS "user" (
     password_hash TEXT,
     created_at TIMESTAMP NOT NULL,
     activated_at TIMESTAMP,
-    activation_token TEXT,
-    last_login_at TIMESTAMP
+    activation_token TEXT
 );
 CREATE UNIQUE INDEX user_email_idx ON "user" (email);
 CREATE UNIQUE INDEX user_identity_idx ON "user" (identity);

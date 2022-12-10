@@ -42,7 +42,6 @@ type User struct {
 	CreatedAt       time.Time
 	ActivatedAt     c.Optional[time.Time]
 	ActivationToken c.Optional[ActivationToken]
-	LastLoginAt     c.Optional[time.Time]
 }
 
 func (u *User) Validate() error {
