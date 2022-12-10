@@ -45,3 +45,11 @@ func (r *PgxSessionRepository) GetUserByToken(ctx context.Context, token user.Se
 	}
 	return u, nil
 }
+
+func (r *PgxSessionRepository) Delete(ctx context.Context, token user.SessionToken) (userID user.ID, err error) {
+	rawUserID, err := r.queries.DeleteSessionByToken(ctx, string(token))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return userID, user.ErrSessionDoesNotExist
+	}
+	return user.ID(rawUserID), nil
+}

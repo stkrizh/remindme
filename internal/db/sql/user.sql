@@ -24,3 +24,6 @@ UPDATE "user"
 SET activated_at = @activated_at::timestamp, activation_token = null
 WHERE activation_token = @activation_token::text
 RETURNING *;
+
+-- name: DeleteSessionByToken :one
+DELETE FROM session WHERE token = $1 RETURNING user_id;

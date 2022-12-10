@@ -44,7 +44,7 @@ func (suite *testSuite) SetupTest() {
 	)
 }
 
-func TestSuite(t *testing.T) {
+func TestSignUpWithEmailService(t *testing.T) {
 	suite.Run(t, new(testSuite))
 }
 

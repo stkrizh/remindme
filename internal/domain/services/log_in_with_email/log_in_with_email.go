@@ -1,4 +1,4 @@
-package signinwithemail
+package loginwithemail
 
 import (
 	"context"
@@ -65,6 +65,9 @@ func New(
 
 func (s *service) Run(ctx context.Context, input Input) (result Result, err error) {
 	u, err := s.userRepository.GetByEmail(ctx, input.Email)
+	if errors.Is(err, context.Canceled) {
+		return result, err
+	}
 	if errors.Is(err, user.ErrUserDoesNotExist) {
 		// Minimize risk for timing attacks
 		s.passwordHasher.HashPassword(input.Password)
@@ -76,12 +79,16 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 	if !u.IsActive() {
 		return result, user.ErrUserIsNotActive
 	}
+
 	sessionToken := s.sessionTokenGenerator.GenerateToken()
 	err = s.sessionRepository.Create(ctx, user.CreateSessionInput{
 		UserID:    u.ID,
 		Token:     sessionToken,
 		CreatedAt: s.now(),
 	})
+	if errors.Is(err, context.Canceled) {
+		return result, err
+	}
 	if err != nil {
 		s.log.Error(
 			ctx,
@@ -91,6 +98,7 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		)
 		return result, err
 	}
+
 	s.log.Info(
 		ctx,
 		"User successfully authenticated, session token created.",

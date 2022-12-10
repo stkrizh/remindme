@@ -101,7 +101,7 @@ func (g *FakeIdentityGenerator) GenerateIdentity() Identity {
 type FakeUserRepository struct {
 	Users       []User
 	ReturnError bool
-	lock        sync.RWMutex
+	lock        sync.Mutex
 }
 
 func NewFakeUserRepository() *FakeUserRepository {
@@ -135,6 +135,8 @@ func (r *FakeUserRepository) Create(ctx context.Context, input CreateUserInput) 
 }
 
 func (r *FakeUserRepository) GetByID(ctx context.Context, id ID) (u User, err error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	for _, u := range r.Users {
 		if u.ID == id {
 			return u, nil
@@ -144,6 +146,8 @@ func (r *FakeUserRepository) GetByID(ctx context.Context, id ID) (u User, err er
 }
 
 func (r *FakeUserRepository) GetByEmail(ctx context.Context, email Email) (u User, err error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	for _, u := range r.Users {
 		if u.Email.IsPresent && u.Email.Value == email {
 			return u, nil
@@ -153,6 +157,8 @@ func (r *FakeUserRepository) GetByEmail(ctx context.Context, email Email) (u Use
 }
 
 func (r *FakeUserRepository) Activate(ctx context.Context, token ActivationToken, at time.Time) (u User, err error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	for ix, u := range r.Users {
 		if !u.IsActive() && u.ActivationToken.IsPresent && u.ActivationToken.Value == token {
 			r.Users[ix].ActivatedAt = c.NewOptional(at, true)
@@ -167,7 +173,7 @@ type FakeSessionRepository struct {
 	UserIdByToken  map[SessionToken]ID
 	UserRepository UserRepository
 	ReturnError    bool
-	lock           sync.RWMutex
+	lock           sync.Mutex
 }
 
 func NewFakeSessionRepository(userRepository UserRepository) *FakeSessionRepository {
@@ -188,9 +194,22 @@ func (r *FakeSessionRepository) Create(ctx context.Context, input CreateSessionI
 }
 
 func (r *FakeSessionRepository) GetUserByToken(ctx context.Context, token SessionToken) (u User, err error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	userId, ok := r.UserIdByToken[token]
 	if !ok {
 		return u, ErrUserDoesNotExist
 	}
 	return r.UserRepository.GetByID(ctx, userId)
+}
+
+func (r *FakeSessionRepository) Delete(ctx context.Context, token SessionToken) (ID, error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	userID, ok := r.UserIdByToken[token]
+	if !ok {
+		return ID(0), ErrSessionDoesNotExist
+	}
+	delete(r.UserIdByToken, token)
+	return userID, nil
 }

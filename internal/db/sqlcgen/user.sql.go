@@ -99,6 +99,17 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const deleteSessionByToken = `-- name: DeleteSessionByToken :one
+DELETE FROM session WHERE token = $1 RETURNING user_id
+`
+
+func (q *Queries) DeleteSessionByToken(ctx context.Context, token string) (int64, error) {
+	row := q.db.QueryRow(ctx, deleteSessionByToken, token)
+	var user_id int64
+	err := row.Scan(&user_id)
+	return user_id, err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT id, email, identity, password_hash, created_at, activated_at, activation_token FROM "user" WHERE email = $1
 `

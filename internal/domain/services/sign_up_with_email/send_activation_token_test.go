@@ -46,7 +46,7 @@ func (suite *testActivationSuite) SetupTest() {
 	)
 }
 
-func TestActivationSuite(t *testing.T) {
+func TestSendActivationTokenService(t *testing.T) {
 	suite.Run(t, new(testActivationSuite))
 }
 

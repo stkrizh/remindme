@@ -9,7 +9,8 @@ import (
 	dl "remindme/internal/domain/logging"
 	drl "remindme/internal/domain/rate_limiter"
 	activateuser "remindme/internal/domain/services/activate_user"
-	signinwithemail "remindme/internal/domain/services/sign_in_with_email"
+	loginwithemail "remindme/internal/domain/services/log_in_with_email"
+	logout "remindme/internal/domain/services/log_out"
 	signupanonymously "remindme/internal/domain/services/sign_up_anonymously"
 	signupwithemail "remindme/internal/domain/services/sign_up_with_email"
 	"remindme/internal/domain/user"
@@ -79,11 +80,16 @@ func StartApp() {
 		sessionTokenGenerator,
 		now,
 	)
-	signInWithEmailService := signinwithemail.NewWithRateLimiting(
+	activateUserService := activateuser.New(
+		logger,
+		userRepository,
+		now,
+	)
+	logInWithEmailService := loginwithemail.NewWithRateLimiting(
 		logger,
 		rateLimiter,
 		drl.Limit{Interval: drl.Hour, Value: 10},
-		signinwithemail.New(
+		loginwithemail.New(
 			logger,
 			userRepository,
 			sessionRepository,
@@ -92,17 +98,17 @@ func StartApp() {
 			now,
 		),
 	)
-	activateUserService := activateuser.New(
+	logOutService := logout.New(
 		logger,
-		userRepository,
-		now,
+		sessionRepository,
 	)
 
 	router := chi.NewRouter()
 	router.Post("/auth/signup", handlers.NewSignUpWithEmail(signUpWithEmailService).ServeHTTP)
 	router.Post("/auth/signup/anonymously", handlers.NewSignUpAnonymously(signUpAnonymouslyService).ServeHTTP)
-	router.Post("/auth/signin", handlers.NewSignInWithEmail(signInWithEmailService).ServeHTTP)
 	router.Post("/auth/activate", handlers.NewActivateUser(activateUserService).ServeHTTP)
+	router.Post("/auth/login", handlers.NewLogInWithEmail(logInWithEmailService).ServeHTTP)
+	router.Post("/auth/logout", handlers.NewLogOut(logOutService).ServeHTTP)
 
 	address := "0.0.0.0:9090"
 

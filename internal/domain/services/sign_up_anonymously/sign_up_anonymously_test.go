@@ -42,7 +42,7 @@ func (suite *testSuite) SetupTest() {
 	)
 }
 
-func TestSuite(t *testing.T) {
+func TestSignUpAnonymouslyService(t *testing.T) {
 	suite.Run(t, new(testSuite))
 }
 

@@ -7,46 +7,46 @@ import (
 	"net/http"
 	ratelimiter "remindme/internal/domain/rate_limiter"
 	"remindme/internal/domain/services"
-	signinwithemail "remindme/internal/domain/services/sign_in_with_email"
+	loginwithemail "remindme/internal/domain/services/log_in_with_email"
 	"remindme/internal/domain/user"
 
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
 )
 
-type SignInWithEmail struct {
-	service services.Service[signinwithemail.Input, signinwithemail.Result]
+type LogInWithEmail struct {
+	service services.Service[loginwithemail.Input, loginwithemail.Result]
 }
 
-func NewSignInWithEmail(
-	service services.Service[signinwithemail.Input, signinwithemail.Result],
-) *SignInWithEmail {
-	return &SignInWithEmail{service: service}
+func NewLogInWithEmail(
+	service services.Service[loginwithemail.Input, loginwithemail.Result],
+) *LogInWithEmail {
+	return &LogInWithEmail{service: service}
 }
 
-type SignInWithEmailInput struct {
+type LogInWithEmailInput struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-type SignInWithEmailResult struct {
+type LogInWithEmailResult struct {
 	Token string `json:"token"`
 }
 
-func (i *SignInWithEmailInput) FromJSON(r io.Reader) error {
+func (i *LogInWithEmailInput) FromJSON(r io.Reader) error {
 	e := json.NewDecoder(r)
 	return e.Decode(i)
 }
 
-func (i SignInWithEmailInput) Validate() error {
+func (i LogInWithEmailInput) Validate() error {
 	return validation.ValidateStruct(&i,
 		validation.Field(&i.Email, validation.Required, is.Email, validation.Length(0, 512)),
 		validation.Field(&i.Password, validation.Required, validation.Length(0, 512)),
 	)
 }
 
-func (s *SignInWithEmail) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	input := SignInWithEmailInput{}
+func (s *LogInWithEmail) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+	input := LogInWithEmailInput{}
 	if err := input.FromJSON(r.Body); err != nil {
 		renderErrorResponse(rw, "invalid request data", http.StatusBadRequest)
 		return
@@ -58,7 +58,7 @@ func (s *SignInWithEmail) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	result, err := s.service.Run(
 		r.Context(),
-		signinwithemail.Input{Email: user.NewEmail(input.Email), Password: user.RawPassword(input.Password)},
+		loginwithemail.Input{Email: user.NewEmail(input.Email), Password: user.RawPassword(input.Password)},
 	)
 	if errors.Is(err, ratelimiter.ErrRateLimitExceeded) {
 		renderErrorResponse(rw, "rate limit exceeded", http.StatusTooManyRequests)
@@ -77,5 +77,5 @@ func (s *SignInWithEmail) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderResponse(rw, SignInWithEmailResult{Token: string(result.Token)}, http.StatusOK)
+	renderResponse(rw, LogInWithEmailResult{Token: string(result.Token)}, http.StatusOK)
 }

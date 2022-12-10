@@ -1,4 +1,4 @@
-package signinwithemail
+package loginwithemail
 
 import (
 	"context"

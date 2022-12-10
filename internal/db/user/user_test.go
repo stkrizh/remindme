@@ -40,6 +40,10 @@ func (suite *testSuite) TearDownTest() {
 	db.TruncateTables(suite.pool)
 }
 
+func TestPgxUserRepository(t *testing.T) {
+	suite.Run(t, new(testSuite))
+}
+
 func (suite *testSuite) TestCreateSuccess() {
 	type test struct {
 		id    string
@@ -114,7 +118,7 @@ func (s *testSuite) TestActivateSuccess() {
 
 func (s *testSuite) TestActivationFailsIfTokenIsInvalid() {
 	inactiveUser := s.createInactiveUser()
-	_, err := s.repo.Activate(context.Background(), user.ActivationToken(ACTIVATION_TOKEN), NOW)
+	_, err := s.repo.Activate(context.Background(), user.ActivationToken("invalid-activate"), NOW)
 
 	s.True(errors.Is(err, user.ErrUserDoesNotExist))
 
@@ -131,10 +135,6 @@ func (s *testSuite) TestActivationFailsIfUserAlreadyActivated() {
 
 	_, err = s.repo.Activate(context.Background(), user.ActivationToken(ACTIVATION_TOKEN), NOW)
 	s.True(errors.Is(err, user.ErrUserDoesNotExist))
-}
-
-func TestSuite(t *testing.T) {
-	suite.Run(t, new(testSuite))
 }
 
 func (s *testSuite) createInactiveUser() user.User {

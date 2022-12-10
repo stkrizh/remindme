@@ -1,4 +1,4 @@
-package signinwithemail
+package loginwithemail
 
 import (
 	"context"
@@ -43,7 +43,7 @@ func (suite *testRateLimitingSuite) SetupTest() {
 	)
 }
 
-func TestRateLimitingSuite(t *testing.T) {
+func TestRateLimitingService(t *testing.T) {
 	suite.Run(t, new(testRateLimitingSuite))
 }
 

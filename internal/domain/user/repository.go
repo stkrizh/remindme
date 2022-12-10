@@ -31,4 +31,5 @@ type CreateSessionInput struct {
 type SessionRepository interface {
 	Create(ctx context.Context, input CreateSessionInput) error
 	GetUserByToken(ctx context.Context, token SessionToken) (User, error)
+	Delete(ctx context.Context, token SessionToken) (userID ID, err error)
 }
