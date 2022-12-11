@@ -2,7 +2,7 @@ package passwordhasher
 
 import (
 	"fmt"
-	"remindme/internal/domain/user"
+	"remindme/internal/core/domain/user"
 	"testing"
 )
 

@@ -1,7 +1,7 @@
 package session
 
 import (
-	"remindme/internal/domain/user"
+	"remindme/internal/core/domain/user"
 
 	"github.com/google/uuid"
 )

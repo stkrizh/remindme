@@ -2,10 +2,10 @@ package uow
 
 import (
 	"context"
+	uow "remindme/internal/core/domain/unit_of_work"
+	"remindme/internal/core/domain/user"
 	"remindme/internal/db/sqlcgen"
 	dbuser "remindme/internal/db/user"
-	uow "remindme/internal/domain/unit_of_work"
-	"remindme/internal/domain/user"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"

@@ -3,9 +3,9 @@ package user
 import (
 	"context"
 	"errors"
+	e "remindme/internal/core/domain/errors"
+	"remindme/internal/core/domain/user"
 	"remindme/internal/db/sqlcgen"
-	e "remindme/internal/domain/errors"
-	"remindme/internal/domain/user"
 
 	"github.com/jackc/pgx/v4"
 )

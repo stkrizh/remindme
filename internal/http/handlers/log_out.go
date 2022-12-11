@@ -3,9 +3,9 @@ package handlers
 import (
 	"errors"
 	"net/http"
-	"remindme/internal/domain/services"
-	logout "remindme/internal/domain/services/log_out"
-	"remindme/internal/domain/user"
+	"remindme/internal/core/domain/user"
+	"remindme/internal/core/services"
+	logout "remindme/internal/core/services/log_out"
 )
 
 type LogOut struct {

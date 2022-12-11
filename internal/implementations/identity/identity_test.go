@@ -1,7 +1,7 @@
 package identity
 
 import (
-	"remindme/internal/domain/user"
+	"remindme/internal/core/domain/user"
 	"testing"
 )
 

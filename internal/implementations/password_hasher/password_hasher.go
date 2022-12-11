@@ -1,7 +1,7 @@
 package passwordhasher
 
 import (
-	"remindme/internal/domain/user"
+	"remindme/internal/core/domain/user"
 
 	"golang.org/x/crypto/bcrypt"
 )

@@ -2,7 +2,7 @@ package logging
 
 import (
 	"context"
-	"remindme/internal/domain/logging"
+	"remindme/internal/core/domain/logging"
 
 	"go.uber.org/zap"
 )

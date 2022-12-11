@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"net/http"
-	"remindme/internal/domain/user"
+	"remindme/internal/core/domain/user"
 	"strings"
 )
 

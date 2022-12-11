@@ -3,9 +3,9 @@ package user
 import (
 	"context"
 	"errors"
+	c "remindme/internal/core/domain/common"
+	"remindme/internal/core/domain/user"
 	"remindme/internal/db"
-	c "remindme/internal/domain/common"
-	"remindme/internal/domain/user"
 	"testing"
 
 	"github.com/jackc/pgx/v4/pgxpool"

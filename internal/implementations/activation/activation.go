@@ -2,7 +2,7 @@ package activation
 
 import (
 	"math/rand"
-	"remindme/internal/domain/user"
+	"remindme/internal/core/domain/user"
 	"time"
 )
 

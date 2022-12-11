@@ -4,10 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	c "remindme/internal/core/domain/common"
+	e "remindme/internal/core/domain/errors"
+	"remindme/internal/core/domain/user"
 	"remindme/internal/db/sqlcgen"
-	c "remindme/internal/domain/common"
-	e "remindme/internal/domain/errors"
-	"remindme/internal/domain/user"
 	"time"
 
 	"github.com/jackc/pgconn"

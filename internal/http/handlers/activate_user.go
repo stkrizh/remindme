@@ -5,9 +5,9 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"remindme/internal/domain/services"
-	activateuser "remindme/internal/domain/services/activate_user"
-	"remindme/internal/domain/user"
+	"remindme/internal/core/domain/user"
+	"remindme/internal/core/services"
+	activateuser "remindme/internal/core/services/activate_user"
 
 	validation "github.com/go-ozzo/ozzo-validation"
 )

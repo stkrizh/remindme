@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/netip"
-	ratelimiter "remindme/internal/domain/rate_limiter"
-	"remindme/internal/domain/services"
-	signupanonymously "remindme/internal/domain/services/sign_up_anonymously"
+	ratelimiter "remindme/internal/core/domain/rate_limiter"
+	"remindme/internal/core/services"
+	signupanonymously "remindme/internal/core/services/sign_up_anonymously"
 )
 
 const IP_HEADER = "X-Real-IP"
