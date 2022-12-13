@@ -1,24 +1,34 @@
-package loginwithemail
+package ratelimiting
 
 import (
 	"context"
 	"remindme/internal/core/domain/logging"
 	ratelimiter "remindme/internal/core/domain/rate_limiter"
-	"remindme/internal/core/domain/user"
+	"remindme/internal/core/services"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
 )
 
-type stubSignInWithEmailService struct {
+type input struct {
+	Value string
+}
+
+func (i input) GetRateLimitKey() string {
+	return "test-rate-limiting-key::" + i.Value
+}
+
+type result struct{}
+
+type stubService struct {
 	WasCalled bool
 }
 
-func NewStubSignUpAnonymouslyService() *stubSignInWithEmailService {
-	return &stubSignInWithEmailService{}
+func NewStubService() services.Service[input, result] {
+	return &stubService{}
 }
 
-func (s *stubSignInWithEmailService) Run(ctx context.Context, input Input) (result Result, err error) {
+func (s *stubService) Run(ctx context.Context, input input) (result result, err error) {
 	s.WasCalled = true
 	return result, nil
 }
@@ -27,15 +37,15 @@ type testRateLimitingSuite struct {
 	suite.Suite
 	Logger      *logging.FakeLogger
 	RateLimiter *ratelimiter.FakeRateLimiter
-	Inner       *stubSignInWithEmailService
-	Service     *serviceWithRateLimiting
+	Inner       services.Service[input, result]
+	Service     services.Service[input, result]
 }
 
 func (suite *testRateLimitingSuite) SetupTest() {
 	suite.Logger = logging.NewFakeLogger()
 	suite.RateLimiter = ratelimiter.NewFakeRateLimiter(false)
-	suite.Inner = NewStubSignUpAnonymouslyService()
-	suite.Service = NewWithRateLimiting(
+	suite.Inner = NewStubService()
+	suite.Service = New(
 		suite.Logger,
 		suite.RateLimiter,
 		ratelimiter.Limit{Value: 10, Interval: ratelimiter.Minute},
@@ -50,18 +60,22 @@ func TestRateLimitingService(t *testing.T) {
 func (suite *testRateLimitingSuite) TestNotLimited() {
 	ctx := context.Background()
 	suite.RateLimiter.IsAllowed = true
-	_, err := suite.Service.Run(ctx, Input{Email: user.NewEmail("test@test.test"), Password: user.RawPassword("test")})
+	_, err := suite.Service.Run(ctx, input{Value: "test"})
 
 	assert := suite.Require()
 	assert.Nil(err)
-	assert.True(suite.Inner.WasCalled)
+	innerService, ok := suite.Inner.(*stubService)
+	assert.True(ok)
+	assert.True(innerService.WasCalled)
 }
 
 func (suite *testRateLimitingSuite) TestLimited() {
 	ctx := context.Background()
 	suite.RateLimiter.IsAllowed = false
-	suite.Service.Run(ctx, Input{Email: user.NewEmail("test@test.test"), Password: user.RawPassword("test")})
+	suite.Service.Run(ctx, input{Value: "test"})
 
 	assert := suite.Require()
-	assert.False(suite.Inner.WasCalled)
+	innerService, ok := suite.Inner.(*stubService)
+	assert.True(ok)
+	assert.False(innerService.WasCalled)
 }

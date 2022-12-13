@@ -6,6 +6,7 @@ type PasswordResetToken string
 
 type PasswordResetter interface {
 	GenerateToken(user User) PasswordResetToken
+	GetUserID(token PasswordResetToken) (ID, bool)
 	ValidateToken(user User, token PasswordResetToken) bool
 }
 

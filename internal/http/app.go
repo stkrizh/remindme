@@ -10,6 +10,9 @@ import (
 	activateuser "remindme/internal/core/services/activate_user"
 	loginwithemail "remindme/internal/core/services/log_in_with_email"
 	logout "remindme/internal/core/services/log_out"
+	ratelimiting "remindme/internal/core/services/rate_limiting"
+	resetpassword "remindme/internal/core/services/reset_password"
+	sendpasswordresettoken "remindme/internal/core/services/send_password_reset_token"
 	signupanonymously "remindme/internal/core/services/sign_up_anonymously"
 	signupwithemail "remindme/internal/core/services/sign_up_with_email"
 	uow "remindme/internal/db/unit_of_work"
@@ -19,6 +22,7 @@ import (
 	"remindme/internal/implementations/identity"
 	"remindme/internal/implementations/logging"
 	passwordhasher "remindme/internal/implementations/password_hasher"
+	passwordresetter "remindme/internal/implementations/password_resetter"
 	ratelimiter "remindme/internal/implementations/rate_limiter"
 	"remindme/internal/implementations/session"
 	"time"
@@ -61,6 +65,12 @@ func StartApp() {
 	activationTokenSender := user.NewFakeActivationTokenSender()
 	identityGenerator := identity.NewUUID()
 	sessionTokenGenerator := session.NewUUID()
+	passwordResetter := passwordresetter.NewHMAC(
+		config.Secret,
+		time.Duration(config.PasswordResetValidDurationHours*int(time.Hour)),
+		now,
+	)
+	passwordResetTokenSender := user.NewFakePasswordResetTokenSender()
 
 	signUpWithEmailService := signupwithemail.NewWithActivationTokenSending(
 		logger,
@@ -85,7 +95,7 @@ func StartApp() {
 		userRepository,
 		now,
 	)
-	logInWithEmailService := loginwithemail.NewWithRateLimiting(
+	logInWithEmailService := ratelimiting.New(
 		logger,
 		rateLimiter,
 		drl.Limit{Interval: drl.Hour, Value: 10},
@@ -102,13 +112,36 @@ func StartApp() {
 		logger,
 		sessionRepository,
 	)
+	sendPasswordResetToken := ratelimiting.New(
+		logger,
+		rateLimiter,
+		drl.Limit{Interval: drl.Hour, Value: 3},
+		sendpasswordresettoken.New(
+			logger,
+			userRepository,
+			passwordResetter,
+			passwordResetTokenSender,
+		),
+	)
+	resetPassword := resetpassword.New(
+		logger,
+		userRepository,
+		passwordResetter,
+		passwordHasher,
+	)
 
 	router := chi.NewRouter()
-	router.Post("/auth/signup", handlers.NewSignUpWithEmail(signUpWithEmailService).ServeHTTP)
+
+	router.Post("/auth/signup", handlers.NewSignUpWithEmail(signUpWithEmailService, config.IsTestMode).ServeHTTP)
 	router.Post("/auth/signup/anonymously", handlers.NewSignUpAnonymously(signUpAnonymouslyService).ServeHTTP)
 	router.Post("/auth/activate", handlers.NewActivateUser(activateUserService).ServeHTTP)
 	router.Post("/auth/login", handlers.NewLogInWithEmail(logInWithEmailService).ServeHTTP)
 	router.Post("/auth/logout", handlers.NewLogOut(logOutService).ServeHTTP)
+	router.Post(
+		"/auth/password_reset/send",
+		handlers.NewSendPasswordResetToken(sendPasswordResetToken, config.IsTestMode).ServeHTTP,
+	)
+	router.Post("/auth/password_reset", handlers.NewResetPassword(resetPassword).ServeHTTP)
 
 	address := "0.0.0.0:9090"
 

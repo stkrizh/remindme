@@ -6,6 +6,7 @@ import (
 	e "remindme/internal/core/domain/errors"
 	"remindme/internal/core/domain/logging"
 	"remindme/internal/core/domain/user"
+	"remindme/internal/core/services"
 )
 
 type Input struct {
@@ -22,7 +23,7 @@ type service struct {
 func New(
 	log logging.Logger,
 	sessionRepository user.SessionRepository,
-) *service {
+) services.Service[Input, Result] {
 	if log == nil {
 		panic(e.NewNilArgumentError("log"))
 	}

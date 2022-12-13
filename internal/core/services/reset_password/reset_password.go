@@ -10,29 +10,24 @@ import (
 )
 
 type Input struct {
-	Email user.Email
+	Token       user.PasswordResetToken
+	NewPassword user.RawPassword
 }
 
-func (i Input) GetRateLimitKey() string {
-	return "send-password-reset-token::" + string(i.Email)
-}
-
-type Result struct {
-	Token user.PasswordResetToken
-}
+type Result struct{}
 
 type service struct {
 	log              logging.Logger
 	userRepository   user.UserRepository
 	passwordResetter user.PasswordResetter
-	sender           user.PasswordResetTokenSender
+	passwordHasher   user.PasswordHasher
 }
 
 func New(
 	log logging.Logger,
 	userRepository user.UserRepository,
 	passwordResetter user.PasswordResetter,
-	sender user.PasswordResetTokenSender,
+	passwordHasher user.PasswordHasher,
 ) services.Service[Input, Result] {
 	if log == nil {
 		panic(e.NewNilArgumentError("log"))
@@ -43,46 +38,59 @@ func New(
 	if passwordResetter == nil {
 		panic(e.NewNilArgumentError("passwordResetter"))
 	}
-	if sender == nil {
-		panic(e.NewNilArgumentError("sender"))
+	if passwordHasher == nil {
+		panic(e.NewNilArgumentError("passwordHasher"))
 	}
 	return &service{
 		log:              log,
 		userRepository:   userRepository,
 		passwordResetter: passwordResetter,
-		sender:           sender,
+		passwordHasher:   passwordHasher,
 	}
 }
 
 func (s *service) Run(ctx context.Context, input Input) (result Result, err error) {
-	u, err := s.userRepository.GetByEmail(ctx, input.Email)
+	userID, ok := s.passwordResetter.GetUserID(input.Token)
+	if !ok {
+		return result, user.ErrInvalidPasswordFResetToken
+	}
+	u, err := s.userRepository.GetByID(ctx, userID)
 	if errors.Is(err, context.Canceled) {
 		return result, err
 	}
 	if errors.Is(err, user.ErrUserDoesNotExist) {
-		s.log.Info(ctx, "User not found for password reset.", logging.Entry("input", input))
+		s.log.Info(ctx, "User not found for password reset.", logging.Entry("userID", userID))
 		return result, err
 	}
 	if err != nil {
 		s.log.Error(
 			ctx,
 			"Could not get user for password reset.",
-			logging.Entry("input", input),
+			logging.Entry("userID", userID),
 			logging.Entry("err", err),
 		)
 		return result, err
 	}
 
-	token := s.passwordResetter.GenerateToken(u)
-	err = s.sender.SendToken(ctx, u, token)
-	if errors.Is(err, context.Canceled) {
+	isValid := s.passwordResetter.ValidateToken(u, input.Token)
+	if !isValid {
+		return result, user.ErrInvalidPasswordFResetToken
+	}
+
+	newPasswordHash, err := s.passwordHasher.HashPassword(input.NewPassword)
+	if err != nil {
+		return result, err
+	}
+	err = s.userRepository.SetPassword(ctx, u.ID, newPasswordHash)
+	if errors.Is(err, user.ErrUserDoesNotExist) {
+		s.log.Info(ctx, "Could not update user password, user does not exist.", logging.Entry("userID", userID))
 		return result, err
 	}
 	if err != nil {
 		s.log.Error(
 			ctx,
-			"Could not send password reset token.",
-			logging.Entry("input", input),
+			"Could not update user password.",
+			logging.Entry("userID", userID),
 			logging.Entry("err", err),
 		)
 		return result, err
@@ -90,8 +98,8 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 
 	s.log.Info(
 		ctx,
-		"Password reset token has been successfully sent.",
-		logging.Entry("input", input),
+		"New password has been successfully set.",
+		logging.Entry("userID", userID),
 	)
-	return Result{Token: token}, nil
+	return result, nil
 }

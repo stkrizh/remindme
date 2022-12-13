@@ -168,3 +168,22 @@ func (q *Queries) GetUserBySessionToken(ctx context.Context, token string) (User
 	)
 	return i, err
 }
+
+const setPassword = `-- name: SetPassword :one
+UPDATE "user"
+SET password_hash = $1::text
+WHERE id = $2::bigint
+RETURNING id
+`
+
+type SetPasswordParams struct {
+	PasswordHash string
+	ID           int64
+}
+
+func (q *Queries) SetPassword(ctx context.Context, arg SetPasswordParams) (int64, error) {
+	row := q.db.QueryRow(ctx, setPassword, arg.PasswordHash, arg.ID)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}

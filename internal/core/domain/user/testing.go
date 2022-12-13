@@ -13,7 +13,7 @@ import (
 type FakeActivationTokenSender struct {
 	Sent        []User
 	ReturnError bool
-	lock        sync.RWMutex
+	lock        sync.Mutex
 }
 
 func NewFakeActivationTokenSender() *FakeActivationTokenSender {
@@ -169,6 +169,18 @@ func (r *FakeUserRepository) Activate(ctx context.Context, token ActivationToken
 	return u, ErrUserDoesNotExist
 }
 
+func (r *FakeUserRepository) SetPassword(ctx context.Context, id ID, password PasswordHash) error {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	for ix, u := range r.Users {
+		if u.ID == id {
+			r.Users[ix].PasswordHash = c.NewOptional(password, true)
+			return nil
+		}
+	}
+	return ErrUserDoesNotExist
+}
+
 type FakeSessionRepository struct {
 	UserIdByToken  map[SessionToken]ID
 	UserRepository UserRepository
@@ -212,4 +224,54 @@ func (r *FakeSessionRepository) Delete(ctx context.Context, token SessionToken) 
 	}
 	delete(r.UserIdByToken, token)
 	return userID, nil
+}
+
+type FakePasswordResetter struct {
+	Token         PasswordResetToken
+	UserID        ID
+	IsUserIDValid bool
+	IsValid       bool
+}
+
+func NewFakePasswordResetter(token string, userID ID, isUserIDValid bool, isValid bool) *FakePasswordResetter {
+	return &FakePasswordResetter{
+		Token:         PasswordResetToken(token),
+		UserID:        userID,
+		IsUserIDValid: isUserIDValid,
+		IsValid:       isValid,
+	}
+}
+
+func (r *FakePasswordResetter) GenerateToken(user User) PasswordResetToken {
+	return r.Token
+}
+
+func (r *FakePasswordResetter) GetUserID(token PasswordResetToken) (ID, bool) {
+	return r.UserID, r.IsUserIDValid
+}
+
+func (r *FakePasswordResetter) ValidateToken(user User, token PasswordResetToken) bool {
+	return r.IsValid
+}
+
+type FakePasswordResetTokenSender struct {
+	Sent        []PasswordResetToken
+	SentTo      []User
+	ReturnError bool
+	lock        sync.Mutex
+}
+
+func NewFakePasswordResetTokenSender() *FakePasswordResetTokenSender {
+	return &FakePasswordResetTokenSender{}
+}
+
+func (s *FakePasswordResetTokenSender) SendToken(ctx context.Context, user User, token PasswordResetToken) error {
+	if s.ReturnError {
+		return fmt.Errorf("could not send password reset token")
+	}
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.Sent = append(s.Sent, token)
+	s.SentTo = append(s.SentTo, user)
+	return nil
 }

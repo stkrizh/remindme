@@ -1,4 +1,4 @@
-package loginwithemail
+package ratelimiting
 
 import (
 	"context"
@@ -8,26 +8,30 @@ import (
 	"remindme/internal/core/services"
 )
 
-type serviceWithRateLimiting struct {
+type hasRateLimitKey interface {
+	GetRateLimitKey() string
+}
+
+type serviceWithRateLimiting[T hasRateLimitKey, S any] struct {
 	log         logging.Logger
 	rateLimiter ratelimiter.RateLimiter
 	rateLimit   ratelimiter.Limit
-	inner       services.Service[Input, Result]
+	inner       services.Service[T, S]
 }
 
-func NewWithRateLimiting(
+func New[T hasRateLimitKey, S any](
 	log logging.Logger,
 	rateLimiter ratelimiter.RateLimiter,
 	rateLimit ratelimiter.Limit,
-	inner services.Service[Input, Result],
-) *serviceWithRateLimiting {
+	inner services.Service[T, S],
+) services.Service[T, S] {
 	if log == nil {
 		panic(e.NewNilArgumentError("log"))
 	}
 	if rateLimiter == nil {
 		panic(e.NewNilArgumentError("rateLimiter"))
 	}
-	return &serviceWithRateLimiting{
+	return &serviceWithRateLimiting[T, S]{
 		log:         log,
 		rateLimiter: rateLimiter,
 		rateLimit:   rateLimit,
@@ -35,17 +39,13 @@ func NewWithRateLimiting(
 	}
 }
 
-func (s *serviceWithRateLimiting) Run(ctx context.Context, input Input) (result Result, err error) {
-	rateLimitKey := "sign-in-with-email::" + string(input.Email)
+func (s *serviceWithRateLimiting[T, S]) Run(ctx context.Context, input T) (result S, err error) {
+	rateLimitKey := input.GetRateLimitKey()
 	rate := s.rateLimiter.CheckLimit(ctx, rateLimitKey, s.rateLimit)
 	if rate.IsAllowed {
 		return s.inner.Run(ctx, input)
 	}
 
-	s.log.Warning(
-		ctx,
-		"Rate limit exceeded for signing in with email.",
-		logging.Entry("email", input.Email),
-	)
+	s.log.Warning(ctx, "Rate limit exceeded.", logging.Entry("key", rateLimitKey))
 	return result, ratelimiter.ErrRateLimitExceeded
 }

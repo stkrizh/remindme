@@ -7,6 +7,7 @@ import (
 	"remindme/internal/core/domain/logging"
 	uow "remindme/internal/core/domain/unit_of_work"
 	"remindme/internal/core/domain/user"
+	"remindme/internal/core/services"
 	"testing"
 	"time"
 
@@ -27,7 +28,7 @@ type testSuite struct {
 	UnitOfWork               *uow.FakeUnitOfWork
 	PasswordHasher           *user.FakePasswordHasher
 	ActivationTokenGenerator *user.FakeActivationTokenGenerator
-	Service                  *service
+	Service                  services.Service[Input, Result]
 }
 
 func (suite *testSuite) SetupTest() {

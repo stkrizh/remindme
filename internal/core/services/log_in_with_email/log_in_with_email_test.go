@@ -6,6 +6,7 @@ import (
 	c "remindme/internal/core/domain/common"
 	"remindme/internal/core/domain/logging"
 	"remindme/internal/core/domain/user"
+	"remindme/internal/core/services"
 	"testing"
 	"time"
 
@@ -25,7 +26,7 @@ type testSuite struct {
 	SessionRepository     *user.FakeSessionRepository
 	PasswordHasher        *user.FakePasswordHasher
 	SessionTokenGenerator *user.FakeSessionTokenGenerator
-	Service               *service
+	Service               services.Service[Input, Result]
 }
 
 func (suite *testSuite) SetupTest() {

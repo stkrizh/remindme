@@ -6,12 +6,17 @@ import (
 	e "remindme/internal/core/domain/errors"
 	"remindme/internal/core/domain/logging"
 	"remindme/internal/core/domain/user"
+	"remindme/internal/core/services"
 	"time"
 )
 
 type Input struct {
 	Email    user.Email
 	Password user.RawPassword
+}
+
+func (i Input) GetRateLimitKey() string {
+	return "log-in-with-email::" + string(i.Email)
 }
 
 type Result struct {
@@ -34,7 +39,7 @@ func New(
 	passwordHasher user.PasswordHasher,
 	sessionTokenGenerator user.SessionTokenGenerator,
 	now func() time.Time,
-) *service {
+) services.Service[Input, Result] {
 	if log == nil {
 		panic(e.NewNilArgumentError("log"))
 	}

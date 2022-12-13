@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -14,13 +15,15 @@ import (
 )
 
 type SignUpWithEmail struct {
-	service services.Service[signupwithemail.Input, signupwithemail.Result]
+	service    services.Service[signupwithemail.Input, signupwithemail.Result]
+	isTestMode bool
 }
 
 func NewSignUpWithEmail(
 	service services.Service[signupwithemail.Input, signupwithemail.Result],
+	isTestMode bool,
 ) *SignUpWithEmail {
-	return &SignUpWithEmail{service: service}
+	return &SignUpWithEmail{service: service, isTestMode: isTestMode}
 }
 
 type SignUpWithEmailInput struct {
@@ -51,17 +54,24 @@ func (s *SignUpWithEmail) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := s.service.Run(
+	result, err := s.service.Run(
 		r.Context(),
 		signupwithemail.Input{Email: user.NewEmail(input.Email), Password: user.RawPassword(input.Password)},
 	)
-	if err == nil {
-		renderResponse(rw, struct{}{}, http.StatusCreated)
+	if errors.Is(err, context.Canceled) {
 		return
 	}
 	if errors.Is(err, user.ErrEmailAlreadyExists) {
 		renderErrorResponse(rw, "email already exists", http.StatusUnprocessableEntity)
 		return
 	}
-	renderErrorResponse(rw, "internal error", http.StatusInternalServerError)
+	if err != nil {
+		renderErrorResponse(rw, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	if s.isTestMode {
+		rw.Header().Set("x-test-activation-token", string(result.User.ActivationToken.Value))
+	}
+	renderResponse(rw, struct{}{}, http.StatusCreated)
 }

@@ -19,7 +19,7 @@ func NewWithActivationTokenSending(
 	log logging.Logger,
 	sender user.ActivationTokenSender,
 	innner services.Service[Input, Result],
-) *serviceWithActivationTokenSending {
+) services.Service[Input, Result] {
 	if log == nil {
 		panic(e.NewNilArgumentError("log"))
 	}

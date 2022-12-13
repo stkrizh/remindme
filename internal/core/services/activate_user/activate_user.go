@@ -6,6 +6,7 @@ import (
 	e "remindme/internal/core/domain/errors"
 	"remindme/internal/core/domain/logging"
 	"remindme/internal/core/domain/user"
+	"remindme/internal/core/services"
 	"time"
 )
 
@@ -25,7 +26,7 @@ func New(
 	log logging.Logger,
 	userRepository user.UserRepository,
 	now func() time.Time,
-) *service {
+) services.Service[Input, Result] {
 	if log == nil {
 		panic(e.NewNilArgumentError("log"))
 	}

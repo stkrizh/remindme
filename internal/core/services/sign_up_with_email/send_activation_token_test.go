@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"remindme/internal/core/domain/logging"
 	"remindme/internal/core/domain/user"
+	"remindme/internal/core/services"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -32,7 +33,7 @@ type testActivationSuite struct {
 	Logger  *logging.FakeLogger
 	Sender  *user.FakeActivationTokenSender
 	Inner   *stubSignUpService
-	Service *serviceWithActivationTokenSending
+	Service services.Service[Input, Result]
 }
 
 func (suite *testActivationSuite) SetupTest() {

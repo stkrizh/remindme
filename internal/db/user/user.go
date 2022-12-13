@@ -107,6 +107,21 @@ func (r *PgxUserRepository) Activate(
 	return decodeUser(dbuser), nil
 }
 
+func (r *PgxUserRepository) SetPassword(
+	ctx context.Context,
+	id user.ID,
+	password user.PasswordHash,
+) error {
+	_, err := r.queries.SetPassword(
+		ctx,
+		sqlcgen.SetPasswordParams{ID: int64(id), PasswordHash: string(password)},
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return user.ErrUserDoesNotExist
+	}
+	return nil
+}
+
 func encodeEmail(email c.Optional[user.Email]) sql.NullString {
 	return sql.NullString{String: string(email.Value), Valid: email.IsPresent}
 }

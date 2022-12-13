@@ -9,6 +9,7 @@ import (
 	"remindme/internal/core/domain/logging"
 	uow "remindme/internal/core/domain/unit_of_work"
 	"remindme/internal/core/domain/user"
+	"remindme/internal/core/services"
 	"time"
 )
 
@@ -35,7 +36,7 @@ func New(
 	identityGenerator user.IdentityGenerator,
 	sessionTokenGenerator user.SessionTokenGenerator,
 	now func() time.Time,
-) *service {
+) services.Service[Input, Result] {
 	if unitOfWork == nil {
 		panic(e.NewNilArgumentError("unitOfWork"))
 	}

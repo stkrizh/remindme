@@ -137,6 +137,32 @@ func (s *testSuite) TestActivationFailsIfUserAlreadyActivated() {
 	s.True(errors.Is(err, user.ErrUserDoesNotExist))
 }
 
+func (s *testSuite) TestSetPassword() {
+	u := s.createInactiveUser()
+	s.True(u.PasswordHash.IsPresent)
+	s.Equal(u.PasswordHash.Value, user.PasswordHash(PASSWORD_HASH))
+
+	newPassword := user.PasswordHash("new-password-hash")
+	err := s.repo.SetPassword(context.Background(), u.ID, newPassword)
+	s.Nil(err)
+	userAfterUpdate := s.getUserByID(u.ID)
+	s.True(userAfterUpdate.PasswordHash.IsPresent)
+	s.Equal(newPassword, userAfterUpdate.PasswordHash.Value)
+}
+
+func (s *testSuite) TestSetPasswordReturnsErrorIfUserDoesNotExist() {
+	u := s.createInactiveUser()
+	s.True(u.PasswordHash.IsPresent)
+	s.Equal(u.PasswordHash.Value, user.PasswordHash(PASSWORD_HASH))
+
+	newPassword := user.PasswordHash("new-password-hash")
+	err := s.repo.SetPassword(context.Background(), user.ID(111222333), newPassword)
+	s.True(errors.Is(err, user.ErrUserDoesNotExist))
+
+	userAfterUpdate := s.getUserByID(u.ID)
+	s.Equal(u, userAfterUpdate)
+}
+
 func (s *testSuite) createInactiveUser() user.User {
 	s.T().Helper()
 	u, err := s.repo.Create(

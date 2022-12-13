@@ -20,6 +20,7 @@ type UserRepository interface {
 	GetByID(ctx context.Context, id ID) (User, error)
 	GetByEmail(ctx context.Context, email Email) (User, error)
 	Activate(ctx context.Context, token ActivationToken, at time.Time) (User, error)
+	SetPassword(ctx context.Context, id ID, password PasswordHash) error
 }
 
 type CreateSessionInput struct {
