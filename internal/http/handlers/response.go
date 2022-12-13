@@ -9,6 +9,10 @@ type errorResponse struct {
 	Error string `json:"error"`
 }
 
+func renderUnauthorizedResponse(rw http.ResponseWriter) {
+	renderErrorResponse(rw, "invalid authentication token", http.StatusUnauthorized)
+}
+
 func renderErrorResponse(rw http.ResponseWriter, msg string, status int) {
 	renderResponse(rw, errorResponse{Error: msg}, status)
 }

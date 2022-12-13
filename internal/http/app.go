@@ -8,6 +8,7 @@ import (
 	drl "remindme/internal/core/domain/rate_limiter"
 	"remindme/internal/core/domain/user"
 	activateuser "remindme/internal/core/services/activate_user"
+	getuserbysessiontoken "remindme/internal/core/services/get_user_by_session_token"
 	loginwithemail "remindme/internal/core/services/log_in_with_email"
 	logout "remindme/internal/core/services/log_out"
 	ratelimiting "remindme/internal/core/services/rate_limiting"
@@ -72,6 +73,10 @@ func StartApp() {
 	)
 	passwordResetTokenSender := user.NewFakePasswordResetTokenSender()
 
+	getUserBySessionTokenService := getuserbysessiontoken.New(
+		logger,
+		sessionRepository,
+	)
 	signUpWithEmailService := signupwithemail.NewWithActivationTokenSending(
 		logger,
 		activationTokenSender,
@@ -132,6 +137,7 @@ func StartApp() {
 
 	router := chi.NewRouter()
 
+	router.Get("/auth/me", handlers.NewMe(getUserBySessionTokenService).ServeHTTP)
 	router.Post("/auth/signup", handlers.NewSignUpWithEmail(signUpWithEmailService, config.IsTestMode).ServeHTTP)
 	router.Post("/auth/signup/anonymously", handlers.NewSignUpAnonymously(signUpAnonymouslyService).ServeHTTP)
 	router.Post("/auth/activate", handlers.NewActivateUser(activateUserService).ServeHTTP)

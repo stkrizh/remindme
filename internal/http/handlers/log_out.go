@@ -21,7 +21,7 @@ func NewLogOut(
 func (s *LogOut) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	token, ok := GetAuthToken(r)
 	if !ok {
-		renderErrorResponse(rw, "invalid authentication token", http.StatusUnauthorized)
+		renderUnauthorizedResponse(rw)
 		return
 	}
 	_, err := s.service.Run(
@@ -29,7 +29,7 @@ func (s *LogOut) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		logout.Input{Token: user.SessionToken(token)},
 	)
 	if errors.Is(err, user.ErrSessionDoesNotExist) {
-		renderErrorResponse(rw, "invalid authentication token", http.StatusUnauthorized)
+		renderUnauthorizedResponse(rw)
 		return
 	}
 	if err != nil {
