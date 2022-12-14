@@ -1,4 +1,4 @@
-package handlers
+package resetpassword
 
 import (
 	"encoding/json"
@@ -8,49 +8,50 @@ import (
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
 	resetpassword "remindme/internal/core/services/reset_password"
+	"remindme/internal/http/handlers/response"
 
 	validation "github.com/go-ozzo/ozzo-validation"
 )
 
-type ResetPassword struct {
+type Handler struct {
 	service services.Service[resetpassword.Input, resetpassword.Result]
 }
 
-func NewResetPassword(
+func New(
 	service services.Service[resetpassword.Input, resetpassword.Result],
-) *ResetPassword {
-	return &ResetPassword{service: service}
+) *Handler {
+	return &Handler{service: service}
 }
 
-type ResetPasswordInput struct {
+type Input struct {
 	Token    string `json:"token"`
 	Password string `json:"password"`
 }
 
-func (i *ResetPasswordInput) FromJSON(r io.Reader) error {
+func (i *Input) FromJSON(r io.Reader) error {
 	e := json.NewDecoder(r)
 	return e.Decode(i)
 }
 
-func (i ResetPasswordInput) Validate() error {
+func (i Input) Validate() error {
 	return validation.ValidateStruct(&i,
 		validation.Field(&i.Token, validation.Required, validation.Length(0, 1024)),
 		validation.Field(&i.Password, validation.Required, validation.Length(6, 256)),
 	)
 }
 
-func (s *ResetPassword) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	input := ResetPasswordInput{}
+func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+	input := Input{}
 	if err := input.FromJSON(r.Body); err != nil {
-		renderErrorResponse(rw, "invalid request data", http.StatusBadRequest)
+		response.RenderError(rw, "invalid request data", http.StatusBadRequest)
 		return
 	}
 	if err := input.Validate(); err != nil {
-		renderResponse(rw, err, http.StatusBadRequest)
+		response.Render(rw, err, http.StatusBadRequest)
 		return
 	}
 
-	_, err := s.service.Run(
+	_, err := h.service.Run(
 		r.Context(),
 		resetpassword.Input{
 			Token:       user.PasswordResetToken(input.Token),
@@ -58,17 +59,17 @@ func (s *ResetPassword) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		},
 	)
 	if errors.Is(err, user.ErrInvalidPasswordFResetToken) {
-		renderErrorResponse(rw, "invalid token", http.StatusUnprocessableEntity)
+		response.RenderError(rw, "invalid token", http.StatusUnprocessableEntity)
 		return
 	}
 	if errors.Is(err, user.ErrUserDoesNotExist) {
-		renderErrorResponse(rw, "user does not exist", http.StatusUnprocessableEntity)
+		response.RenderError(rw, "user does not exist", http.StatusUnprocessableEntity)
 		return
 	}
 	if err != nil {
-		renderErrorResponse(rw, "internal error", http.StatusInternalServerError)
+		response.RenderInternalError(rw)
 		return
 	}
 
-	renderResponse(rw, struct{}{}, http.StatusOK)
+	response.Render(rw, struct{}{}, http.StatusOK)
 }

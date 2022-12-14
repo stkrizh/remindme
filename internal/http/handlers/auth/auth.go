@@ -1,4 +1,4 @@
-package handlers
+package auth
 
 import (
 	"net/http"
@@ -11,7 +11,7 @@ const (
 	AUTH_TOKEN_MAX_LEN = 1024
 )
 
-func GetAuthToken(r *http.Request) (token user.SessionToken, ok bool) {
+func ParseToken(r *http.Request) (token user.SessionToken, ok bool) {
 	header := r.Header.Get("authorization")
 	if header == "" {
 		return token, false

@@ -18,7 +18,14 @@ import (
 	signupwithemail "remindme/internal/core/services/sign_up_with_email"
 	uow "remindme/internal/db/unit_of_work"
 	dbuser "remindme/internal/db/user"
-	"remindme/internal/http/handlers"
+	handlerActivate "remindme/internal/http/handlers/auth/activate_user"
+	handlerLogin "remindme/internal/http/handlers/auth/log_in_with_email"
+	handlerLogout "remindme/internal/http/handlers/auth/log_out"
+	handlerMe "remindme/internal/http/handlers/auth/me"
+	handlerResetPassword "remindme/internal/http/handlers/auth/reset_password"
+	handlerSendPasswResetToken "remindme/internal/http/handlers/auth/send_password_reset_token"
+	handlerSignUpAnon "remindme/internal/http/handlers/auth/sign_up_anonymously"
+	handlerSignUpWithEmail "remindme/internal/http/handlers/auth/sign_up_with_email"
 	"remindme/internal/implementations/activation"
 	"remindme/internal/implementations/identity"
 	"remindme/internal/implementations/logging"
@@ -137,17 +144,17 @@ func StartApp() {
 
 	router := chi.NewRouter()
 
-	router.Get("/auth/me", handlers.NewMe(getUserBySessionTokenService).ServeHTTP)
-	router.Post("/auth/signup", handlers.NewSignUpWithEmail(signUpWithEmailService, config.IsTestMode).ServeHTTP)
-	router.Post("/auth/signup/anonymously", handlers.NewSignUpAnonymously(signUpAnonymouslyService).ServeHTTP)
-	router.Post("/auth/activate", handlers.NewActivateUser(activateUserService).ServeHTTP)
-	router.Post("/auth/login", handlers.NewLogInWithEmail(logInWithEmailService).ServeHTTP)
-	router.Post("/auth/logout", handlers.NewLogOut(logOutService).ServeHTTP)
+	router.Get("/auth/me", handlerMe.New(getUserBySessionTokenService).ServeHTTP)
+	router.Post("/auth/signup", handlerSignUpWithEmail.New(signUpWithEmailService, config.IsTestMode).ServeHTTP)
+	router.Post("/auth/signup/anonymously", handlerSignUpAnon.New(signUpAnonymouslyService).ServeHTTP)
+	router.Post("/auth/activate", handlerActivate.New(activateUserService).ServeHTTP)
+	router.Post("/auth/login", handlerLogin.New(logInWithEmailService).ServeHTTP)
+	router.Post("/auth/logout", handlerLogout.New(logOutService).ServeHTTP)
 	router.Post(
 		"/auth/password_reset/send",
-		handlers.NewSendPasswordResetToken(sendPasswordResetToken, config.IsTestMode).ServeHTTP,
+		handlerSendPasswResetToken.New(sendPasswordResetToken, config.IsTestMode).ServeHTTP,
 	)
-	router.Post("/auth/password_reset", handlers.NewResetPassword(resetPassword).ServeHTTP)
+	router.Post("/auth/password_reset", handlerResetPassword.New(resetPassword).ServeHTTP)
 
 	address := "0.0.0.0:9090"
 

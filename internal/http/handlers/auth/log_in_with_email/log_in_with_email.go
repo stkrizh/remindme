@@ -1,4 +1,4 @@
-package handlers
+package loginwithemail
 
 import (
 	"encoding/json"
@@ -9,73 +9,74 @@ import (
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
 	loginwithemail "remindme/internal/core/services/log_in_with_email"
+	"remindme/internal/http/handlers/response"
 
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
 )
 
-type LogInWithEmail struct {
+type Handler struct {
 	service services.Service[loginwithemail.Input, loginwithemail.Result]
 }
 
-func NewLogInWithEmail(
+func New(
 	service services.Service[loginwithemail.Input, loginwithemail.Result],
-) *LogInWithEmail {
-	return &LogInWithEmail{service: service}
+) *Handler {
+	return &Handler{service: service}
 }
 
-type LogInWithEmailInput struct {
+type Input struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-type LogInWithEmailResult struct {
+type Result struct {
 	Token string `json:"token"`
 }
 
-func (i *LogInWithEmailInput) FromJSON(r io.Reader) error {
+func (i *Input) FromJSON(r io.Reader) error {
 	e := json.NewDecoder(r)
 	return e.Decode(i)
 }
 
-func (i LogInWithEmailInput) Validate() error {
+func (i Input) Validate() error {
 	return validation.ValidateStruct(&i,
 		validation.Field(&i.Email, validation.Required, is.Email, validation.Length(0, 512)),
 		validation.Field(&i.Password, validation.Required, validation.Length(0, 512)),
 	)
 }
 
-func (s *LogInWithEmail) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	input := LogInWithEmailInput{}
+func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+	input := Input{}
 	if err := input.FromJSON(r.Body); err != nil {
-		renderErrorResponse(rw, "invalid request data", http.StatusBadRequest)
+		response.RenderError(rw, "invalid request data", http.StatusBadRequest)
 		return
 	}
 	if err := input.Validate(); err != nil {
-		renderResponse(rw, err, http.StatusBadRequest)
+		response.Render(rw, err, http.StatusBadRequest)
 		return
 	}
 
-	result, err := s.service.Run(
+	result, err := h.service.Run(
 		r.Context(),
 		loginwithemail.Input{Email: user.NewEmail(input.Email), Password: user.RawPassword(input.Password)},
 	)
 	if errors.Is(err, ratelimiter.ErrRateLimitExceeded) {
-		renderErrorResponse(rw, "rate limit exceeded", http.StatusTooManyRequests)
+		response.RenderRateLimitExceeded(rw)
 		return
 	}
 	if errors.Is(err, user.ErrInvalidCredentials) {
-		renderErrorResponse(rw, "invalid credentials", http.StatusUnauthorized)
+		response.RenderError(rw, "invalid credentials", http.StatusUnauthorized)
 		return
 	}
 	if errors.Is(err, user.ErrUserIsNotActive) {
-		renderErrorResponse(rw, "user is not active", http.StatusUnprocessableEntity)
+		response.RenderError(rw, "user is not active", http.StatusUnprocessableEntity)
 		return
 	}
 	if err != nil {
-		renderErrorResponse(rw, "internal error", http.StatusInternalServerError)
+		response.RenderInternalError(rw)
 		return
 	}
 
-	renderResponse(rw, LogInWithEmailResult{Token: string(result.Token)}, http.StatusOK)
+	response.Render(rw, Result{Token: string(result.Token)}, http.StatusOK)
 }

@@ -1,4 +1,4 @@
-package serializers
+package response
 
 import (
 	"remindme/internal/core/domain/user"

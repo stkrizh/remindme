@@ -1,4 +1,4 @@
-package handlers
+package activateuser
 
 import (
 	"encoding/json"
@@ -8,58 +8,59 @@ import (
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
 	activateuser "remindme/internal/core/services/activate_user"
+	"remindme/internal/http/handlers/response"
 
 	validation "github.com/go-ozzo/ozzo-validation"
 )
 
-type ActivateUser struct {
+type Handler struct {
 	service services.Service[activateuser.Input, activateuser.Result]
 }
 
-func NewActivateUser(
+func New(
 	service services.Service[activateuser.Input, activateuser.Result],
-) *ActivateUser {
-	return &ActivateUser{service: service}
+) *Handler {
+	return &Handler{service: service}
 }
 
-type ActivateUserInput struct {
+type Input struct {
 	Token string `json:"token"`
 }
 
-func (i *ActivateUserInput) FromJSON(r io.Reader) error {
+func (i *Input) FromJSON(r io.Reader) error {
 	e := json.NewDecoder(r)
 	return e.Decode(i)
 }
 
-func (i ActivateUserInput) Validate() error {
+func (i Input) Validate() error {
 	return validation.ValidateStruct(&i,
 		validation.Field(&i.Token, validation.Required, validation.Length(0, 128)),
 	)
 }
 
-func (s *ActivateUser) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	input := ActivateUserInput{}
+func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+	input := Input{}
 	if err := input.FromJSON(r.Body); err != nil {
-		renderErrorResponse(rw, "invalid request data", http.StatusBadRequest)
+		response.RenderError(rw, "invalid request data", http.StatusBadRequest)
 		return
 	}
 	if err := input.Validate(); err != nil {
-		renderResponse(rw, err, http.StatusBadRequest)
+		response.Render(rw, err, http.StatusBadRequest)
 		return
 	}
 
-	_, err := s.service.Run(
+	_, err := h.service.Run(
 		r.Context(),
 		activateuser.Input{ActivationToken: user.ActivationToken(input.Token)},
 	)
 	if errors.Is(err, user.ErrUserDoesNotExist) {
-		renderErrorResponse(rw, "user does not exist", http.StatusUnprocessableEntity)
+		response.RenderError(rw, "user does not exist", http.StatusUnprocessableEntity)
 		return
 	}
 	if err != nil {
-		renderErrorResponse(rw, "internal error", http.StatusInternalServerError)
+		response.RenderInternalError(rw)
 		return
 	}
 
-	renderResponse(rw, struct{}{}, http.StatusOK)
+	response.Render(rw, struct{}{}, http.StatusOK)
 }
