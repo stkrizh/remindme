@@ -57,7 +57,7 @@ func (r *PgxUserRepository) Create(ctx context.Context, input user.CreateUserInp
 	return u, nil
 }
 
-func (r *PgxUserRepository) GetByEmail(ctx context.Context, email user.Email) (u user.User, err error) {
+func (r *PgxUserRepository) GetByEmail(ctx context.Context, email c.Email) (u user.User, err error) {
 	dbuser, err := r.queries.GetUserByEmail(ctx, sql.NullString{String: string(email), Valid: true})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return u, user.ErrUserDoesNotExist
@@ -122,7 +122,7 @@ func (r *PgxUserRepository) SetPassword(
 	return nil
 }
 
-func encodeEmail(email c.Optional[user.Email]) sql.NullString {
+func encodeEmail(email c.Optional[c.Email]) sql.NullString {
 	return sql.NullString{String: string(email.Value), Valid: email.IsPresent}
 }
 
@@ -145,7 +145,7 @@ func encodeOptionalTime(at c.Optional[time.Time]) sql.NullTime {
 func decodeUser(u sqlcgen.User) user.User {
 	return user.User{
 		ID:              user.ID(u.ID),
-		Email:           c.NewOptional(user.Email(u.Email.String), u.Email.Valid),
+		Email:           c.NewOptional(c.Email(u.Email.String), u.Email.Valid),
 		Identity:        c.NewOptional(user.Identity(u.Identity.String), u.Identity.Valid),
 		PasswordHash:    c.NewOptional(user.PasswordHash(u.PasswordHash.String), u.PasswordHash.Valid),
 		CreatedAt:       u.CreatedAt,

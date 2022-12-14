@@ -75,7 +75,7 @@ func (s *testSuite) createInactiveUser() user.User {
 	u, err := s.UserRepository.Create(
 		context.Background(),
 		user.CreateUserInput{
-			Email:           c.NewOptional(user.NewEmail(EMAIL), true),
+			Email:           c.NewOptional(c.NewEmail(EMAIL), true),
 			PasswordHash:    c.NewOptional(user.PasswordHash(PASSWORD_HASH), true),
 			CreatedAt:       NOW,
 			ActivationToken: c.NewOptional(user.ActivationToken(ACTIVATION_TOKEN), true),

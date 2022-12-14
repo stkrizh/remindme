@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	c "remindme/internal/core/domain/common"
 	ratelimiter "remindme/internal/core/domain/rate_limiter"
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
@@ -59,7 +60,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	result, err := h.service.Run(
 		r.Context(),
-		loginwithemail.Input{Email: user.NewEmail(input.Email), Password: user.RawPassword(input.Password)},
+		loginwithemail.Input{Email: c.NewEmail(input.Email), Password: user.RawPassword(input.Password)},
 	)
 	if errors.Is(err, ratelimiter.ErrRateLimitExceeded) {
 		response.RenderRateLimitExceeded(rw)

@@ -4,17 +4,10 @@ import (
 	"fmt"
 	c "remindme/internal/core/domain/common"
 	e "remindme/internal/core/domain/errors"
-	"strings"
 	"time"
 )
 
 type ID int64
-
-type Email string
-
-func NewEmail(rawEmail string) Email {
-	return Email(strings.ToLower(rawEmail))
-}
 
 type PasswordHash string
 
@@ -36,7 +29,7 @@ type SessionToken string
 
 type User struct {
 	ID              ID
-	Email           c.Optional[Email]
+	Email           c.Optional[c.Email]
 	PasswordHash    c.Optional[PasswordHash]
 	Identity        c.Optional[Identity]
 	CreatedAt       time.Time

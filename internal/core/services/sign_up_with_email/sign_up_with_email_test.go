@@ -3,7 +3,7 @@ package signupwithemail
 import (
 	"context"
 	"errors"
-	"remindme/internal/core/domain/common"
+	c "remindme/internal/core/domain/common"
 	"remindme/internal/core/domain/logging"
 	uow "remindme/internal/core/domain/unit_of_work"
 	"remindme/internal/core/domain/user"
@@ -16,7 +16,7 @@ import (
 
 const (
 	ACTIVATION_TOKEN = "test"
-	EMAIL            = user.Email("test@test.test")
+	EMAIL            = c.Email("test@test.test")
 	RAW_PASSWORD     = user.RawPassword("test-password")
 )
 
@@ -70,8 +70,8 @@ func (suite *testSuite) TestEmailAlreadyExistsError() {
 	suite.UnitOfWork.Context.UserRepository.Create(
 		ctx,
 		user.CreateUserInput{
-			Email:        common.NewOptional(EMAIL, true),
-			PasswordHash: common.NewOptional(user.PasswordHash("test"), true),
+			Email:        c.NewOptional(EMAIL, true),
+			PasswordHash: c.NewOptional(user.PasswordHash("test"), true),
 			CreatedAt:    NOW,
 		},
 	)

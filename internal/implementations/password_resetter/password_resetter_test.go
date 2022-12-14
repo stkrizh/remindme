@@ -30,21 +30,21 @@ func (suite *testSuite) SetupTest() {
 	suite.users = make(map[user.ID]user.User)
 	suite.users[user.ID(1)] = user.User{
 		ID:           user.ID(1),
-		Email:        c.NewOptional(user.Email("test-1@test.test"), true),
+		Email:        c.NewOptional(c.Email("test-1@test.test"), true),
 		PasswordHash: c.NewOptional(user.PasswordHash("test-hash-1"), true),
 		CreatedAt:    NOW,
 		ActivatedAt:  c.NewOptional(NOW, true),
 	}
 	suite.users[user.ID(1234)] = user.User{
 		ID:           user.ID(1234),
-		Email:        c.NewOptional(user.Email("test-1234@test.test"), true),
+		Email:        c.NewOptional(c.Email("test-1234@test.test"), true),
 		PasswordHash: c.NewOptional(user.PasswordHash("test-hash-1234"), true),
 		CreatedAt:    NOW,
 		ActivatedAt:  c.NewOptional(NOW, true),
 	}
 	suite.users[user.ID(111222333)] = user.User{
 		ID:           user.ID(111222333),
-		Email:        c.NewOptional(user.Email("test-111222333@test.test"), true),
+		Email:        c.NewOptional(c.Email("test-111222333@test.test"), true),
 		PasswordHash: c.NewOptional(user.PasswordHash("test-hash-111222333"), true),
 		CreatedAt:    NOW,
 		ActivatedAt:  c.NewOptional(NOW, true),

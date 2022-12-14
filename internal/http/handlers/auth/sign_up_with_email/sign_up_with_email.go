@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	c "remindme/internal/core/domain/common"
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
 	signupwithemail "remindme/internal/core/services/sign_up_with_email"
@@ -56,7 +57,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	result, err := h.service.Run(
 		r.Context(),
-		signupwithemail.Input{Email: user.NewEmail(input.Email), Password: user.RawPassword(input.Password)},
+		signupwithemail.Input{Email: c.NewEmail(input.Email), Password: user.RawPassword(input.Password)},
 	)
 	if errors.Is(err, user.ErrEmailAlreadyExists) {
 		response.RenderError(rw, "email already exists", http.StatusUnprocessableEntity)

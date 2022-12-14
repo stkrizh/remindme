@@ -145,7 +145,7 @@ func (r *FakeUserRepository) GetByID(ctx context.Context, id ID) (u User, err er
 	return u, ErrUserDoesNotExist
 }
 
-func (r *FakeUserRepository) GetByEmail(ctx context.Context, email Email) (u User, err error) {
+func (r *FakeUserRepository) GetByEmail(ctx context.Context, email c.Email) (u User, err error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	for _, u := range r.Users {

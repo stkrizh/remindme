@@ -53,7 +53,7 @@ func (suite *testSuite) TestCreateSuccess() {
 		{
 			id: "email",
 			input: user.CreateUserInput{
-				Email:           c.NewOptional(user.Email("test@test.test"), true),
+				Email:           c.NewOptional(c.Email("test@test.test"), true),
 				PasswordHash:    c.NewOptional(user.PasswordHash("test"), true),
 				CreatedAt:       NOW,
 				ActivationToken: c.NewOptional(user.ActivationToken("test"), true),
@@ -88,7 +88,7 @@ func (suite *testSuite) TestCreateSuccess() {
 
 func (suite *testSuite) TestEmailAlreadyExistsError() {
 	input := user.CreateUserInput{
-		Email:           c.NewOptional(user.Email("test@test.test"), true),
+		Email:           c.NewOptional(c.Email("test@test.test"), true),
 		PasswordHash:    c.NewOptional(user.PasswordHash("test"), true),
 		CreatedAt:       NOW,
 		ActivationToken: c.NewOptional(user.ActivationToken("test"), true),
@@ -168,7 +168,7 @@ func (s *testSuite) createInactiveUser() user.User {
 	u, err := s.repo.Create(
 		context.Background(),
 		user.CreateUserInput{
-			Email:           c.NewOptional(user.NewEmail(EMAIL), true),
+			Email:           c.NewOptional(c.NewEmail(EMAIL), true),
 			PasswordHash:    c.NewOptional(user.PasswordHash(PASSWORD_HASH), true),
 			CreatedAt:       NOW,
 			ActivationToken: c.NewOptional(user.ActivationToken(ACTIVATION_TOKEN), true),

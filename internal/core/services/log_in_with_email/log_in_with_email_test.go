@@ -53,7 +53,7 @@ func (s *testSuite) TestSuccess() {
 
 	result, err := s.Service.Run(
 		context.Background(),
-		Input{Email: user.NewEmail(EMAIL), Password: user.RawPassword(PASSWORD)},
+		Input{Email: c.NewEmail(EMAIL), Password: user.RawPassword(PASSWORD)},
 	)
 
 	s.Nil(err)
@@ -67,7 +67,7 @@ func (s *testSuite) TestInvalidPassword() {
 
 	result, err := s.Service.Run(
 		context.Background(),
-		Input{Email: user.NewEmail(EMAIL), Password: user.RawPassword("invalid-password")},
+		Input{Email: c.NewEmail(EMAIL), Password: user.RawPassword("invalid-password")},
 	)
 
 	s.True(errors.Is(err, user.ErrInvalidCredentials))
@@ -80,7 +80,7 @@ func (s *testSuite) TestInvalidEmail() {
 
 	result, err := s.Service.Run(
 		context.Background(),
-		Input{Email: user.NewEmail(EMAIL + "test"), Password: user.RawPassword(PASSWORD)},
+		Input{Email: c.NewEmail(EMAIL + "test"), Password: user.RawPassword(PASSWORD)},
 	)
 
 	s.True(errors.Is(err, user.ErrInvalidCredentials))
@@ -93,7 +93,7 @@ func (s *testSuite) TestUserIsNotActive() {
 
 	result, err := s.Service.Run(
 		context.Background(),
-		Input{Email: user.NewEmail(EMAIL), Password: user.RawPassword(PASSWORD)},
+		Input{Email: c.NewEmail(EMAIL), Password: user.RawPassword(PASSWORD)},
 	)
 
 	s.True(errors.Is(err, user.ErrUserIsNotActive))
@@ -110,7 +110,7 @@ func (s *testSuite) createUser(isActive bool) user.User {
 	u, err := s.UserRepository.Create(
 		context.Background(),
 		user.CreateUserInput{
-			Email:        c.NewOptional(user.NewEmail(EMAIL), true),
+			Email:        c.NewOptional(c.NewEmail(EMAIL), true),
 			PasswordHash: c.NewOptional(password, true),
 			CreatedAt:    NOW,
 			ActivatedAt:  c.NewOptional(NOW, isActive),

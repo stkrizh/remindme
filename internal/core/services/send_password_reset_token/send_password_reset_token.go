@@ -3,6 +3,7 @@ package sendpasswordresettoken
 import (
 	"context"
 	"errors"
+	c "remindme/internal/core/domain/common"
 	e "remindme/internal/core/domain/errors"
 	"remindme/internal/core/domain/logging"
 	"remindme/internal/core/domain/user"
@@ -10,7 +11,7 @@ import (
 )
 
 type Input struct {
-	Email user.Email
+	Email c.Email
 }
 
 func (i Input) GetRateLimitKey() string {

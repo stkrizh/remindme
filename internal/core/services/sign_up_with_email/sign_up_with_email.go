@@ -13,7 +13,7 @@ import (
 )
 
 type Input struct {
-	Email    user.Email
+	Email    c.Email
 	Password user.RawPassword
 }
 
