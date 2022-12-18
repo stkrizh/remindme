@@ -7,7 +7,17 @@ package sqlcgen
 import (
 	"database/sql"
 	"time"
+
+	"github.com/jackc/pgtype"
 )
+
+type Channel struct {
+	ID         int64
+	UserID     int64
+	CreatedAt  time.Time
+	Settings   pgtype.JSONB
+	IsVerified bool
+}
 
 type Session struct {
 	ID        int64

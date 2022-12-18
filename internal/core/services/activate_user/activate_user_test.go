@@ -3,8 +3,10 @@ package activateuser
 import (
 	"context"
 	"errors"
+	"remindme/internal/core/domain/channel"
 	c "remindme/internal/core/domain/common"
 	"remindme/internal/core/domain/logging"
+	uow "remindme/internal/core/domain/unit_of_work"
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
 	"testing"
@@ -23,17 +25,17 @@ var NOW time.Time = time.Now().UTC()
 
 type testSuite struct {
 	suite.Suite
-	Logger         *logging.FakeLogger
-	UserRepository *user.FakeUserRepository
-	Service        services.Service[Input, Result]
+	Logger  *logging.FakeLogger
+	Uow     *uow.FakeUnitOfWork
+	Service services.Service[Input, Result]
 }
 
 func (suite *testSuite) SetupTest() {
 	suite.Logger = logging.NewFakeLogger()
-	suite.UserRepository = user.NewFakeUserRepository()
+	suite.Uow = uow.NewFakeUnitOfWork()
 	suite.Service = New(
 		suite.Logger,
-		suite.UserRepository,
+		suite.Uow,
 		func() time.Time { return NOW },
 	)
 }
@@ -42,8 +44,8 @@ func TestActivateUserService(t *testing.T) {
 	suite.Run(t, new(testSuite))
 }
 
-func (s *testSuite) TestSuccess() {
-	activeUser := s.createInactiveUser()
+func (s *testSuite) TestSuccessUserActivated() {
+	inactiveUser := s.createInactiveUser()
 
 	_, err := s.Service.Run(
 		context.Background(),
@@ -51,9 +53,42 @@ func (s *testSuite) TestSuccess() {
 	)
 	s.Nil(err)
 
-	u, err := s.UserRepository.GetByID(context.Background(), activeUser.ID)
+	u, err := s.Uow.Context.UserRepository.GetByID(context.Background(), inactiveUser.ID)
 	s.Nil(err)
 	s.True(u.IsActive())
+
+	s.True(s.Uow.Context.WasCommitCalled)
+}
+
+func (s *testSuite) TestSuccessEmailChannelCreated() {
+	inactiveUser := s.createInactiveUser()
+
+	_, err := s.Service.Run(
+		context.Background(),
+		Input{ActivationToken: user.ActivationToken(ACTIVATION_TOKEN)},
+	)
+	s.Nil(err)
+
+	createdChannels := s.Uow.Context.ChannelRepository.Created
+	s.Equal(1, len(createdChannels))
+	createdChannel := createdChannels[0]
+	s.Equal(inactiveUser.ID, createdChannel.CreatedBy)
+	s.Equal(inactiveUser.Email.Value, createdChannel.Settings.(*channel.EmailSettings).Email)
+	s.True(createdChannel.IsVerified)
+
+	s.True(s.Uow.Context.WasCommitCalled)
+}
+
+func (s *testSuite) TestChannelCreationFailed() {
+	s.createInactiveUser()
+	s.Uow.Context.ChannelRepository.CreateReturnError = true
+
+	_, err := s.Service.Run(
+		context.Background(),
+		Input{ActivationToken: user.ActivationToken(ACTIVATION_TOKEN)},
+	)
+	s.NotNil(err)
+	s.False(s.Uow.Context.WasCommitCalled)
 }
 
 func (s *testSuite) TestActivationTokenInvalid() {
@@ -65,14 +100,14 @@ func (s *testSuite) TestActivationTokenInvalid() {
 	)
 	s.True(errors.Is(err, user.ErrUserDoesNotExist))
 
-	u, err := s.UserRepository.GetByID(context.Background(), activeUser.ID)
+	u, err := s.Uow.Context.UserRepository.GetByID(context.Background(), activeUser.ID)
 	s.Nil(err)
 	s.False(u.IsActive())
 }
 
 func (s *testSuite) createInactiveUser() user.User {
 	s.T().Helper()
-	u, err := s.UserRepository.Create(
+	u, err := s.Uow.Context.UserRepository.Create(
 		context.Background(),
 		user.CreateUserInput{
 			Email:           c.NewOptional(c.NewEmail(EMAIL), true),

@@ -2,23 +2,27 @@ package uow
 
 import (
 	"context"
+	"remindme/internal/core/domain/channel"
 	"remindme/internal/core/domain/user"
 )
 
 type FakeUnitOfWorkContext struct {
-	UserRepository    user.UserRepository
-	SessionRepository user.SessionRepository
+	UserRepository    *user.FakeUserRepository
+	SessionRepository *user.FakeSessionRepository
+	ChannelRepository *channel.FakeRepository
 	WasRollbackCalled bool
 	WasCommitCalled   bool
 }
 
 func NewFakeUnitOfWorkContext(
-	userRepository user.UserRepository,
-	sessionRepository user.SessionRepository,
+	userRepository *user.FakeUserRepository,
+	sessionRepository *user.FakeSessionRepository,
+	channelRepository *channel.FakeRepository,
 ) *FakeUnitOfWorkContext {
 	return &FakeUnitOfWorkContext{
 		UserRepository:    userRepository,
 		SessionRepository: sessionRepository,
+		ChannelRepository: channelRepository,
 	}
 }
 
@@ -40,6 +44,10 @@ func (c *FakeUnitOfWorkContext) Sessions() user.SessionRepository {
 	return c.SessionRepository
 }
 
+func (c *FakeUnitOfWorkContext) Channels() channel.Repository {
+	return c.ChannelRepository
+}
+
 type FakeUnitOfWork struct {
 	Context *FakeUnitOfWorkContext
 }
@@ -50,6 +58,7 @@ func NewFakeUnitOfWork() *FakeUnitOfWork {
 		Context: NewFakeUnitOfWorkContext(
 			userRepository,
 			user.NewFakeSessionRepository(userRepository),
+			channel.NewFakeRepository(),
 		),
 	}
 }

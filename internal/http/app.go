@@ -104,7 +104,7 @@ func StartApp() {
 	)
 	activateUserService := activateuser.New(
 		logger,
-		userRepository,
+		unitOfWork,
 		now,
 	)
 	logInWithEmailService := ratelimiting.New(

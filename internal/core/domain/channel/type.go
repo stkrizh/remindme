@@ -5,7 +5,7 @@ type Type struct {
 }
 
 var (
-	WEBSOCKET = Type{v: "websocket"}
-	TELEGRAM  = Type{v: "telegram"}
-	EMAIL     = Type{v: "email"}
+	Websocket = Type{v: "websocket"}
+	Telegram  = Type{v: "telegram"}
+	Email     = Type{v: "email"}
 )

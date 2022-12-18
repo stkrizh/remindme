@@ -2,8 +2,10 @@ package uow
 
 import (
 	"context"
+	"remindme/internal/core/domain/channel"
 	uow "remindme/internal/core/domain/unit_of_work"
 	"remindme/internal/core/domain/user"
+	dbchannel "remindme/internal/db/channel"
 	"remindme/internal/db/sqlcgen"
 	dbuser "remindme/internal/db/user"
 
@@ -37,6 +39,10 @@ func (c *pgxUnitOfWorkContext) Users() user.UserRepository {
 
 func (c *pgxUnitOfWorkContext) Sessions() user.SessionRepository {
 	return dbuser.NewPgxSessionRepository(c.tx)
+}
+
+func (c *pgxUnitOfWorkContext) Channels() channel.Repository {
+	return dbchannel.NewPgxChannelRepository(c.tx)
 }
 
 type PgxUnitOfWork struct {

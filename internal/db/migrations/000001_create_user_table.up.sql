@@ -11,6 +11,7 @@ CREATE UNIQUE INDEX user_email_idx ON "user" (email);
 CREATE UNIQUE INDEX user_identity_idx ON "user" (identity);
 CREATE UNIQUE INDEX user_activation_token_idx ON "user" (activation_token);
 
+
 CREATE TABLE IF NOT EXISTS session (
     id BIGSERIAL PRIMARY KEY,
     token TEXT NOT NULL,
@@ -18,3 +19,13 @@ CREATE TABLE IF NOT EXISTS session (
     created_at TIMESTAMP NOT NULL
 );
 CREATE UNIQUE INDEX session_token_idx ON session (token);
+
+
+CREATE TABLE IF NOT EXISTS channel (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL,
+    settings JSONB NOT NULL,
+    is_verified BOOLEAN NOT NULL
+);
+CREATE INDEX channel_user_id_idx ON channel (user_id);

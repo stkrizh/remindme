@@ -5,7 +5,7 @@ type Status struct {
 }
 
 var (
-	SCHEDULED = Status{v: "scheduled"}
-	SENT      = Status{v: "sent"}
-	CANCELED  = Status{v: "canceled"}
+	Scheduled = Status{v: "scheduled"}
+	Sent      = Status{v: "sent"}
+	Canceled  = Status{v: "canceled"}
 )

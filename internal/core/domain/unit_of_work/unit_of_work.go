@@ -2,6 +2,7 @@ package uow
 
 import (
 	"context"
+	"remindme/internal/core/domain/channel"
 	"remindme/internal/core/domain/user"
 )
 
@@ -11,6 +12,7 @@ type Context interface {
 
 	Users() user.UserRepository
 	Sessions() user.SessionRepository
+	Channels() channel.Repository
 }
 
 type UnitOfWork interface {
