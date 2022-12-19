@@ -7,22 +7,24 @@ package sqlcgen
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/jackc/pgtype"
 )
 
 const createChannel = `-- name: CreateChannel :one
-INSERT INTO channel (user_id, created_at, settings, is_verified)
-VALUES ($1, $2, $3, $4)
-RETURNING id, user_id, created_at, settings, is_verified
+INSERT INTO channel (user_id, created_at, settings, verification_token, verified_at)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, user_id, created_at, settings, verification_token, verified_at
 `
 
 type CreateChannelParams struct {
-	UserID     int64
-	CreatedAt  time.Time
-	Settings   pgtype.JSONB
-	IsVerified bool
+	UserID            int64
+	CreatedAt         time.Time
+	Settings          pgtype.JSONB
+	VerificationToken sql.NullString
+	VerifiedAt        sql.NullTime
 }
 
 func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (Channel, error) {
@@ -30,7 +32,8 @@ func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (C
 		arg.UserID,
 		arg.CreatedAt,
 		arg.Settings,
-		arg.IsVerified,
+		arg.VerificationToken,
+		arg.VerifiedAt,
 	)
 	var i Channel
 	err := row.Scan(
@@ -38,7 +41,8 @@ func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (C
 		&i.UserID,
 		&i.CreatedAt,
 		&i.Settings,
-		&i.IsVerified,
+		&i.VerificationToken,
+		&i.VerifiedAt,
 	)
 	return i, err
 }

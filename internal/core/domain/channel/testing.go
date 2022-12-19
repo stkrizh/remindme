@@ -19,11 +19,12 @@ func (r *FakeRepository) Create(ctx context.Context, input CreateInput) (channel
 		return channel, errors.New("coulf not create channel")
 	}
 	channel = Channel{
-		ID:         ID(1),
-		Settings:   input.Settings,
-		CreatedBy:  input.CreatedBy,
-		CreatedAt:  input.CreatedAt,
-		IsVerified: input.IsVerified,
+		ID:                ID(1),
+		Settings:          input.Settings,
+		CreatedBy:         input.CreatedBy,
+		CreatedAt:         input.CreatedAt,
+		VerificationToken: input.VerificationToken,
+		VerifiedAt:        input.VerifiedAt,
 	}
 	r.Created = append(r.Created, channel)
 	return channel, nil

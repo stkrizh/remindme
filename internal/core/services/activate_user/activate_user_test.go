@@ -74,7 +74,7 @@ func (s *testSuite) TestSuccessEmailChannelCreated() {
 	createdChannel := createdChannels[0]
 	s.Equal(inactiveUser.ID, createdChannel.CreatedBy)
 	s.Equal(inactiveUser.Email.Value, createdChannel.Settings.(*channel.EmailSettings).Email)
-	s.True(createdChannel.IsVerified)
+	s.True(createdChannel.IsVerified())
 
 	s.True(s.Uow.Context.WasCommitCalled)
 }

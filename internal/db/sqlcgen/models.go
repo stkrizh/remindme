@@ -12,11 +12,12 @@ import (
 )
 
 type Channel struct {
-	ID         int64
-	UserID     int64
-	CreatedAt  time.Time
-	Settings   pgtype.JSONB
-	IsVerified bool
+	ID                int64
+	UserID            int64
+	CreatedAt         time.Time
+	Settings          pgtype.JSONB
+	VerificationToken sql.NullString
+	VerifiedAt        sql.NullTime
 }
 
 type Session struct {

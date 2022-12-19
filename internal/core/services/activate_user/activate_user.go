@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"remindme/internal/core/domain/channel"
+	c "remindme/internal/core/domain/common"
 	e "remindme/internal/core/domain/errors"
 	"remindme/internal/core/domain/logging"
 	uow "remindme/internal/core/domain/unit_of_work"
@@ -79,7 +80,7 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 			CreatedBy:  u.ID,
 			Settings:   channel.NewEmailSettings(u.Email.Value),
 			CreatedAt:  s.now(),
-			IsVerified: true,
+			VerifiedAt: c.NewOptional(s.now(), true),
 		},
 	)
 	if err != nil {

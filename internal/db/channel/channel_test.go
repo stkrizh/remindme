@@ -4,7 +4,7 @@ import (
 	"context"
 	"reflect"
 	"remindme/internal/core/domain/channel"
-	"remindme/internal/core/domain/common"
+	c "remindme/internal/core/domain/common"
 	"remindme/internal/core/domain/user"
 	"remindme/internal/db"
 	dbuser "remindme/internal/db/user"
@@ -22,15 +22,15 @@ func TestChannelSettingsEncoding(t *testing.T) {
 		id       string
 		settings channel.Settings
 	}{
-		{id: "email-1", settings: &channel.EmailSettings{Email: common.NewEmail("test-1@test.com")}},
-		{id: "email-2", settings: &channel.EmailSettings{Email: common.NewEmail("test-2@test.com")}},
+		{id: "email-1", settings: &channel.EmailSettings{Email: c.NewEmail("test-1@test.com")}},
+		{id: "email-2", settings: &channel.EmailSettings{Email: c.NewEmail("test-2@test.com")}},
 		{id: "telegram-1", settings: &channel.TelegramSettings{
-			BotToken: channel.TelegramBotToken("test"),
-			ChatID:   channel.TelegramChatID(1),
+			Bot:    channel.TelegramBot("test"),
+			ChatID: channel.TelegramChatID(1),
 		}},
 		{id: "telegram-2", settings: &channel.TelegramSettings{
-			BotToken: channel.TelegramBotToken("test-test-test-test aasdkhaskdhsakdhjksahdkjashd jkahsdkjas"),
-			ChatID:   channel.TelegramChatID(111222333444555),
+			Bot:    channel.TelegramBot("test-test-test-test aasdkhaskdhsakdhjksahdkjashd jkahsdkjas"),
+			ChatID: channel.TelegramChatID(111222333444555),
 		}},
 		{id: "ws-1", settings: &channel.WebsocketSettings{}},
 	}
@@ -76,10 +76,10 @@ func (s *testSuite) SetupTest() {
 	u, err := s.userRepo.Create(
 		context.Background(),
 		user.CreateUserInput{
-			Email:        common.NewOptional(common.NewEmail("test@test.test"), true),
-			PasswordHash: common.NewOptional(user.PasswordHash("test"), true),
+			Email:        c.NewOptional(c.NewEmail("test@test.test"), true),
+			PasswordHash: c.NewOptional(user.PasswordHash("test"), true),
 			CreatedAt:    NOW,
-			ActivatedAt:  common.NewOptional(NOW, true),
+			ActivatedAt:  c.NewOptional(NOW, true),
 		},
 	)
 	s.Nil(err)
@@ -103,10 +103,10 @@ func (s *testSuite) TestCreateSuccess() {
 		{
 			id: "email-1",
 			input: channel.CreateInput{
-				CreatedBy:  s.user.ID,
-				Settings:   channel.NewEmailSettings("test-1@test.test"),
-				CreatedAt:  time.Now().UTC(),
-				IsVerified: true,
+				CreatedBy:         s.user.ID,
+				Settings:          channel.NewEmailSettings("test-1@test.test"),
+				CreatedAt:         time.Now().UTC().Truncate(time.Second),
+				VerificationToken: c.NewOptional(channel.VerificationToken("test-1"), true),
 			},
 		},
 		{
@@ -115,7 +115,7 @@ func (s *testSuite) TestCreateSuccess() {
 				CreatedBy:  s.user.ID,
 				Settings:   channel.NewEmailSettings("test-2@test.test"),
 				CreatedAt:  NOW,
-				IsVerified: false,
+				VerifiedAt: c.NewOptional(NOW, true),
 			},
 		},
 		{
@@ -123,17 +123,17 @@ func (s *testSuite) TestCreateSuccess() {
 			input: channel.CreateInput{
 				CreatedBy:  s.user.ID,
 				Settings:   channel.NewTelegramSettings("test-1", 1),
-				CreatedAt:  time.Now().UTC(),
-				IsVerified: true,
+				CreatedAt:  time.Now().UTC().Truncate(time.Second),
+				VerifiedAt: c.NewOptional(NOW, true),
 			},
 		},
 		{
 			id: "telegram-2",
 			input: channel.CreateInput{
-				CreatedBy:  s.user.ID,
-				Settings:   channel.NewTelegramSettings("test-2", 111222333444),
-				CreatedAt:  NOW,
-				IsVerified: false,
+				CreatedBy:         s.user.ID,
+				Settings:          channel.NewTelegramSettings("test-2", 111222333444),
+				CreatedAt:         NOW,
+				VerificationToken: c.NewOptional(channel.VerificationToken("test-2"), true),
 			},
 		},
 		{
@@ -141,17 +141,17 @@ func (s *testSuite) TestCreateSuccess() {
 			input: channel.CreateInput{
 				CreatedBy:  s.user.ID,
 				Settings:   channel.NewWebsocketSettings(),
-				CreatedAt:  time.Now().UTC(),
-				IsVerified: true,
+				CreatedAt:  time.Now().UTC().Truncate(time.Second),
+				VerifiedAt: c.NewOptional(time.Now().UTC().Truncate(time.Second), true),
 			},
 		},
 		{
 			id: "websocket-2",
 			input: channel.CreateInput{
-				CreatedBy:  s.user.ID,
-				Settings:   channel.NewWebsocketSettings(),
-				CreatedAt:  NOW,
-				IsVerified: false,
+				CreatedBy:         s.user.ID,
+				Settings:          channel.NewWebsocketSettings(),
+				CreatedAt:         NOW,
+				VerificationToken: c.NewOptional(channel.VerificationToken("test-2"), true),
 			},
 		},
 	}
@@ -163,11 +163,9 @@ func (s *testSuite) TestCreateSuccess() {
 			s.Nil(err)
 			s.Equal(testcase.input.CreatedBy, newChannel.CreatedBy)
 			s.Equal(testcase.input.Settings, newChannel.Settings)
-			s.Equal(
-				testcase.input.CreatedAt.Truncate(time.Millisecond),
-				newChannel.CreatedAt.Truncate(time.Millisecond),
-			)
-			s.Equal(testcase.input.IsVerified, newChannel.IsVerified)
+			s.Equal(testcase.input.CreatedAt, newChannel.CreatedAt)
+			s.Equal(testcase.input.VerificationToken, newChannel.VerificationToken)
+			s.Equal(testcase.input.VerifiedAt, newChannel.VerifiedAt)
 		})
 	}
 

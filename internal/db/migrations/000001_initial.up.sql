@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS channel (
     user_id BIGINT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
     created_at TIMESTAMP NOT NULL,
     settings JSONB NOT NULL,
-    is_verified BOOLEAN NOT NULL
+    verification_token TEXT,
+    verified_at TIMESTAMP
 );
 CREATE INDEX channel_user_id_idx ON channel (user_id);
+CREATE INDEX channel_verification_token_idx ON channel (verification_token);

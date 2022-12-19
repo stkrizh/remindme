@@ -26,17 +26,17 @@ func (s *EmailSettings) Accept(v settingsVisitor) error {
 	return v.VisitEmail(s)
 }
 
-type TelegramBotToken string
+type TelegramBot string
 
 type TelegramChatID int64
 
 type TelegramSettings struct {
-	BotToken TelegramBotToken
-	ChatID   TelegramChatID
+	Bot    TelegramBot
+	ChatID TelegramChatID
 }
 
-func NewTelegramSettings(token TelegramBotToken, chatID TelegramChatID) *TelegramSettings {
-	return &TelegramSettings{BotToken: token, ChatID: chatID}
+func NewTelegramSettings(bot TelegramBot, chatID TelegramChatID) *TelegramSettings {
+	return &TelegramSettings{Bot: bot, ChatID: chatID}
 }
 
 func (s *TelegramSettings) Accept(v settingsVisitor) error {
