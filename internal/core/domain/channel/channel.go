@@ -13,6 +13,7 @@ type VerificationToken string
 
 type Channel struct {
 	ID                ID
+	Type              Type
 	Settings          Settings
 	CreatedBy         user.ID
 	CreatedAt         time.Time
@@ -23,6 +24,9 @@ type Channel struct {
 func (c *Channel) Validate() error {
 	if !(c.VerifiedAt.IsPresent || c.VerificationToken.IsPresent) {
 		return e.NewInvalidStateError("either VerifiedAt or VerificationToken must be defined")
+	}
+	if c.Type == Unknown {
+		return e.NewInvalidStateError("invalid channel type")
 	}
 	return nil
 }

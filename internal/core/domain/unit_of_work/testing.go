@@ -9,6 +9,7 @@ import (
 type FakeUnitOfWorkContext struct {
 	UserRepository    *user.FakeUserRepository
 	SessionRepository *user.FakeSessionRepository
+	LimitsRepository  *user.FakeLimitsRepository
 	ChannelRepository *channel.FakeRepository
 	WasRollbackCalled bool
 	WasCommitCalled   bool
@@ -17,11 +18,13 @@ type FakeUnitOfWorkContext struct {
 func NewFakeUnitOfWorkContext(
 	userRepository *user.FakeUserRepository,
 	sessionRepository *user.FakeSessionRepository,
+	limitsRepository *user.FakeLimitsRepository,
 	channelRepository *channel.FakeRepository,
 ) *FakeUnitOfWorkContext {
 	return &FakeUnitOfWorkContext{
 		UserRepository:    userRepository,
 		SessionRepository: sessionRepository,
+		LimitsRepository:  limitsRepository,
 		ChannelRepository: channelRepository,
 	}
 }
@@ -44,6 +47,10 @@ func (c *FakeUnitOfWorkContext) Sessions() user.SessionRepository {
 	return c.SessionRepository
 }
 
+func (c *FakeUnitOfWorkContext) Limits() user.LimitsRepository {
+	return c.LimitsRepository
+}
+
 func (c *FakeUnitOfWorkContext) Channels() channel.Repository {
 	return c.ChannelRepository
 }
@@ -58,6 +65,7 @@ func NewFakeUnitOfWork() *FakeUnitOfWork {
 		Context: NewFakeUnitOfWorkContext(
 			userRepository,
 			user.NewFakeSessionRepository(userRepository),
+			user.NewFakeLimitsRepository(),
 			channel.NewFakeRepository(),
 		),
 	}
@@ -65,4 +73,20 @@ func NewFakeUnitOfWork() *FakeUnitOfWork {
 
 func (u *FakeUnitOfWork) Begin(ctx context.Context) (Context, error) {
 	return u.Context, nil
+}
+
+func (u *FakeUnitOfWork) Users() *user.FakeUserRepository {
+	return u.Context.UserRepository
+}
+
+func (u *FakeUnitOfWork) Sessions() *user.FakeSessionRepository {
+	return u.Context.SessionRepository
+}
+
+func (u *FakeUnitOfWork) Limits() *user.FakeLimitsRepository {
+	return u.Context.LimitsRepository
+}
+
+func (u *FakeUnitOfWork) Channels() *channel.FakeRepository {
+	return u.Context.ChannelRepository
 }

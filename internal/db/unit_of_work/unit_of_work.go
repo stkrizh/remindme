@@ -6,7 +6,6 @@ import (
 	uow "remindme/internal/core/domain/unit_of_work"
 	"remindme/internal/core/domain/user"
 	dbchannel "remindme/internal/db/channel"
-	"remindme/internal/db/sqlcgen"
 	dbuser "remindme/internal/db/user"
 
 	"github.com/jackc/pgx/v4"
@@ -14,14 +13,12 @@ import (
 )
 
 type pgxUnitOfWorkContext struct {
-	tx      pgx.Tx
-	queries *sqlcgen.Queries
+	tx pgx.Tx
 }
 
 func newPgxUnitOfWorkContext(tx pgx.Tx) *pgxUnitOfWorkContext {
 	return &pgxUnitOfWorkContext{
-		tx:      tx,
-		queries: sqlcgen.New(tx),
+		tx: tx,
 	}
 }
 
@@ -39,6 +36,10 @@ func (c *pgxUnitOfWorkContext) Users() user.UserRepository {
 
 func (c *pgxUnitOfWorkContext) Sessions() user.SessionRepository {
 	return dbuser.NewPgxSessionRepository(c.tx)
+}
+
+func (c *pgxUnitOfWorkContext) Limits() user.LimitsRepository {
+	return dbuser.NewPgxLimitsRepository(c.tx)
 }
 
 func (c *pgxUnitOfWorkContext) Channels() channel.Repository {

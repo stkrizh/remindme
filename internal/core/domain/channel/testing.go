@@ -3,11 +3,19 @@ package channel
 import (
 	"context"
 	"errors"
+	"fmt"
+	"sync"
 )
 
 type FakeRepository struct {
-	CreateReturnError bool
-	Created           []Channel
+	CreateReturnsError bool
+	Created            []Channel
+	ReadReturnsError   bool
+	ReadChannels       []Channel
+	CountReturnsError  bool
+	CountChannels      uint
+	Options            []ReadOptions
+	lock               sync.Mutex
 }
 
 func NewFakeRepository() *FakeRepository {
@@ -15,12 +23,15 @@ func NewFakeRepository() *FakeRepository {
 }
 
 func (r *FakeRepository) Create(ctx context.Context, input CreateInput) (channel Channel, err error) {
-	if r.CreateReturnError {
+	if r.CreateReturnsError {
 		return channel, errors.New("coulf not create channel")
 	}
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	channel = Channel{
 		ID:                ID(1),
 		Settings:          input.Settings,
+		Type:              input.Type,
 		CreatedBy:         input.CreatedBy,
 		CreatedAt:         input.CreatedAt,
 		VerificationToken: input.VerificationToken,
@@ -28,4 +39,62 @@ func (r *FakeRepository) Create(ctx context.Context, input CreateInput) (channel
 	}
 	r.Created = append(r.Created, channel)
 	return channel, nil
+}
+
+func (r *FakeRepository) Read(ctx context.Context, options ReadOptions) (channels []Channel, err error) {
+	if r.ReadReturnsError {
+		return channels, fmt.Errorf("could not read channels")
+	}
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.Options = append(r.Options, options)
+	return r.ReadChannels, nil
+}
+
+func (r *FakeRepository) Count(ctx context.Context, options ReadOptions) (count uint, err error) {
+	if r.CountReturnsError {
+		return count, fmt.Errorf("could not count channels")
+	}
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.Options = append(r.Options, options)
+	return r.CountChannels, nil
+}
+
+type FakeVerificationTokenGenerator struct {
+	Token VerificationToken
+}
+
+func NewFakeVerificationTokenGenerator(token VerificationToken) *FakeVerificationTokenGenerator {
+	return &FakeVerificationTokenGenerator{Token: token}
+}
+
+func (g *FakeVerificationTokenGenerator) GenerateVerificationToken() VerificationToken {
+	return g.Token
+}
+
+type FakeVerificationTokenSender struct {
+	ReturnsError bool
+	Sent         []VerificationToken
+	SetChannels  []Channel
+	lock         sync.Mutex
+}
+
+func NewFakeVerificationTokenSender() *FakeVerificationTokenSender {
+	return &FakeVerificationTokenSender{}
+}
+
+func (g *FakeVerificationTokenSender) SendVerificationToken(
+	ctx context.Context,
+	token VerificationToken,
+	channel Channel,
+) error {
+	if g.ReturnsError {
+		return fmt.Errorf("could not send verification token")
+	}
+	g.lock.Lock()
+	defer g.lock.Unlock()
+	g.Sent = append(g.Sent, token)
+	g.SetChannels = append(g.SetChannels, channel)
+	return nil
 }

@@ -9,12 +9,20 @@ import (
 
 type CreateInput struct {
 	CreatedBy         user.ID
+	Type              Type
 	Settings          Settings
 	CreatedAt         time.Time
 	VerificationToken c.Optional[VerificationToken]
 	VerifiedAt        c.Optional[time.Time]
 }
 
+type ReadOptions struct {
+	UserIDEquals c.Optional[user.ID]
+	TypeEquals   c.Optional[Type]
+}
+
 type Repository interface {
 	Create(ctx context.Context, input CreateInput) (Channel, error)
+	Read(ctx context.Context, options ReadOptions) ([]Channel, error)
+	Count(ctx context.Context, options ReadOptions) (uint, error)
 }

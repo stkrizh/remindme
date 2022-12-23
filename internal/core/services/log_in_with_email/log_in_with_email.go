@@ -86,7 +86,7 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		return result, user.ErrUserIsNotActive
 	}
 
-	sessionToken := s.sessionTokenGenerator.GenerateToken()
+	sessionToken := s.sessionTokenGenerator.GenerateSessionToken()
 	err = s.sessionRepository.Create(ctx, user.CreateSessionInput{
 		UserID:    u.ID,
 		Token:     sessionToken,

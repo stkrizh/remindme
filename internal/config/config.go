@@ -1,56 +1,22 @@
 package config
 
 import (
-	"fmt"
-	"os"
-	"strconv"
+	"github.com/caarlos0/env/v6"
 )
 
 type Config struct {
-	IsTestMode                      bool
-	Secret                          string
-	PostgresqlURL                   string
-	RedisURL                        string
-	BcryptHasherCost                int
-	PasswordResetValidDurationHours int
+	IsTestMode                      bool   `env:"TEST_MODE" envDefault:"false"`
+	Secret                          string `env:"SECRET,notEmpty"`
+	PostgresqlURL                   string `env:"POSTGRESQL_URL,notEmpty"`
+	RedisURL                        string `env:"REDIS_URL,notEmpty"`
+	BcryptHasherCost                int    `env:"BCRYPT_HASHER_COST" envDefault:"10"`
+	PasswordResetValidDurationHours int    `env:"PASSWORD_RESET_VALIDATION_HOURS" envDefault:"24"`
 }
 
 func Load() (*Config, error) {
-	isTestMode := os.Getenv("TEST_MODE") == "true"
-
-	secret := os.Getenv("SECRET")
-	if secret == "" {
-		return nil, fmt.Errorf("SECRET must be set")
+	cfg := &Config{}
+	if err := env.Parse(cfg); err != nil {
+		return cfg, err
 	}
-
-	postgresqlURL := os.Getenv("POSTGRESQL_URL")
-	if postgresqlURL == "" {
-		return nil, fmt.Errorf("POSTGRESQL_URL must be set")
-	}
-
-	redisURL := os.Getenv("REDIS_URL")
-	if redisURL == "" {
-		return nil, fmt.Errorf("REDIS_URL must be set")
-	}
-
-	bcryptHasherCostRaw := os.Getenv("BCRYPT_HASHER_COST")
-	bcryptHasherCost, err := strconv.Atoi(bcryptHasherCostRaw)
-	if err != nil {
-		return nil, fmt.Errorf("invalid BCRYPT_HASHER_COST value: %w", err)
-	}
-
-	passwordResetValidDurationHoursRaw := os.Getenv("PASSWORD_RESET_VALID_DURATION_HOURS")
-	passwordResetValidDurationHours, err := strconv.Atoi(passwordResetValidDurationHoursRaw)
-	if err != nil {
-		return nil, fmt.Errorf("invalid PASSWORD_RESET_VALID_DURATION_HOURS value: %w", err)
-	}
-
-	return &Config{
-		IsTestMode:                      isTestMode,
-		Secret:                          secret,
-		PostgresqlURL:                   postgresqlURL,
-		RedisURL:                        redisURL,
-		BcryptHasherCost:                bcryptHasherCost,
-		PasswordResetValidDurationHours: passwordResetValidDurationHours,
-	}, nil
+	return cfg, nil
 }

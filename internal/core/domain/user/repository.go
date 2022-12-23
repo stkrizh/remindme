@@ -34,3 +34,13 @@ type SessionRepository interface {
 	GetUserByToken(ctx context.Context, token SessionToken) (User, error)
 	Delete(ctx context.Context, token SessionToken) (userID ID, err error)
 }
+
+type CreateLimitsInput struct {
+	UserID ID
+	Limits Limits
+}
+
+type LimitsRepository interface {
+	Create(ctx context.Context, input CreateLimitsInput) (Limits, error)
+	GetUserLimitsWithLock(ctx context.Context, userID ID) (Limits, error)
+}

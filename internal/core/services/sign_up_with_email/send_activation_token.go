@@ -46,7 +46,7 @@ func (s *serviceWithActivationTokenSending) Run(ctx context.Context, input Input
 		return result, err
 	}
 
-	err = s.sender.SendToken(ctx, result.User)
+	err = s.sender.SendActivationToken(ctx, result.User)
 	if errors.Is(err, context.Canceled) {
 		return result, err
 	}

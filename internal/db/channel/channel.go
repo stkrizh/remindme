@@ -15,13 +15,9 @@ import (
 )
 
 const (
-	SETTINGS_TYPE_FIELD       = "type"
-	SETTINGS_EMAIL            = "email"
 	SETTINGS_EMAIL_EMAIL      = "email"
-	SETTINGS_TELEGRAM         = "telegram"
 	SETTINGS_TELEGRAM_BOT     = "bot"
 	SETTINGS_TELEGRAM_CHAT_ID = "chat_id"
-	SETTINGS_WEBSOCKET        = "websocket"
 )
 
 type PgxChannelRepository struct {
@@ -36,6 +32,9 @@ func NewPgxChannelRepository(db sqlcgen.DBTX) *PgxChannelRepository {
 }
 
 func (r *PgxChannelRepository) Create(ctx context.Context, input channel.CreateInput) (c channel.Channel, err error) {
+	if input.Type == channel.Unknown {
+		return c, fmt.Errorf("unknown channel type")
+	}
 	encodedSettings, err := encodeSettings(input.Settings)
 	if err != nil {
 		return c, err
@@ -45,6 +44,7 @@ func (r *PgxChannelRepository) Create(ctx context.Context, input channel.CreateI
 		sqlcgen.CreateChannelParams{
 			UserID:    int64(input.CreatedBy),
 			CreatedAt: input.CreatedAt,
+			Type:      input.Type.String(),
 			Settings:  encodedSettings,
 			VerificationToken: sql.NullString{
 				String: string(input.VerificationToken.Value),
@@ -63,8 +63,58 @@ func (r *PgxChannelRepository) Create(ctx context.Context, input channel.CreateI
 	return c, err
 }
 
+func (r *PgxChannelRepository) Read(
+	ctx context.Context,
+	options channel.ReadOptions,
+) (channels []channel.Channel, err error) {
+	dbChannels, err := r.queries.ReadChanels(
+		ctx,
+		sqlcgen.ReadChanelsParams{
+			AllUserIds:   !options.UserIDEquals.IsPresent,
+			UserIDEquals: int64(options.UserIDEquals.Value),
+			AllTypes:     !options.TypeEquals.IsPresent,
+			TypeEquals:   options.TypeEquals.Value.String(),
+		},
+	)
+	if err != nil {
+		return channels, err
+	}
+	channels = make([]channel.Channel, len(dbChannels))
+	for ix, dbChannel := range dbChannels {
+		channel, err := decodeChannel(dbChannel)
+		if err != nil {
+			return channels, err
+		}
+		channels[ix] = channel
+	}
+	return channels, nil
+}
+
+func (r *PgxChannelRepository) Count(
+	ctx context.Context,
+	options channel.ReadOptions,
+) (count uint, err error) {
+	rawCount, err := r.queries.CountChannels(
+		ctx,
+		sqlcgen.CountChannelsParams{
+			AllUserIds:   !options.UserIDEquals.IsPresent,
+			UserIDEquals: int64(options.UserIDEquals.Value),
+			AllTypes:     !options.TypeEquals.IsPresent,
+			TypeEquals:   options.TypeEquals.Value.String(),
+		},
+	)
+	if err != nil {
+		return count, err
+	}
+	return uint(rawCount), nil
+}
+
 func decodeChannel(dbChannel sqlcgen.Channel) (domainChannel channel.Channel, err error) {
-	settings, err := decodeSettings(dbChannel.Settings)
+	channelType := channel.ParseType(dbChannel.Type)
+	if channelType == channel.Unknown {
+		return domainChannel, fmt.Errorf("unknown channel (ID %d) type: %s", dbChannel.ID, dbChannel.Type)
+	}
+	settings, err := decodeSettings(channelType, dbChannel.Settings)
 	if err != nil {
 		return domainChannel, err
 	}
@@ -72,6 +122,7 @@ func decodeChannel(dbChannel sqlcgen.Channel) (domainChannel channel.Channel, er
 		ID:        channel.ID(dbChannel.ID),
 		CreatedBy: user.ID(dbChannel.UserID),
 		CreatedAt: dbChannel.CreatedAt,
+		Type:      channelType,
 		Settings:  settings,
 		VerificationToken: c.NewOptional(
 			channel.VerificationToken(dbChannel.VerificationToken.String),
@@ -92,7 +143,6 @@ type settingsJSONBEncoder struct {
 
 func (c *settingsJSONBEncoder) VisitEmail(s *channel.EmailSettings) error {
 	settings := make(map[string]interface{})
-	settings[SETTINGS_TYPE_FIELD] = SETTINGS_EMAIL
 	settings[SETTINGS_EMAIL_EMAIL] = string(s.Email)
 	if err := c.result.Set(settings); err != nil {
 		return err
@@ -102,7 +152,6 @@ func (c *settingsJSONBEncoder) VisitEmail(s *channel.EmailSettings) error {
 
 func (c *settingsJSONBEncoder) VisitTelegram(s *channel.TelegramSettings) error {
 	settings := make(map[string]interface{})
-	settings[SETTINGS_TYPE_FIELD] = SETTINGS_TELEGRAM
 	settings[SETTINGS_TELEGRAM_BOT] = string(s.Bot)
 	settings[SETTINGS_TELEGRAM_CHAT_ID] = fmt.Sprintf("%d", s.ChatID)
 	if err := c.result.Set(settings); err != nil {
@@ -113,7 +162,6 @@ func (c *settingsJSONBEncoder) VisitTelegram(s *channel.TelegramSettings) error 
 
 func (c *settingsJSONBEncoder) VisitWebsocket(s *channel.WebsocketSettings) error {
 	settings := make(map[string]interface{})
-	settings[SETTINGS_TYPE_FIELD] = SETTINGS_WEBSOCKET
 	if err := c.result.Set(settings); err != nil {
 		return err
 	}
@@ -178,21 +226,18 @@ func (d *settingsJSONBDecoder) VisitWebsocket(s *channel.WebsocketSettings) erro
 	return nil
 }
 
-func decodeSettings(encoded pgtype.JSONB) (settings channel.Settings, err error) {
+func decodeSettings(channelType channel.Type, encoded pgtype.JSONB) (settings channel.Settings, err error) {
 	m, ok := encoded.Get().(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("could not cast JSONB encoded value: %v", encoded)
 	}
-	settingsType, ok := m[SETTINGS_TYPE_FIELD]
-	if !ok {
-		return nil, fmt.Errorf("could not define channel settings type: %v", m)
-	}
-	switch settingsType {
-	case SETTINGS_EMAIL:
+
+	switch channelType {
+	case channel.Email:
 		settings = &channel.EmailSettings{}
-	case SETTINGS_TELEGRAM:
+	case channel.Telegram:
 		settings = &channel.TelegramSettings{}
-	case SETTINGS_WEBSOCKET:
+	case channel.Websocket:
 		settings = &channel.WebsocketSettings{}
 	default:
 		return nil, fmt.Errorf("unknown channel settings type: %v", m)

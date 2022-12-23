@@ -46,13 +46,13 @@ func (s *sendVerificationTokenService) Run(ctx context.Context, input Input) (re
 			ctx,
 			"Inner service returned an error, skip token sending.",
 			logging.Entry("email", input.Email),
-			logging.Entry("userID", input.User.ID),
+			logging.Entry("userID", input.UserID),
 			logging.Entry("err", err),
 		)
 		return result, err
 	}
 
-	err = s.sender.SendToken(ctx, result.VerificationToken, result.Channel)
+	err = s.sender.SendVerificationToken(ctx, result.VerificationToken, result.Channel)
 	if errors.Is(err, context.Canceled) {
 		return result, err
 	}
@@ -61,7 +61,7 @@ func (s *sendVerificationTokenService) Run(ctx context.Context, input Input) (re
 			ctx,
 			"Could not send email channel verification token.",
 			logging.Entry("email", input.Email),
-			logging.Entry("userID", input.User.ID),
+			logging.Entry("userID", input.UserID),
 			logging.Entry("err", err),
 		)
 		return result, err
@@ -71,7 +71,7 @@ func (s *sendVerificationTokenService) Run(ctx context.Context, input Input) (re
 		ctx,
 		"Email channel verification token has been sent.",
 		logging.Entry("email", input.Email),
-		logging.Entry("userID", input.User.ID),
+		logging.Entry("userID", input.UserID),
 		logging.Entry("channelID", result.Channel.ID),
 	)
 	return result, nil

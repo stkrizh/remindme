@@ -12,6 +12,7 @@ type Context interface {
 
 	Users() user.UserRepository
 	Sessions() user.SessionRepository
+	Limits() user.LimitsRepository
 	Channels() channel.Repository
 }
 

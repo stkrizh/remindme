@@ -1,8 +1,10 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 	"remindme/internal/core/domain/user"
+	"remindme/internal/core/services/auth"
 	"strings"
 )
 
@@ -24,4 +26,12 @@ func ParseToken(r *http.Request) (token user.SessionToken, ok bool) {
 		return token, false
 	}
 	return user.SessionToken(parts[1]), true
+}
+
+func SetTokenToContext(r *http.Request) context.Context {
+	token, ok := ParseToken(r)
+	if !ok {
+		return r.Context()
+	}
+	return context.WithValue(r.Context(), auth.CONTEXT_AUTH_TOKEN_KEY, token)
 }

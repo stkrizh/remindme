@@ -63,3 +63,8 @@ func (u *User) IsAnonymous() bool {
 	}
 	panic(fmt.Sprintf("neither email nor identity is not defined for user %d", u.ID))
 }
+
+type Limits struct {
+	EmailChannelCount    c.Optional[uint32]
+	TelegramChannelCount c.Optional[uint32]
+}

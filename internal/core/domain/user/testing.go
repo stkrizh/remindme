@@ -20,7 +20,7 @@ func NewFakeActivationTokenSender() *FakeActivationTokenSender {
 	return &FakeActivationTokenSender{}
 }
 
-func (s *FakeActivationTokenSender) SendToken(ctx context.Context, user User) error {
+func (s *FakeActivationTokenSender) SendActivationToken(ctx context.Context, user User) error {
 	if s.ReturnError {
 		return fmt.Errorf("could not send activation token for user %v", user)
 	}
@@ -50,7 +50,7 @@ func NewFakeActivationTokenGenerator(token string) *FakeActivationTokenGenerator
 	return &FakeActivationTokenGenerator{Token: ActivationToken(token)}
 }
 
-func (g *FakeActivationTokenGenerator) GenerateToken() ActivationToken {
+func (g *FakeActivationTokenGenerator) GenerateActivationToken() ActivationToken {
 	return g.Token
 }
 
@@ -90,7 +90,7 @@ func NewFakeSessionTokenGenerator(token string) *FakeSessionTokenGenerator {
 	return &FakeSessionTokenGenerator{Token: token}
 }
 
-func (g *FakeSessionTokenGenerator) GenerateToken() SessionToken {
+func (g *FakeSessionTokenGenerator) GenerateSessionToken() SessionToken {
 	return SessionToken(g.Token)
 }
 
@@ -224,6 +224,36 @@ func (r *FakeSessionRepository) Delete(ctx context.Context, token SessionToken) 
 	}
 	delete(r.UserIdByToken, token)
 	return userID, nil
+}
+
+type FakeLimitsRepository struct {
+	ReturnError bool
+	Created     []Limits
+	Limits      Limits
+	lock        sync.Mutex
+}
+
+func NewFakeLimitsRepository() *FakeLimitsRepository {
+	return &FakeLimitsRepository{}
+}
+
+func (r *FakeLimitsRepository) Create(ctx context.Context, input CreateLimitsInput) (l Limits, err error) {
+	if r.ReturnError {
+		return l, fmt.Errorf("could not create limits %v", input)
+	}
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	l.EmailChannelCount = input.Limits.EmailChannelCount
+	l.TelegramChannelCount = input.Limits.TelegramChannelCount
+	r.Created = append(r.Created, l)
+	return l, nil
+}
+
+func (r *FakeLimitsRepository) GetUserLimitsWithLock(ctx context.Context, userID ID) (l Limits, err error) {
+	if r.ReturnError {
+		return l, fmt.Errorf("could not get user limits")
+	}
+	return r.Limits, nil
 }
 
 type FakePasswordResetter struct {

@@ -21,7 +21,13 @@ const (
 	ACTIVATION_TOKEN = "test-activation-token"
 )
 
-var NOW time.Time = time.Now().UTC()
+var (
+	Now           time.Time   = time.Now().UTC()
+	DefaultLimits user.Limits = user.Limits{
+		EmailChannelCount:    c.NewOptional(uint32(3), true),
+		TelegramChannelCount: c.NewOptional(uint32(2), true),
+	}
+)
 
 type testSuite struct {
 	suite.Suite
@@ -36,7 +42,8 @@ func (suite *testSuite) SetupTest() {
 	suite.Service = New(
 		suite.Logger,
 		suite.Uow,
-		func() time.Time { return NOW },
+		func() time.Time { return Now },
+		DefaultLimits,
 	)
 }
 
@@ -60,6 +67,21 @@ func (s *testSuite) TestSuccessUserActivated() {
 	s.True(s.Uow.Context.WasCommitCalled)
 }
 
+func (s *testSuite) TestSuccessLimitsCreated() {
+	_ = s.createInactiveUser()
+
+	_, err := s.Service.Run(
+		context.Background(),
+		Input{ActivationToken: user.ActivationToken(ACTIVATION_TOKEN)},
+	)
+	s.Nil(err)
+
+	createdLimits := s.Uow.Context.LimitsRepository.Created
+	s.Equal(1, len(createdLimits))
+	s.Equal(DefaultLimits, createdLimits[0])
+	s.True(s.Uow.Context.WasCommitCalled)
+}
+
 func (s *testSuite) TestSuccessEmailChannelCreated() {
 	inactiveUser := s.createInactiveUser()
 
@@ -73,6 +95,7 @@ func (s *testSuite) TestSuccessEmailChannelCreated() {
 	s.Equal(1, len(createdChannels))
 	createdChannel := createdChannels[0]
 	s.Equal(inactiveUser.ID, createdChannel.CreatedBy)
+	s.Equal(channel.Email, createdChannel.Type)
 	s.Equal(inactiveUser.Email.Value, createdChannel.Settings.(*channel.EmailSettings).Email)
 	s.True(createdChannel.IsVerified())
 
@@ -81,7 +104,7 @@ func (s *testSuite) TestSuccessEmailChannelCreated() {
 
 func (s *testSuite) TestChannelCreationFailed() {
 	s.createInactiveUser()
-	s.Uow.Context.ChannelRepository.CreateReturnError = true
+	s.Uow.Context.ChannelRepository.CreateReturnsError = true
 
 	_, err := s.Service.Run(
 		context.Background(),
@@ -112,7 +135,7 @@ func (s *testSuite) createInactiveUser() user.User {
 		user.CreateUserInput{
 			Email:           c.NewOptional(c.NewEmail(EMAIL), true),
 			PasswordHash:    c.NewOptional(user.PasswordHash(PASSWORD_HASH), true),
-			CreatedAt:       NOW,
+			CreatedAt:       Now,
 			ActivationToken: c.NewOptional(user.ActivationToken(ACTIVATION_TOKEN), true),
 		},
 	)

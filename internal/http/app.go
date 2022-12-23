@@ -4,10 +4,13 @@ import (
 	"context"
 	"net/http"
 	"remindme/internal/config"
+	c "remindme/internal/core/domain/common"
 	dl "remindme/internal/core/domain/logging"
 	drl "remindme/internal/core/domain/rate_limiter"
 	"remindme/internal/core/domain/user"
 	activateuser "remindme/internal/core/services/activate_user"
+	auth "remindme/internal/core/services/auth"
+	createemailchannel "remindme/internal/core/services/create_email_channel"
 	getuserbysessiontoken "remindme/internal/core/services/get_user_by_session_token"
 	loginwithemail "remindme/internal/core/services/log_in_with_email"
 	logout "remindme/internal/core/services/log_out"
@@ -26,13 +29,12 @@ import (
 	handlerSendPasswResetToken "remindme/internal/http/handlers/auth/send_password_reset_token"
 	handlerSignUpAnon "remindme/internal/http/handlers/auth/sign_up_anonymously"
 	handlerSignUpWithEmail "remindme/internal/http/handlers/auth/sign_up_with_email"
-	"remindme/internal/implementations/activation"
-	"remindme/internal/implementations/identity"
+	handlerCreateEmailChannel "remindme/internal/http/handlers/channels/create_email_channel"
 	"remindme/internal/implementations/logging"
 	passwordhasher "remindme/internal/implementations/password_hasher"
 	passwordresetter "remindme/internal/implementations/password_resetter"
+	randomstringgenerator "remindme/internal/implementations/random_string_generator"
 	ratelimiter "remindme/internal/implementations/rate_limiter"
-	"remindme/internal/implementations/session"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -67,18 +69,24 @@ func StartApp() {
 	userRepository := dbuser.NewPgxRepository(db)
 	sessionRepository := dbuser.NewPgxSessionRepository(db)
 	rateLimiter := ratelimiter.NewRedis(redisClient, logger, now)
+	randomStringGenerator := randomstringgenerator.NewGenerator()
 
 	passwordHasher := passwordhasher.NewBcrypt(config.Secret, config.BcryptHasherCost)
-	activationTokenGenerator := activation.NewTokenGenerator()
 	activationTokenSender := user.NewFakeActivationTokenSender()
-	identityGenerator := identity.NewUUID()
-	sessionTokenGenerator := session.NewUUID()
 	passwordResetter := passwordresetter.NewHMAC(
 		config.Secret,
 		time.Duration(config.PasswordResetValidDurationHours*int(time.Hour)),
 		now,
 	)
 	passwordResetTokenSender := user.NewFakePasswordResetTokenSender()
+	defaultUserLimits := user.Limits{
+		EmailChannelCount:    c.NewOptional(uint32(1), true),
+		TelegramChannelCount: c.NewOptional(uint32(1), true),
+	}
+	defaultAnonymousUserLimits := user.Limits{
+		EmailChannelCount:    c.NewOptional(uint32(1), true),
+		TelegramChannelCount: c.NewOptional(uint32(1), true),
+	}
 
 	getUserBySessionTokenService := getuserbysessiontoken.New(
 		logger,
@@ -91,21 +99,23 @@ func StartApp() {
 			logger,
 			unitOfWork,
 			passwordHasher,
-			activationTokenGenerator,
+			randomStringGenerator,
 			now,
 		),
 	)
 	signUpAnonymouslyService := signupanonymously.New(
 		logger,
 		unitOfWork,
-		identityGenerator,
-		sessionTokenGenerator,
+		randomStringGenerator,
+		randomStringGenerator,
 		now,
+		defaultAnonymousUserLimits,
 	)
 	activateUserService := activateuser.New(
 		logger,
 		unitOfWork,
 		now,
+		defaultUserLimits,
 	)
 	logInWithEmailService := ratelimiting.New(
 		logger,
@@ -116,7 +126,7 @@ func StartApp() {
 			userRepository,
 			sessionRepository,
 			passwordHasher,
-			sessionTokenGenerator,
+			randomStringGenerator,
 			now,
 		),
 	)
@@ -142,6 +152,16 @@ func StartApp() {
 		passwordHasher,
 	)
 
+	createEmailChannel := auth.WithAuthentication(
+		sessionRepository,
+		createemailchannel.New(
+			logger,
+			unitOfWork,
+			randomStringGenerator,
+			now,
+		),
+	)
+
 	router := chi.NewRouter()
 
 	router.Get("/auth/me", handlerMe.New(getUserBySessionTokenService).ServeHTTP)
@@ -156,6 +176,8 @@ func StartApp() {
 	)
 	router.Post("/auth/password_reset", handlerResetPassword.New(resetPassword).ServeHTTP)
 
+	router.Post("/channels/email", handlerCreateEmailChannel.New(createEmailChannel, config.IsTestMode).ServeHTTP)
+
 	address := "0.0.0.0:9090"
 
 	srv := &http.Server{
@@ -167,6 +189,11 @@ func StartApp() {
 		IdleTimeout:       5 * time.Second,
 	}
 
-	logger.Info(context.Background(), "Server has started.", dl.Entry("address", address))
+	logger.Info(
+		context.Background(),
+		"Server has started.",
+		dl.Entry("address", address),
+		dl.Entry("isTestMode", config.IsTestMode),
+	)
 	srv.ListenAndServe()
 }

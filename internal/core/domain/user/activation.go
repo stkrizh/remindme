@@ -3,9 +3,9 @@ package user
 import "context"
 
 type ActivationTokenGenerator interface {
-	GenerateToken() ActivationToken
+	GenerateActivationToken() ActivationToken
 }
 
 type ActivationTokenSender interface {
-	SendToken(ctx context.Context, user User) error
+	SendActivationToken(ctx context.Context, user User) error
 }

@@ -12,3 +12,7 @@ var (
 	ErrSessionDoesNotExist        = errors.New("session does not exist")
 	ErrInvalidPasswordFResetToken = errors.New("invalid password reset token")
 )
+
+var (
+	ErrLimitEmailChannelCountExceeded = errors.New("email channel count limit exceeded")
+)

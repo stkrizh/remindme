@@ -38,6 +38,30 @@ func (q *Queries) ActivateUser(ctx context.Context, arg ActivateUserParams) (Use
 	return i, err
 }
 
+const createLimits = `-- name: CreateLimits :one
+INSERT INTO limits (user_id, email_channel_count, telegram_channel_count) 
+VALUES ($1, $2, $3)
+RETURNING id, user_id, email_channel_count, telegram_channel_count
+`
+
+type CreateLimitsParams struct {
+	UserID               int64
+	EmailChannelCount    sql.NullInt32
+	TelegramChannelCount sql.NullInt32
+}
+
+func (q *Queries) CreateLimits(ctx context.Context, arg CreateLimitsParams) (Limit, error) {
+	row := q.db.QueryRow(ctx, createLimits, arg.UserID, arg.EmailChannelCount, arg.TelegramChannelCount)
+	var i Limit
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.EmailChannelCount,
+		&i.TelegramChannelCount,
+	)
+	return i, err
+}
+
 const createSession = `-- name: CreateSession :one
 INSERT INTO session (token, user_id, created_at)
 VALUES ($1, $2, $3)
@@ -165,6 +189,22 @@ func (q *Queries) GetUserBySessionToken(ctx context.Context, token string) (User
 		&i.CreatedAt,
 		&i.ActivatedAt,
 		&i.ActivationToken,
+	)
+	return i, err
+}
+
+const getUserLimitsWithLock = `-- name: GetUserLimitsWithLock :one
+SELECT id, user_id, email_channel_count, telegram_channel_count FROM limits WHERE user_id = $1 FOR UPDATE
+`
+
+func (q *Queries) GetUserLimitsWithLock(ctx context.Context, userID int64) (Limit, error) {
+	row := q.db.QueryRow(ctx, getUserLimitsWithLock, userID)
+	var i Limit
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.EmailChannelCount,
+		&i.TelegramChannelCount,
 	)
 	return i, err
 }

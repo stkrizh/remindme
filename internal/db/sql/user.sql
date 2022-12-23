@@ -33,3 +33,11 @@ RETURNING *;
 
 -- name: DeleteSessionByToken :one
 DELETE FROM session WHERE token = $1 RETURNING user_id;
+
+-- name: CreateLimits :one
+INSERT INTO limits (user_id, email_channel_count, telegram_channel_count) 
+VALUES ($1, $2, $3)
+RETURNING *;
+
+-- name: GetUserLimitsWithLock :one
+SELECT * FROM limits WHERE user_id = $1 FOR UPDATE;

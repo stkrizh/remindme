@@ -85,7 +85,7 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		Email:           c.NewOptional(input.Email, true),
 		PasswordHash:    c.NewOptional(passwordHash, true),
 		CreatedAt:       s.now(),
-		ActivationToken: c.NewOptional(s.activationTokenGenerator.GenerateToken(), true),
+		ActivationToken: c.NewOptional(s.activationTokenGenerator.GenerateActivationToken(), true),
 	})
 	if errors.Is(err, context.Canceled) {
 		return result, err

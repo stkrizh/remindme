@@ -28,6 +28,7 @@ type service struct {
 	identityGenerator     user.IdentityGenerator
 	sessionTokenGenerator user.SessionTokenGenerator
 	now                   func() time.Time
+	defaultLimits         user.Limits
 }
 
 func New(
@@ -36,6 +37,7 @@ func New(
 	identityGenerator user.IdentityGenerator,
 	sessionTokenGenerator user.SessionTokenGenerator,
 	now func() time.Time,
+	defaultLimits user.Limits,
 ) services.Service[Input, Result] {
 	if unitOfWork == nil {
 		panic(e.NewNilArgumentError("unitOfWork"))
@@ -58,6 +60,7 @@ func New(
 		identityGenerator:     identityGenerator,
 		sessionTokenGenerator: sessionTokenGenerator,
 		now:                   now,
+		defaultLimits:         defaultLimits,
 	}
 }
 
@@ -96,7 +99,24 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		return result, err
 	}
 
-	sessionToken := s.sessionTokenGenerator.GenerateToken()
+	_, err = uow.Limits().Create(
+		ctx,
+		user.CreateLimitsInput{
+			UserID: createdUser.ID,
+			Limits: s.defaultLimits,
+		},
+	)
+	if err != nil {
+		s.log.Error(
+			ctx,
+			"Could not create limits record for anonymous user.",
+			logging.Entry("userID", createdUser.ID),
+			logging.Entry("err", err),
+		)
+		return result, err
+	}
+
+	sessionToken := s.sessionTokenGenerator.GenerateSessionToken()
 	err = uow.Sessions().Create(
 		ctx,
 		user.CreateSessionInput{

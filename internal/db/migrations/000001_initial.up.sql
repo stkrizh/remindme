@@ -7,9 +7,9 @@ CREATE TABLE IF NOT EXISTS "user" (
     activated_at TIMESTAMP,
     activation_token TEXT
 );
-CREATE UNIQUE INDEX user_email_idx ON "user" (email);
-CREATE UNIQUE INDEX user_identity_idx ON "user" (identity);
-CREATE UNIQUE INDEX user_activation_token_idx ON "user" (activation_token);
+CREATE UNIQUE INDEX IF NOT EXISTS user_email_idx ON "user" (email);
+CREATE UNIQUE INDEX IF NOT EXISTS  user_identity_idx ON "user" (identity);
+CREATE UNIQUE INDEX IF NOT EXISTS  user_activation_token_idx ON "user" (activation_token);
 
 
 CREATE TABLE IF NOT EXISTS session (
@@ -18,16 +18,26 @@ CREATE TABLE IF NOT EXISTS session (
     user_id BIGINT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
     created_at TIMESTAMP NOT NULL
 );
-CREATE UNIQUE INDEX session_token_idx ON session (token);
+CREATE UNIQUE INDEX IF NOT EXISTS  session_token_idx ON session (token);
 
 
 CREATE TABLE IF NOT EXISTS channel (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
     created_at TIMESTAMP NOT NULL,
+    type TEXT NOT NULL,
     settings JSONB NOT NULL,
     verification_token TEXT,
     verified_at TIMESTAMP
 );
-CREATE INDEX channel_user_id_idx ON channel (user_id);
-CREATE INDEX channel_verification_token_idx ON channel (verification_token);
+CREATE INDEX IF NOT EXISTS  channel_user_id_idx ON channel (user_id);
+CREATE INDEX IF NOT EXISTS  channel_type_idx ON channel (type);
+
+
+CREATE TABLE IF NOT EXISTS limits (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
+    email_channel_count INTEGER CONSTRAINT email_channel_count_positive CHECK (email_channel_count >= 0),
+    telegram_channel_count INTEGER CONSTRAINT telegram_channel_count_positive CHECK (telegram_channel_count >= 0) 
+);
+CREATE UNIQUE INDEX IF NOT EXISTS limits_user_id_idx ON limits (user_id)

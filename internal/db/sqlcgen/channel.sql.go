@@ -13,15 +13,41 @@ import (
 	"github.com/jackc/pgtype"
 )
 
+const countChannels = `-- name: CountChannels :one
+SELECT COUNT(id) FROM channel WHERE
+    ($1::boolean OR user_id = $2::bigint)
+    AND ($3::boolean OR type = $4::text)
+`
+
+type CountChannelsParams struct {
+	AllUserIds   bool
+	UserIDEquals int64
+	AllTypes     bool
+	TypeEquals   string
+}
+
+func (q *Queries) CountChannels(ctx context.Context, arg CountChannelsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countChannels,
+		arg.AllUserIds,
+		arg.UserIDEquals,
+		arg.AllTypes,
+		arg.TypeEquals,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createChannel = `-- name: CreateChannel :one
-INSERT INTO channel (user_id, created_at, settings, verification_token, verified_at)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, user_id, created_at, settings, verification_token, verified_at
+INSERT INTO channel (user_id, created_at, type, settings, verification_token, verified_at)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, user_id, created_at, type, settings, verification_token, verified_at
 `
 
 type CreateChannelParams struct {
 	UserID            int64
 	CreatedAt         time.Time
+	Type              string
 	Settings          pgtype.JSONB
 	VerificationToken sql.NullString
 	VerifiedAt        sql.NullTime
@@ -31,6 +57,7 @@ func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (C
 	row := q.db.QueryRow(ctx, createChannel,
 		arg.UserID,
 		arg.CreatedAt,
+		arg.Type,
 		arg.Settings,
 		arg.VerificationToken,
 		arg.VerifiedAt,
@@ -40,9 +67,57 @@ func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (C
 		&i.ID,
 		&i.UserID,
 		&i.CreatedAt,
+		&i.Type,
 		&i.Settings,
 		&i.VerificationToken,
 		&i.VerifiedAt,
 	)
 	return i, err
+}
+
+const readChanels = `-- name: ReadChanels :many
+SELECT id, user_id, created_at, type, settings, verification_token, verified_at FROM channel WHERE 
+    ($1::boolean OR user_id = $2::bigint)
+    AND ($3::boolean OR type = $4::text)
+ORDER BY id
+`
+
+type ReadChanelsParams struct {
+	AllUserIds   bool
+	UserIDEquals int64
+	AllTypes     bool
+	TypeEquals   string
+}
+
+func (q *Queries) ReadChanels(ctx context.Context, arg ReadChanelsParams) ([]Channel, error) {
+	rows, err := q.db.Query(ctx, readChanels,
+		arg.AllUserIds,
+		arg.UserIDEquals,
+		arg.AllTypes,
+		arg.TypeEquals,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Channel
+	for rows.Next() {
+		var i Channel
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.Type,
+			&i.Settings,
+			&i.VerificationToken,
+			&i.VerifiedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

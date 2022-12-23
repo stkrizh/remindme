@@ -5,9 +5,9 @@ import (
 )
 
 type VerificationTokenSender interface {
-	SendToken(ctx context.Context, token VerificationToken, channel Channel) error
+	SendVerificationToken(ctx context.Context, token VerificationToken, channel Channel) error
 }
 
 type VerificationTokenGenerator interface {
-	GenerateToken() VerificationToken
+	GenerateVerificationToken() VerificationToken
 }

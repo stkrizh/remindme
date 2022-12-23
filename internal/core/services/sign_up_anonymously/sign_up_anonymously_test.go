@@ -3,6 +3,7 @@ package signupanonymously
 import (
 	"context"
 	"net/netip"
+	c "remindme/internal/core/domain/common"
 	"remindme/internal/core/domain/logging"
 	uow "remindme/internal/core/domain/unit_of_work"
 	"remindme/internal/core/domain/user"
@@ -18,7 +19,13 @@ const (
 	SESSION_TOKEN = "test-session-token"
 )
 
-var NOW time.Time = time.Now().UTC()
+var (
+	Now    time.Time   = time.Now().UTC()
+	Limits user.Limits = user.Limits{
+		EmailChannelCount:    c.NewOptional(uint32(1), true),
+		TelegramChannelCount: c.NewOptional(uint32(1), true),
+	}
+)
 
 type testSuite struct {
 	suite.Suite
@@ -39,7 +46,8 @@ func (suite *testSuite) SetupTest() {
 		suite.UnitOfWork,
 		suite.IdentityGenerator,
 		suite.SessionTokenGenerator,
-		func() time.Time { return NOW },
+		func() time.Time { return Now },
+		Limits,
 	)
 }
 
@@ -60,14 +68,26 @@ func (suite *testSuite) TestSuccess() {
 	assert.False(createdUser.PasswordHash.IsPresent)
 	assert.Equal(user.Identity(IDENTITY), createdUser.Identity.Value)
 	assert.True(createdUser.Identity.IsPresent)
-	assert.Equal(NOW, createdUser.CreatedAt)
+	assert.Equal(Now, createdUser.CreatedAt)
 	assert.True(createdUser.ActivatedAt.IsPresent)
-	assert.Equal(NOW, createdUser.ActivatedAt.Value)
+	assert.Equal(Now, createdUser.ActivatedAt.Value)
 
 	assert.Equal(user.SessionToken(SESSION_TOKEN), sessionToken)
 
 	u, _ := suite.UnitOfWork.Context.SessionRepository.GetUserByToken(ctx, sessionToken)
 	assert.Equal(createdUser, u)
 
+	assert.True(suite.UnitOfWork.Context.WasCommitCalled)
+}
+
+func (suite *testSuite) TestSuccessLimitsCreated() {
+	ctx := context.Background()
+
+	_, err := suite.Service.Run(ctx, Input{IP: netip.MustParseAddr("192.168.1.1")})
+
+	assert := suite.Require()
+	assert.Nil(err)
+	assert.Equal(1, len(suite.UnitOfWork.Context.LimitsRepository.Created))
+	assert.Equal(Limits, suite.UnitOfWork.Context.LimitsRepository.Created[0])
 	assert.True(suite.UnitOfWork.Context.WasCommitCalled)
 }

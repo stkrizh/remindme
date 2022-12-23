@@ -15,9 +15,17 @@ type Channel struct {
 	ID                int64
 	UserID            int64
 	CreatedAt         time.Time
+	Type              string
 	Settings          pgtype.JSONB
 	VerificationToken sql.NullString
 	VerifiedAt        sql.NullTime
+}
+
+type Limit struct {
+	ID                   int64
+	UserID               int64
+	EmailChannelCount    sql.NullInt32
+	TelegramChannelCount sql.NullInt32
 }
 
 type Session struct {
