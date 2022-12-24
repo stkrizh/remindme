@@ -19,7 +19,7 @@ type serviceWithRateLimiting[T hasRateLimitKey, S any] struct {
 	inner       services.Service[T, S]
 }
 
-func New[T hasRateLimitKey, S any](
+func WithRateLimiting[T hasRateLimitKey, S any](
 	log logging.Logger,
 	rateLimiter ratelimiter.RateLimiter,
 	rateLimit ratelimiter.Limit,

@@ -118,7 +118,7 @@ func StartApp() {
 		now,
 		defaultUserLimits,
 	)
-	logInWithEmailService := ratelimiting.New(
+	logInWithEmailService := ratelimiting.WithRateLimiting(
 		logger,
 		rateLimiter,
 		drl.Limit{Interval: drl.Hour, Value: 10},
@@ -135,7 +135,7 @@ func StartApp() {
 		logger,
 		sessionRepository,
 	)
-	sendPasswordResetToken := ratelimiting.New(
+	sendPasswordResetToken := ratelimiting.WithRateLimiting(
 		logger,
 		rateLimiter,
 		drl.Limit{Interval: drl.Hour, Value: 3},
@@ -169,10 +169,15 @@ func StartApp() {
 	)
 	verifyChannel := auth.WithAuthentication(
 		sessionRepository,
-		verifychannel.New(
+		ratelimiting.WithRateLimiting(
 			logger,
-			channelRepository,
-			now,
+			rateLimiter,
+			drl.Limit{Interval: drl.Minute, Value: 5},
+			verifychannel.New(
+				logger,
+				channelRepository,
+				now,
+			),
 		),
 	)
 

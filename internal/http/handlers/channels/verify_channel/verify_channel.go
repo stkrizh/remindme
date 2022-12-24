@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"remindme/internal/core/domain/channel"
+	ratelimiter "remindme/internal/core/domain/rate_limiter"
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
 	service "remindme/internal/core/services/verify_channel"
@@ -73,6 +74,8 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		switch {
 		case errors.Is(err, user.ErrUserDoesNotExist):
 			response.RenderUnauthorized(rw)
+		case errors.Is(err, ratelimiter.ErrRateLimitExceeded):
+			response.RenderRateLimitExceeded(rw)
 		case errors.Is(err, channel.ErrChannelDoesNotExist):
 			response.RenderError(rw, err.Error(), http.StatusUnprocessableEntity)
 		default:

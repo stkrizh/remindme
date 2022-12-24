@@ -3,6 +3,7 @@ package verifychannel
 import (
 	"context"
 	"errors"
+	"fmt"
 	"remindme/internal/core/domain/channel"
 	e "remindme/internal/core/domain/errors"
 	"remindme/internal/core/domain/logging"
@@ -21,6 +22,10 @@ type Input struct {
 func (i Input) WithAuthenticatedUser(u user.User) auth.Input {
 	i.UserID = u.ID
 	return i
+}
+
+func (i Input) GetRateLimitKey() string {
+	return fmt.Sprintf("verify-channel::%d", i.UserID)
 }
 
 type Result struct {

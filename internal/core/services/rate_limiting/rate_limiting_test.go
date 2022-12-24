@@ -45,7 +45,7 @@ func (suite *testRateLimitingSuite) SetupTest() {
 	suite.Logger = logging.NewFakeLogger()
 	suite.RateLimiter = ratelimiter.NewFakeRateLimiter(false)
 	suite.Inner = NewStubService()
-	suite.Service = New(
+	suite.Service = WithRateLimiting(
 		suite.Logger,
 		suite.RateLimiter,
 		ratelimiter.Limit{Value: 10, Interval: ratelimiter.Minute},
