@@ -3,6 +3,7 @@ package channel
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"remindme/internal/core/domain/channel"
 	c "remindme/internal/core/domain/common"
@@ -12,6 +13,7 @@ import (
 	"strconv"
 
 	"github.com/jackc/pgtype"
+	"github.com/jackc/pgx/v4"
 )
 
 const (
@@ -107,6 +109,32 @@ func (r *PgxChannelRepository) Count(
 		return count, err
 	}
 	return uint(rawCount), nil
+}
+
+func (r *PgxChannelRepository) Verify(
+	ctx context.Context,
+	input channel.VerifyInput,
+) (c channel.Channel, err error) {
+	dbChannel, err := r.queries.ActivateChannel(
+		ctx,
+		sqlcgen.ActivateChannelParams{
+			ID:                int64(input.ID),
+			UserID:            int64(input.CreatedBy),
+			VerificationToken: string(input.VerificationToken),
+			VerifiedAt:        input.At,
+		},
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return c, channel.ErrChannelDoesNotExist
+	}
+	if err != nil {
+		return c, err
+	}
+	domainChannel, err := decodeChannel(dbChannel)
+	if err != nil {
+		return c, err
+	}
+	return domainChannel, nil
 }
 
 func decodeChannel(dbChannel sqlcgen.Channel) (domainChannel channel.Channel, err error) {

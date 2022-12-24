@@ -28,10 +28,13 @@ func ParseToken(r *http.Request) (token user.SessionToken, ok bool) {
 	return user.SessionToken(parts[1]), true
 }
 
-func SetTokenToContext(r *http.Request) context.Context {
-	token, ok := ParseToken(r)
-	if !ok {
-		return r.Context()
-	}
-	return context.WithValue(r.Context(), auth.CONTEXT_AUTH_TOKEN_KEY, token)
+func SetAuthTokenToContext(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token, ok := ParseToken(r)
+		if ok {
+			ctx := context.WithValue(r.Context(), auth.CONTEXT_AUTH_TOKEN_KEY, token)
+			r = r.WithContext(ctx)
+		}
+		next.ServeHTTP(w, r)
+	})
 }

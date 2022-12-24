@@ -13,3 +13,9 @@ ORDER BY id;
 SELECT COUNT(id) FROM channel WHERE
     (@all_user_ids::boolean OR user_id = @user_id_equals::bigint)
     AND (@all_types::boolean OR type = @type_equals::text);
+
+-- name: ActivateChannel :one
+UPDATE channel 
+SET verified_at = @verified_at::timestamp, verification_token = null
+WHERE id = $1 AND user_id = $2 AND verification_token = @verification_token::text
+RETURNING *;

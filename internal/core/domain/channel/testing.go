@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	c "remindme/internal/core/domain/common"
 	"sync"
 )
 
@@ -15,6 +16,7 @@ type FakeRepository struct {
 	CountReturnsError  bool
 	CountChannels      uint
 	Options            []ReadOptions
+	VerifyReturnsError bool
 	lock               sync.Mutex
 }
 
@@ -59,6 +61,17 @@ func (r *FakeRepository) Count(ctx context.Context, options ReadOptions) (count 
 	defer r.lock.Unlock()
 	r.Options = append(r.Options, options)
 	return r.CountChannels, nil
+}
+
+func (r *FakeRepository) Verify(ctx context.Context, input VerifyInput) (channel Channel, err error) {
+	if r.VerifyReturnsError {
+		return channel, ErrChannelDoesNotExist
+	}
+	channel.ID = input.ID
+	channel.CreatedBy = input.CreatedBy
+	channel.VerificationToken = c.NewOptional(VerificationToken(""), false)
+	channel.VerifiedAt = c.NewOptional(input.At, true)
+	return channel, nil
 }
 
 type FakeVerificationTokenGenerator struct {

@@ -124,7 +124,7 @@ func (suite *testSuite) TearDownTest() {
 	db.TruncateTables(suite.pool)
 }
 
-func TestPgxUserRepository(t *testing.T) {
+func TestPgxChannelRepository(t *testing.T) {
 	suite.Run(t, new(testSuite))
 }
 

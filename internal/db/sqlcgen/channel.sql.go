@@ -13,6 +13,40 @@ import (
 	"github.com/jackc/pgtype"
 )
 
+const activateChannel = `-- name: ActivateChannel :one
+UPDATE channel 
+SET verified_at = $3::timestamp, verification_token = null
+WHERE id = $1 AND user_id = $2 AND verification_token = $4::text
+RETURNING id, user_id, created_at, type, settings, verification_token, verified_at
+`
+
+type ActivateChannelParams struct {
+	ID                int64
+	UserID            int64
+	VerifiedAt        time.Time
+	VerificationToken string
+}
+
+func (q *Queries) ActivateChannel(ctx context.Context, arg ActivateChannelParams) (Channel, error) {
+	row := q.db.QueryRow(ctx, activateChannel,
+		arg.ID,
+		arg.UserID,
+		arg.VerifiedAt,
+		arg.VerificationToken,
+	)
+	var i Channel
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.Type,
+		&i.Settings,
+		&i.VerificationToken,
+		&i.VerifiedAt,
+	)
+	return i, err
+}
+
 const countChannels = `-- name: CountChannels :one
 SELECT COUNT(id) FROM channel WHERE
     ($1::boolean OR user_id = $2::bigint)

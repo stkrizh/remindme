@@ -104,6 +104,13 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		return result, err
 	}
 	if userLimits.EmailChannelCount.IsPresent && actualEmailChannelCount >= uint(userLimits.EmailChannelCount.Value) {
+		s.log.Info(
+			ctx,
+			"Could not create email channel, count limit exceeeded.",
+			logging.Entry("userID", input.UserID),
+			logging.Entry("limit", userLimits.EmailChannelCount.Value),
+			logging.Entry("actual", actualEmailChannelCount),
+		)
 		return result, user.ErrLimitEmailChannelCountExceeded
 	}
 

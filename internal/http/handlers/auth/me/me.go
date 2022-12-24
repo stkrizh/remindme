@@ -6,7 +6,6 @@ import (
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
 	service "remindme/internal/core/services/get_user_by_session_token"
-	"remindme/internal/http/handlers/auth"
 	"remindme/internal/http/handlers/response"
 )
 
@@ -25,15 +24,9 @@ type Result struct {
 }
 
 func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	token, ok := auth.ParseToken(r)
-	if !ok {
-		response.RenderUnauthorized(rw)
-		return
-	}
-
 	result, err := h.service.Run(
 		r.Context(),
-		service.Input{Token: token},
+		service.Input{},
 	)
 	if errors.Is(err, user.ErrUserDoesNotExist) {
 		response.RenderUnauthorized(rw)

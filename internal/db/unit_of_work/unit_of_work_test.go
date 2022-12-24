@@ -32,7 +32,7 @@ func (suite *testSuite) TearDownTest() {
 	db.TruncateTables(suite.pool)
 }
 
-func TestPgxUnotOfWork(t *testing.T) {
+func TestPgxUnitOfWork(t *testing.T) {
 	suite.Run(t, new(testSuite))
 }
 
@@ -44,23 +44,19 @@ func (s *testSuite) TestLimitsLock() {
 
 	for i := 0; i < 10; i++ {
 		go func() {
+			defer wg.Done()
 			ctx := context.Background()
 			uow, err := s.uow.Begin(ctx)
 			if err != nil {
-				s.FailNowf("could not begin uow", "%w", err)
+				return
 			}
 			defer uow.Rollback(ctx)
 
 			_, err = uow.Limits().GetUserLimitsWithLock(ctx, userID)
 			if err != nil {
-				s.FailNowf("could not get user limits", "%w", err)
+				return
 			}
 			count += 1
-			err = uow.Commit(ctx)
-			if err != nil {
-				s.FailNowf("could not commit uow", "%w", err)
-			}
-			wg.Done()
 		}()
 	}
 

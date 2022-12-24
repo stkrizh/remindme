@@ -21,8 +21,16 @@ type ReadOptions struct {
 	TypeEquals   c.Optional[Type]
 }
 
+type VerifyInput struct {
+	ID                ID
+	CreatedBy         user.ID
+	VerificationToken VerificationToken
+	At                time.Time
+}
+
 type Repository interface {
 	Create(ctx context.Context, input CreateInput) (Channel, error)
 	Read(ctx context.Context, options ReadOptions) ([]Channel, error)
 	Count(ctx context.Context, options ReadOptions) (uint, error)
+	Verify(ctx context.Context, input VerifyInput) (Channel, error)
 }

@@ -19,8 +19,11 @@ import (
 	sendpasswordresettoken "remindme/internal/core/services/send_password_reset_token"
 	signupanonymously "remindme/internal/core/services/sign_up_anonymously"
 	signupwithemail "remindme/internal/core/services/sign_up_with_email"
+	verifychannel "remindme/internal/core/services/verify_channel"
+	dbchannel "remindme/internal/db/channel"
 	uow "remindme/internal/db/unit_of_work"
 	dbuser "remindme/internal/db/user"
+	authMiddleware "remindme/internal/http/handlers/auth"
 	handlerActivate "remindme/internal/http/handlers/auth/activate_user"
 	handlerLogin "remindme/internal/http/handlers/auth/log_in_with_email"
 	handlerLogout "remindme/internal/http/handlers/auth/log_out"
@@ -30,6 +33,7 @@ import (
 	handlerSignUpAnon "remindme/internal/http/handlers/auth/sign_up_anonymously"
 	handlerSignUpWithEmail "remindme/internal/http/handlers/auth/sign_up_with_email"
 	handlerCreateEmailChannel "remindme/internal/http/handlers/channels/create_email_channel"
+	handlerVerifyChannel "remindme/internal/http/handlers/channels/verify_channel"
 	"remindme/internal/implementations/logging"
 	passwordhasher "remindme/internal/implementations/password_hasher"
 	passwordresetter "remindme/internal/implementations/password_resetter"
@@ -68,6 +72,7 @@ func StartApp() {
 	unitOfWork := uow.NewPgxUnitOfWork(db)
 	userRepository := dbuser.NewPgxRepository(db)
 	sessionRepository := dbuser.NewPgxSessionRepository(db)
+	channelRepository := dbchannel.NewPgxChannelRepository(db)
 	rateLimiter := ratelimiter.NewRedis(redisClient, logger, now)
 	randomStringGenerator := randomstringgenerator.NewGenerator()
 
@@ -88,10 +93,6 @@ func StartApp() {
 		TelegramChannelCount: c.NewOptional(uint32(1), true),
 	}
 
-	getUserBySessionTokenService := getuserbysessiontoken.New(
-		logger,
-		sessionRepository,
-	)
 	signUpWithEmailService := signupwithemail.NewWithActivationTokenSending(
 		logger,
 		activationTokenSender,
@@ -152,6 +153,11 @@ func StartApp() {
 		passwordHasher,
 	)
 
+	getUserBySessionTokenService := auth.WithAuthentication(
+		sessionRepository,
+		getuserbysessiontoken.New(),
+	)
+
 	createEmailChannel := auth.WithAuthentication(
 		sessionRepository,
 		createemailchannel.New(
@@ -161,22 +167,49 @@ func StartApp() {
 			now,
 		),
 	)
+	verifyChannel := auth.WithAuthentication(
+		sessionRepository,
+		verifychannel.New(
+			logger,
+			channelRepository,
+			now,
+		),
+	)
+
+	authRouter := chi.NewRouter()
+	authRouter.Method(http.MethodPost, "/signup", handlerSignUpWithEmail.New(signUpWithEmailService, config.IsTestMode))
+	authRouter.Method(http.MethodPost, "/signup/anonymously", handlerSignUpAnon.New(signUpAnonymouslyService))
+	authRouter.Method(http.MethodPost, "/activate", handlerActivate.New(activateUserService))
+	authRouter.Method(http.MethodPost, "/login", handlerLogin.New(logInWithEmailService))
+	authRouter.Method(http.MethodPost, "/logout", handlerLogout.New(logOutService))
+	authRouter.Method(
+		http.MethodPost,
+		"/password_reset/send",
+		handlerSendPasswResetToken.New(sendPasswordResetToken, config.IsTestMode),
+	)
+	authRouter.Method(http.MethodPost, "/password_reset", handlerResetPassword.New(resetPassword))
+
+	profileRouter := chi.NewRouter()
+	profileRouter.Use(authMiddleware.SetAuthTokenToContext)
+	profileRouter.Method(http.MethodGet, "/me", handlerMe.New(getUserBySessionTokenService))
+
+	channelsRouter := chi.NewRouter()
+	channelsRouter.Use(authMiddleware.SetAuthTokenToContext)
+	channelsRouter.Method(
+		http.MethodPost,
+		"/email",
+		handlerCreateEmailChannel.New(createEmailChannel, config.IsTestMode),
+	)
+	channelsRouter.Method(
+		http.MethodPut,
+		"/{channelID:[0-9]+}/verification",
+		handlerVerifyChannel.New(verifyChannel),
+	)
 
 	router := chi.NewRouter()
-
-	router.Get("/auth/me", handlerMe.New(getUserBySessionTokenService).ServeHTTP)
-	router.Post("/auth/signup", handlerSignUpWithEmail.New(signUpWithEmailService, config.IsTestMode).ServeHTTP)
-	router.Post("/auth/signup/anonymously", handlerSignUpAnon.New(signUpAnonymouslyService).ServeHTTP)
-	router.Post("/auth/activate", handlerActivate.New(activateUserService).ServeHTTP)
-	router.Post("/auth/login", handlerLogin.New(logInWithEmailService).ServeHTTP)
-	router.Post("/auth/logout", handlerLogout.New(logOutService).ServeHTTP)
-	router.Post(
-		"/auth/password_reset/send",
-		handlerSendPasswResetToken.New(sendPasswordResetToken, config.IsTestMode).ServeHTTP,
-	)
-	router.Post("/auth/password_reset", handlerResetPassword.New(resetPassword).ServeHTTP)
-
-	router.Post("/channels/email", handlerCreateEmailChannel.New(createEmailChannel, config.IsTestMode).ServeHTTP)
+	router.Mount("/auth", authRouter)
+	router.Mount("/profile", profileRouter)
+	router.Mount("/channels", channelsRouter)
 
 	address := "0.0.0.0:9090"
 

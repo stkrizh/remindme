@@ -8,8 +8,8 @@ CREATE TABLE IF NOT EXISTS "user" (
     activation_token TEXT
 );
 CREATE UNIQUE INDEX IF NOT EXISTS user_email_idx ON "user" (email);
-CREATE UNIQUE INDEX IF NOT EXISTS  user_identity_idx ON "user" (identity);
-CREATE UNIQUE INDEX IF NOT EXISTS  user_activation_token_idx ON "user" (activation_token);
+CREATE UNIQUE INDEX IF NOT EXISTS user_identity_idx ON "user" (identity);
+CREATE UNIQUE INDEX IF NOT EXISTS user_activation_token_idx ON "user" (activation_token);
 
 
 CREATE TABLE IF NOT EXISTS session (
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS session (
     user_id BIGINT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
     created_at TIMESTAMP NOT NULL
 );
-CREATE UNIQUE INDEX IF NOT EXISTS  session_token_idx ON session (token);
+CREATE UNIQUE INDEX IF NOT EXISTS session_token_idx ON session (token);
 
 
 CREATE TABLE IF NOT EXISTS channel (
@@ -30,8 +30,8 @@ CREATE TABLE IF NOT EXISTS channel (
     verification_token TEXT,
     verified_at TIMESTAMP
 );
-CREATE INDEX IF NOT EXISTS  channel_user_id_idx ON channel (user_id);
-CREATE INDEX IF NOT EXISTS  channel_type_idx ON channel (type);
+CREATE INDEX IF NOT EXISTS channel_user_id_idx ON channel (user_id);
+CREATE INDEX IF NOT EXISTS channel_type_idx ON channel (type);
 
 
 CREATE TABLE IF NOT EXISTS limits (
