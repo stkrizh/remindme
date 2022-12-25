@@ -15,7 +15,10 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-var NOW time.Time = time.Date(2020, 6, 6, 15, 30, 30, 0, time.UTC)
+var (
+	Now       time.Time = time.Date(2020, 6, 6, 15, 30, 30, 0, time.UTC)
+	OtherTime time.Time = time.Date(2021, 1, 3, 4, 31, 32, 0, time.UTC)
+)
 
 func TestChannelSettingsEncoding(t *testing.T) {
 	cases := []struct {
@@ -100,8 +103,8 @@ func (s *testSuite) SetupTest() {
 		user.CreateUserInput{
 			Email:        c.NewOptional(c.NewEmail("test-1@test.test"), true),
 			PasswordHash: c.NewOptional(user.PasswordHash("test"), true),
-			CreatedAt:    NOW,
-			ActivatedAt:  c.NewOptional(NOW, true),
+			CreatedAt:    Now,
+			ActivatedAt:  c.NewOptional(Now, true),
 		},
 	)
 	s.Nil(err)
@@ -112,8 +115,8 @@ func (s *testSuite) SetupTest() {
 		user.CreateUserInput{
 			Email:        c.NewOptional(c.NewEmail("test-2@test.test"), true),
 			PasswordHash: c.NewOptional(user.PasswordHash("test"), true),
-			CreatedAt:    NOW,
-			ActivatedAt:  c.NewOptional(NOW, true),
+			CreatedAt:    Now,
+			ActivatedAt:  c.NewOptional(Now, true),
 		},
 	)
 	s.Nil(err)
@@ -150,8 +153,8 @@ func (s *testSuite) TestCreateSuccess() {
 				CreatedBy:  s.user.ID,
 				Type:       channel.Email,
 				Settings:   channel.NewEmailSettings("test-2@test.test"),
-				CreatedAt:  NOW,
-				VerifiedAt: c.NewOptional(NOW, true),
+				CreatedAt:  Now,
+				VerifiedAt: c.NewOptional(Now, true),
 			},
 		},
 		{
@@ -161,7 +164,7 @@ func (s *testSuite) TestCreateSuccess() {
 				Type:       channel.Telegram,
 				Settings:   channel.NewTelegramSettings("test-1", 1),
 				CreatedAt:  time.Now().UTC().Truncate(time.Second),
-				VerifiedAt: c.NewOptional(NOW, true),
+				VerifiedAt: c.NewOptional(Now, true),
 			},
 		},
 		{
@@ -170,7 +173,7 @@ func (s *testSuite) TestCreateSuccess() {
 				CreatedBy:         s.user.ID,
 				Type:              channel.Telegram,
 				Settings:          channel.NewTelegramSettings("test-2", 111222333444),
-				CreatedAt:         NOW,
+				CreatedAt:         Now,
 				VerificationToken: c.NewOptional(channel.VerificationToken("test-2"), true),
 			},
 		},
@@ -190,7 +193,7 @@ func (s *testSuite) TestCreateSuccess() {
 				CreatedBy:         s.user.ID,
 				Type:              channel.Websocket,
 				Settings:          channel.NewWebsocketSettings(),
-				CreatedAt:         NOW,
+				CreatedAt:         Now,
 				VerificationToken: c.NewOptional(channel.VerificationToken("test-2"), true),
 			},
 		},
@@ -318,12 +321,116 @@ func (s *testSuite) createChannel(t channel.Type, u user.User) channel.ID {
 			CreatedBy:         u.ID,
 			Type:              t,
 			Settings:          settings,
-			CreatedAt:         NOW,
+			CreatedAt:         Now,
 			VerificationToken: c.NewOptional(channel.VerificationToken("test-2"), true),
 		},
 	)
 	s.Nil(err)
 	return createdChannel.ID
+}
+
+func (s *testSuite) TestGetByID() {
+	channelOneID := s.createChannel(channel.Email, s.user)
+	channelTwoID := s.createChannel(channel.Email, s.otherUser)
+
+	assert := s.Require()
+	channelOne, err := s.repo.GetByID(context.Background(), channelOneID)
+	assert.Nil(err)
+	assert.Equal(channelOneID, channelOne.ID)
+	assert.Equal(channel.Email, channelOne.Type)
+	assert.Equal(s.user.ID, channelOne.CreatedBy)
+	assert.Equal(Now, channelOne.CreatedAt)
+
+	channelTwo, err := s.repo.GetByID(context.Background(), channelTwoID)
+	assert.Nil(err)
+	assert.Equal(channelTwoID, channelTwo.ID)
+	assert.Equal(channel.Email, channelTwo.Type)
+	assert.Equal(s.otherUser.ID, channelTwo.CreatedBy)
+	assert.Equal(Now, channelTwo.CreatedAt)
+
+	_, err = s.repo.GetByID(context.Background(), channel.ID(123456))
+	assert.ErrorIs(err, channel.ErrChannelDoesNotExist)
+}
+
+func (s *testSuite) TestUpdate() {
+	cases := []struct {
+		id                 string
+		tokenBefore        c.Optional[channel.VerificationToken]
+		verifiedAtBefore   c.Optional[time.Time]
+		doTokenUpdate      bool
+		token              c.Optional[channel.VerificationToken]
+		doVerifiedAtUpdate bool
+		verifiedAt         c.Optional[time.Time]
+		expectedToken      c.Optional[channel.VerificationToken]
+		expectedVerifiedAt c.Optional[time.Time]
+	}{
+		{
+			id:                 "1",
+			tokenBefore:        c.NewOptional(channel.VerificationToken("test"), true),
+			verifiedAtBefore:   c.NewOptional(Now, true),
+			expectedToken:      c.NewOptional(channel.VerificationToken("test"), true),
+			expectedVerifiedAt: c.NewOptional(Now, true),
+		},
+		{
+			id:                 "2",
+			tokenBefore:        c.NewOptional(channel.VerificationToken("test"), true),
+			verifiedAtBefore:   c.NewOptional(Now, true),
+			doTokenUpdate:      true,
+			token:              c.NewOptional(channel.VerificationToken("token-after-update"), true),
+			expectedToken:      c.NewOptional(channel.VerificationToken("token-after-update"), true),
+			expectedVerifiedAt: c.NewOptional(Now, true),
+		},
+		{
+			id:                 "3",
+			tokenBefore:        c.NewOptional(channel.VerificationToken("test"), true),
+			doVerifiedAtUpdate: true,
+			verifiedAt:         c.NewOptional(Now, true),
+			expectedToken:      c.NewOptional(channel.VerificationToken("test"), true),
+			expectedVerifiedAt: c.NewOptional(Now, true),
+		},
+		{
+			id:                 "4",
+			tokenBefore:        c.NewOptional(channel.VerificationToken("test"), true),
+			doTokenUpdate:      true,
+			token:              c.NewOptional(channel.VerificationToken(""), false),
+			doVerifiedAtUpdate: true,
+			verifiedAt:         c.NewOptional(OtherTime, true),
+			expectedToken:      c.NewOptional(channel.VerificationToken(""), false),
+			expectedVerifiedAt: c.NewOptional(OtherTime, true),
+		},
+	}
+
+	for _, testcase := range cases {
+		s.Run(testcase.id, func() {
+			createdChannel, err := s.repo.Create(context.Background(), channel.CreateInput{
+				CreatedBy:         s.user.ID,
+				Type:              channel.Email,
+				Settings:          channel.NewEmailSettings(c.NewEmail("test@test.com")),
+				CreatedAt:         Now,
+				VerificationToken: testcase.tokenBefore,
+				VerifiedAt:        testcase.verifiedAtBefore,
+			})
+			assert := s.Require()
+			assert.Nil(err)
+
+			updateChannel, err := s.repo.Update(context.Background(), channel.UpdateInput{
+				ID:                        createdChannel.ID,
+				DoVerificationTokenUpdate: testcase.doTokenUpdate,
+				VerificationToken:         testcase.token,
+				DoVerifiedAtUpdate:        testcase.doVerifiedAtUpdate,
+				VerifiedAt:                testcase.verifiedAt,
+			})
+
+			assert.Nil(err)
+			assert.Equal(createdChannel.ID, updateChannel.ID)
+			assert.Equal(createdChannel.Type, updateChannel.Type)
+			assert.Equal(createdChannel.CreatedAt, updateChannel.CreatedAt)
+			assert.Equal(createdChannel.CreatedBy, updateChannel.CreatedBy)
+			assert.Equal(createdChannel.Settings, updateChannel.Settings)
+			assert.Equal(testcase.expectedToken, updateChannel.VerificationToken)
+			assert.Equal(testcase.expectedVerifiedAt, updateChannel.VerifiedAt)
+		})
+	}
 }
 
 func (s *testSuite) readChannelIDs(options channel.ReadOptions) []channel.ID {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	c "remindme/internal/core/domain/common"
 	"sync"
 )
 
@@ -13,10 +12,12 @@ type FakeRepository struct {
 	Created            []Channel
 	ReadReturnsError   bool
 	ReadChannels       []Channel
+	GetByIDError       error
+	GetByIDChannel     Channel
 	CountReturnsError  bool
 	CountChannels      uint
 	Options            []ReadOptions
-	VerifyReturnsError bool
+	UpdateError        error
 	lock               sync.Mutex
 }
 
@@ -53,6 +54,14 @@ func (r *FakeRepository) Read(ctx context.Context, options ReadOptions) (channel
 	return r.ReadChannels, nil
 }
 
+func (r *FakeRepository) GetByID(ctx context.Context, id ID) (c Channel, err error) {
+	if r.GetByIDError != nil {
+		return c, r.GetByIDError
+	}
+	r.GetByIDChannel.ID = id
+	return r.GetByIDChannel, nil
+}
+
 func (r *FakeRepository) Count(ctx context.Context, options ReadOptions) (count uint, err error) {
 	if r.CountReturnsError {
 		return count, fmt.Errorf("could not count channels")
@@ -63,14 +72,17 @@ func (r *FakeRepository) Count(ctx context.Context, options ReadOptions) (count 
 	return r.CountChannels, nil
 }
 
-func (r *FakeRepository) Verify(ctx context.Context, input VerifyInput) (channel Channel, err error) {
-	if r.VerifyReturnsError {
-		return channel, ErrChannelDoesNotExist
+func (r *FakeRepository) Update(ctx context.Context, input UpdateInput) (channel Channel, err error) {
+	if r.UpdateError != nil {
+		return channel, r.UpdateError
 	}
 	channel.ID = input.ID
-	channel.CreatedBy = input.CreatedBy
-	channel.VerificationToken = c.NewOptional(VerificationToken(""), false)
-	channel.VerifiedAt = c.NewOptional(input.At, true)
+	if input.DoVerificationTokenUpdate {
+		channel.VerificationToken = input.VerificationToken
+	}
+	if input.DoVerifiedAtUpdate {
+		channel.VerifiedAt = input.VerifiedAt
+	}
 	return channel, nil
 }
 

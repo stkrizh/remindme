@@ -9,7 +9,7 @@ import (
 	ratelimiter "remindme/internal/core/domain/rate_limiter"
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
-	service "remindme/internal/core/services/verify_channel"
+	service "remindme/internal/core/services/verify_email_channel"
 	"remindme/internal/http/handlers/response"
 	"strconv"
 
@@ -77,6 +77,8 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, ratelimiter.ErrRateLimitExceeded):
 			response.RenderRateLimitExceeded(rw)
 		case errors.Is(err, channel.ErrChannelDoesNotExist):
+			response.RenderError(rw, err.Error(), http.StatusUnprocessableEntity)
+		case errors.Is(err, channel.ErrInvalidVerificationData):
 			response.RenderError(rw, err.Error(), http.StatusUnprocessableEntity)
 		default:
 			response.RenderInternalError(rw)

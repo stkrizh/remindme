@@ -11,6 +11,7 @@ type Config struct {
 	RedisURL                        string `env:"REDIS_URL,notEmpty"`
 	BcryptHasherCost                int    `env:"BCRYPT_HASHER_COST" envDefault:"10"`
 	PasswordResetValidDurationHours int    `env:"PASSWORD_RESET_VALIDATION_HOURS" envDefault:"24"`
+	DefaultTelegramBot              string `env:"DEFAULT_TELEGRAM_BOT" envDefault:"remindmeonebot"`
 }
 
 func Load() (*Config, error) {

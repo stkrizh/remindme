@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"remindme/internal/config"
+	"remindme/internal/core/domain/channel"
 	c "remindme/internal/core/domain/common"
 	dl "remindme/internal/core/domain/logging"
 	drl "remindme/internal/core/domain/rate_limiter"
@@ -11,6 +12,7 @@ import (
 	activateuser "remindme/internal/core/services/activate_user"
 	auth "remindme/internal/core/services/auth"
 	createemailchannel "remindme/internal/core/services/create_email_channel"
+	createtelegramchannel "remindme/internal/core/services/create_telegram_channel"
 	getuserbysessiontoken "remindme/internal/core/services/get_user_by_session_token"
 	loginwithemail "remindme/internal/core/services/log_in_with_email"
 	logout "remindme/internal/core/services/log_out"
@@ -19,7 +21,7 @@ import (
 	sendpasswordresettoken "remindme/internal/core/services/send_password_reset_token"
 	signupanonymously "remindme/internal/core/services/sign_up_anonymously"
 	signupwithemail "remindme/internal/core/services/sign_up_with_email"
-	verifychannel "remindme/internal/core/services/verify_channel"
+	verifyemailchannel "remindme/internal/core/services/verify_email_channel"
 	dbchannel "remindme/internal/db/channel"
 	uow "remindme/internal/db/unit_of_work"
 	dbuser "remindme/internal/db/user"
@@ -33,7 +35,8 @@ import (
 	handlerSignUpAnon "remindme/internal/http/handlers/auth/sign_up_anonymously"
 	handlerSignUpWithEmail "remindme/internal/http/handlers/auth/sign_up_with_email"
 	handlerCreateEmailChannel "remindme/internal/http/handlers/channels/create_email_channel"
-	handlerVerifyChannel "remindme/internal/http/handlers/channels/verify_channel"
+	handlerCreateTelegramChannel "remindme/internal/http/handlers/channels/create_telegram_channel"
+	handlerVerifyEmailChannel "remindme/internal/http/handlers/channels/verify_email_channel"
 	"remindme/internal/implementations/logging"
 	passwordhasher "remindme/internal/implementations/password_hasher"
 	passwordresetter "remindme/internal/implementations/password_resetter"
@@ -160,24 +163,37 @@ func StartApp() {
 
 	createEmailChannel := auth.WithAuthentication(
 		sessionRepository,
-		createemailchannel.New(
+		createemailchannel.NewWithVerificationTokenSending(
 			logger,
-			unitOfWork,
-			randomStringGenerator,
-			now,
+			channel.NewFakeVerificationTokenSender(),
+			createemailchannel.New(
+				logger,
+				unitOfWork,
+				randomStringGenerator,
+				now,
+			),
 		),
 	)
-	verifyChannel := auth.WithAuthentication(
+	verifyEmailChannel := auth.WithAuthentication(
 		sessionRepository,
 		ratelimiting.WithRateLimiting(
 			logger,
 			rateLimiter,
 			drl.Limit{Interval: drl.Minute, Value: 5},
-			verifychannel.New(
+			verifyemailchannel.New(
 				logger,
 				channelRepository,
 				now,
 			),
+		),
+	)
+	createTelegramChannel := auth.WithAuthentication(
+		sessionRepository,
+		createtelegramchannel.New(
+			logger,
+			unitOfWork,
+			randomStringGenerator,
+			now,
 		),
 	)
 
@@ -206,9 +222,14 @@ func StartApp() {
 		handlerCreateEmailChannel.New(createEmailChannel, config.IsTestMode),
 	)
 	channelsRouter.Method(
+		http.MethodPost,
+		"/telegram",
+		handlerCreateTelegramChannel.New(createTelegramChannel, channel.TelegramBot(config.DefaultTelegramBot)),
+	)
+	channelsRouter.Method(
 		http.MethodPut,
 		"/{channelID:[0-9]+}/verification",
-		handlerVerifyChannel.New(verifyChannel),
+		handlerVerifyEmailChannel.New(verifyEmailChannel),
 	)
 
 	router := chi.NewRouter()

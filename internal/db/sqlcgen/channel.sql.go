@@ -13,40 +13,6 @@ import (
 	"github.com/jackc/pgtype"
 )
 
-const activateChannel = `-- name: ActivateChannel :one
-UPDATE channel 
-SET verified_at = $3::timestamp, verification_token = null
-WHERE id = $1 AND user_id = $2 AND verification_token = $4::text
-RETURNING id, user_id, created_at, type, settings, verification_token, verified_at
-`
-
-type ActivateChannelParams struct {
-	ID                int64
-	UserID            int64
-	VerifiedAt        time.Time
-	VerificationToken string
-}
-
-func (q *Queries) ActivateChannel(ctx context.Context, arg ActivateChannelParams) (Channel, error) {
-	row := q.db.QueryRow(ctx, activateChannel,
-		arg.ID,
-		arg.UserID,
-		arg.VerifiedAt,
-		arg.VerificationToken,
-	)
-	var i Channel
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.CreatedAt,
-		&i.Type,
-		&i.Settings,
-		&i.VerificationToken,
-		&i.VerifiedAt,
-	)
-	return i, err
-}
-
 const countChannels = `-- name: CountChannels :one
 SELECT COUNT(id) FROM channel WHERE
     ($1::boolean OR user_id = $2::bigint)
@@ -109,6 +75,25 @@ func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (C
 	return i, err
 }
 
+const getChannelByID = `-- name: GetChannelByID :one
+SELECT id, user_id, created_at, type, settings, verification_token, verified_at FROM channel WHERE id = $1
+`
+
+func (q *Queries) GetChannelByID(ctx context.Context, id int64) (Channel, error) {
+	row := q.db.QueryRow(ctx, getChannelByID, id)
+	var i Channel
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.Type,
+		&i.Settings,
+		&i.VerificationToken,
+		&i.VerifiedAt,
+	)
+	return i, err
+}
+
 const readChanels = `-- name: ReadChanels :many
 SELECT id, user_id, created_at, type, settings, verification_token, verified_at FROM channel WHERE 
     ($1::boolean OR user_id = $2::bigint)
@@ -154,4 +139,44 @@ func (q *Queries) ReadChanels(ctx context.Context, arg ReadChanelsParams) ([]Cha
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateChannel = `-- name: UpdateChannel :one
+UPDATE channel 
+SET 
+    verification_token = CASE WHEN $2::boolean THEN $3
+        ELSE verification_token END,
+    verified_at = CASE WHEN $4::boolean THEN $5
+        ELSE verified_at END
+WHERE id = $1
+RETURNING id, user_id, created_at, type, settings, verification_token, verified_at
+`
+
+type UpdateChannelParams struct {
+	ID                        int64
+	DoVerificationTokenUpdate bool
+	VerificationToken         sql.NullString
+	DoVerifiedAtUpdate        bool
+	VerifiedAt                sql.NullTime
+}
+
+func (q *Queries) UpdateChannel(ctx context.Context, arg UpdateChannelParams) (Channel, error) {
+	row := q.db.QueryRow(ctx, updateChannel,
+		arg.ID,
+		arg.DoVerificationTokenUpdate,
+		arg.VerificationToken,
+		arg.DoVerifiedAtUpdate,
+		arg.VerifiedAt,
+	)
+	var i Channel
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.Type,
+		&i.Settings,
+		&i.VerificationToken,
+		&i.VerifiedAt,
+	)
+	return i, err
 }

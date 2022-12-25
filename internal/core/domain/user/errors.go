@@ -14,5 +14,6 @@ var (
 )
 
 var (
-	ErrLimitEmailChannelCountExceeded = errors.New("email channel count limit exceeded")
+	ErrLimitEmailChannelCountExceeded    = errors.New("email channel count limit exceeded")
+	ErrLimitTelegramChannelCountExceeded = errors.New("telegram channel count limit exceeded")
 )

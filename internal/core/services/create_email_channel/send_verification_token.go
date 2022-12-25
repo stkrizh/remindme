@@ -42,9 +42,9 @@ func (s *sendVerificationTokenService) Run(ctx context.Context, input Input) (re
 		return result, err
 	}
 	if err != nil {
-		s.log.Warning(
+		s.log.Info(
 			ctx,
-			"Inner service returned an error, skip token sending.",
+			"Inner service returned an error, skip email verification token sending.",
 			logging.Entry("email", input.Email),
 			logging.Entry("userID", input.UserID),
 			logging.Entry("err", err),
@@ -53,17 +53,19 @@ func (s *sendVerificationTokenService) Run(ctx context.Context, input Input) (re
 	}
 
 	err = s.sender.SendVerificationToken(ctx, result.VerificationToken, result.Channel)
-	if errors.Is(err, context.Canceled) {
-		return result, err
-	}
 	if err != nil {
-		s.log.Error(
-			ctx,
-			"Could not send email channel verification token.",
-			logging.Entry("email", input.Email),
-			logging.Entry("userID", input.UserID),
-			logging.Entry("err", err),
-		)
+		switch {
+		case errors.Is(err, context.Canceled):
+			// Do nothing
+		default:
+			s.log.Error(
+				ctx,
+				"Could not send email channel verification token.",
+				logging.Entry("email", input.Email),
+				logging.Entry("userID", input.UserID),
+				logging.Entry("err", err),
+			)
+		}
 		return result, err
 	}
 

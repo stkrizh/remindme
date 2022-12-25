@@ -92,6 +92,23 @@ func (r *PgxChannelRepository) Read(
 	return channels, nil
 }
 
+func (r *PgxChannelRepository) GetByID(ctx context.Context, id channel.ID) (c channel.Channel, err error) {
+	dbChannel, err := r.queries.GetChannelByID(ctx, int64(id))
+	if err != nil {
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return c, channel.ErrChannelDoesNotExist
+		default:
+			return c, err
+		}
+	}
+	c, err = decodeChannel(dbChannel)
+	if err != nil {
+		return c, err
+	}
+	return c, err
+}
+
 func (r *PgxChannelRepository) Count(
 	ctx context.Context,
 	options channel.ReadOptions,
@@ -111,17 +128,24 @@ func (r *PgxChannelRepository) Count(
 	return uint(rawCount), nil
 }
 
-func (r *PgxChannelRepository) Verify(
+func (r *PgxChannelRepository) Update(
 	ctx context.Context,
-	input channel.VerifyInput,
+	input channel.UpdateInput,
 ) (c channel.Channel, err error) {
-	dbChannel, err := r.queries.ActivateChannel(
+	dbChannel, err := r.queries.UpdateChannel(
 		ctx,
-		sqlcgen.ActivateChannelParams{
-			ID:                int64(input.ID),
-			UserID:            int64(input.CreatedBy),
-			VerificationToken: string(input.VerificationToken),
-			VerifiedAt:        input.At,
+		sqlcgen.UpdateChannelParams{
+			ID:                        int64(input.ID),
+			DoVerificationTokenUpdate: input.DoVerificationTokenUpdate,
+			VerificationToken: sql.NullString{
+				String: string(input.VerificationToken.Value),
+				Valid:  input.VerificationToken.IsPresent,
+			},
+			DoVerifiedAtUpdate: input.DoVerifiedAtUpdate,
+			VerifiedAt: sql.NullTime{
+				Time:  input.VerifiedAt.Value,
+				Valid: input.VerifiedAt.IsPresent,
+			},
 		},
 	)
 	if errors.Is(err, pgx.ErrNoRows) {

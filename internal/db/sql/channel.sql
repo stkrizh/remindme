@@ -9,13 +9,20 @@ SELECT * FROM channel WHERE
     AND (@all_types::boolean OR type = @type_equals::text)
 ORDER BY id;
 
+-- name: GetChannelByID :one
+SELECT * FROM channel WHERE id = $1;
+
 -- name: CountChannels :one
 SELECT COUNT(id) FROM channel WHERE
     (@all_user_ids::boolean OR user_id = @user_id_equals::bigint)
     AND (@all_types::boolean OR type = @type_equals::text);
 
--- name: ActivateChannel :one
+-- name: UpdateChannel :one
 UPDATE channel 
-SET verified_at = @verified_at::timestamp, verification_token = null
-WHERE id = $1 AND user_id = $2 AND verification_token = @verification_token::text
+SET 
+    verification_token = CASE WHEN @do_verification_token_update::boolean THEN @verification_token
+        ELSE verification_token END,
+    verified_at = CASE WHEN @do_verified_at_update::boolean THEN @verified_at
+        ELSE verified_at END
+WHERE id = $1
 RETURNING *;
