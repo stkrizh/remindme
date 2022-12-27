@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	c "remindme/internal/core/domain/common"
+	e "remindme/internal/core/domain/errors"
 	ratelimiter "remindme/internal/core/domain/rate_limiter"
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
@@ -25,6 +26,9 @@ func New(
 	service services.Service[service.Input, service.Result],
 	isTestMode bool,
 ) *Handler {
+	if service == nil {
+		panic(e.NewNilArgumentError("service"))
+	}
 	return &Handler{service: service, isTestMode: isTestMode}
 }
 

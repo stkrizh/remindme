@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	c "remindme/internal/core/domain/common"
+	e "remindme/internal/core/domain/errors"
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
 	service "remindme/internal/core/services/create_email_channel"
@@ -24,6 +25,9 @@ func New(
 	service services.Service[service.Input, service.Result],
 	isTestMode bool,
 ) *Handler {
+	if service == nil {
+		panic(e.NewNilArgumentError("service"))
+	}
 	return &Handler{service: service, isTestMode: isTestMode}
 }
 
@@ -32,7 +36,7 @@ type Input struct {
 }
 
 type Result struct {
-	ChannelID int64 `json:"channel_id"`
+	Channel response.Channel `json:"channel"`
 }
 
 func (i *Input) FromJSON(r io.Reader) error {
@@ -76,5 +80,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if h.isTestMode {
 		rw.Header().Set("x-test-channel-verification-token", string(result.VerificationToken))
 	}
-	response.Render(rw, Result{ChannelID: int64(result.Channel.ID)}, http.StatusCreated)
+	channel := response.Channel{}
+	channel.FromDomainChannel(result.Channel)
+	response.Render(rw, Result{Channel: channel}, http.StatusCreated)
 }

@@ -108,6 +108,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		channelVerificationService.Input{
 			ChannelID:         verificationData.channelID,
 			VerificationToken: verificationData.token,
+			TelegramBot:       bot,
 			TelegramChatID:    verificationData.telegramChatID,
 		},
 	)

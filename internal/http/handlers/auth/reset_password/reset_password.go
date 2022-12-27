@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	e "remindme/internal/core/domain/errors"
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
 	resetpassword "remindme/internal/core/services/reset_password"
@@ -20,6 +21,9 @@ type Handler struct {
 func New(
 	service services.Service[resetpassword.Input, resetpassword.Result],
 ) *Handler {
+	if service == nil {
+		panic(e.NewNilArgumentError("service"))
+	}
 	return &Handler{service: service}
 }
 

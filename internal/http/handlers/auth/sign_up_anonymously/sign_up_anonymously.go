@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/netip"
+	e "remindme/internal/core/domain/errors"
 	"remindme/internal/core/services"
 	signupanonymously "remindme/internal/core/services/sign_up_anonymously"
 	"remindme/internal/http/handlers/response"
@@ -18,6 +19,9 @@ type Handler struct {
 func New(
 	service services.Service[signupanonymously.Input, signupanonymously.Result],
 ) *Handler {
+	if service == nil {
+		panic(e.NewNilArgumentError("service"))
+	}
 	return &Handler{service: service}
 }
 

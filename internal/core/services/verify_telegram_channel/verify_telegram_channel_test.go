@@ -50,6 +50,7 @@ func (s *testSuite) TestSuccess() {
 	result, err := s.Service.Run(context.Background(), Input{
 		ChannelID:         CHANNEL_ID,
 		VerificationToken: VERIFICATION_TOKEN,
+		TelegramBot:       TELEGRAM_BOT,
 		TelegramChatID:    TELEGRAM_CHAT_ID,
 	})
 
@@ -68,6 +69,7 @@ func (s *testSuite) TestChannelNotFoundByID() {
 	result, err := s.Service.Run(context.Background(), Input{
 		ChannelID:         CHANNEL_ID,
 		VerificationToken: VERIFICATION_TOKEN,
+		TelegramBot:       TELEGRAM_BOT,
 		TelegramChatID:    TELEGRAM_CHAT_ID,
 	})
 
@@ -83,6 +85,24 @@ func (s *testSuite) TestChannelTypeIsNotTelegram() {
 	result, err := s.Service.Run(context.Background(), Input{
 		ChannelID:         CHANNEL_ID,
 		VerificationToken: VERIFICATION_TOKEN,
+		TelegramBot:       TELEGRAM_BOT,
+		TelegramChatID:    TELEGRAM_CHAT_ID,
+	})
+
+	assert := s.Require()
+	assert.ErrorIs(err, channel.ErrInvalidVerificationData)
+	assert.False(result.Channel.IsVerified())
+}
+
+func (s *testSuite) TestInvalidTelegramBot() {
+	s.ChannelRepository.GetByIDChannel.Type = channel.Telegram
+	s.ChannelRepository.GetByIDChannel.Settings = channel.NewTelegramSettings(TELEGRAM_BOT, channel.TelegramChatID(0))
+	s.ChannelRepository.GetByIDChannel.VerificationToken = common.NewOptional(VERIFICATION_TOKEN, true)
+
+	result, err := s.Service.Run(context.Background(), Input{
+		ChannelID:         CHANNEL_ID,
+		VerificationToken: VERIFICATION_TOKEN,
+		TelegramBot:       channel.TelegramBot("invalid-telegram-bot"),
 		TelegramChatID:    TELEGRAM_CHAT_ID,
 	})
 
@@ -98,6 +118,7 @@ func (s *testSuite) TestVerificationTokenIsInvalid() {
 	result, err := s.Service.Run(context.Background(), Input{
 		ChannelID:         CHANNEL_ID,
 		VerificationToken: channel.VerificationToken("invalid-verification-token"),
+		TelegramBot:       TELEGRAM_BOT,
 		TelegramChatID:    TELEGRAM_CHAT_ID,
 	})
 
@@ -115,6 +136,7 @@ func (s *testSuite) TestChannelUpdateReturnsError() {
 	result, err := s.Service.Run(context.Background(), Input{
 		ChannelID:         CHANNEL_ID,
 		VerificationToken: VERIFICATION_TOKEN,
+		TelegramBot:       TELEGRAM_BOT,
 		TelegramChatID:    TELEGRAM_CHAT_ID,
 	})
 

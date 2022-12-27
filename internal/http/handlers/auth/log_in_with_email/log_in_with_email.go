@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	c "remindme/internal/core/domain/common"
+	e "remindme/internal/core/domain/errors"
 	ratelimiter "remindme/internal/core/domain/rate_limiter"
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
@@ -23,6 +24,9 @@ type Handler struct {
 func New(
 	service services.Service[loginwithemail.Input, loginwithemail.Result],
 ) *Handler {
+	if service == nil {
+		panic(e.NewNilArgumentError("service"))
+	}
 	return &Handler{service: service}
 }
 

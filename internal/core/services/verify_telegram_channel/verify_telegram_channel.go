@@ -14,6 +14,7 @@ import (
 type Input struct {
 	ChannelID         channel.ID
 	VerificationToken channel.VerificationToken
+	TelegramBot       channel.TelegramBot
 	TelegramChatID    channel.TelegramChatID
 }
 
@@ -74,11 +75,20 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 			ctx,
 			"Invalid telegram channel verification data.",
 			logging.Entry("input", input),
-			logging.Entry("channel", existingChannel),
+			logging.Entry("channelID", existingChannel.ID),
 		)
 		return result, channel.ErrInvalidVerificationData
 	}
 	existingSettings := existingChannel.Settings.(*channel.TelegramSettings)
+	if existingSettings.Bot != input.TelegramBot {
+		s.log.Info(
+			ctx,
+			"Telegram bots don't match.",
+			logging.Entry("input", input),
+			logging.Entry("channelID", existingChannel.ID),
+		)
+		return result, channel.ErrInvalidVerificationData
+	}
 
 	verifiedChannel, err := s.channelRepository.Update(
 		ctx,

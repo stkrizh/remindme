@@ -10,20 +10,21 @@ import (
 	dl "remindme/internal/core/domain/logging"
 	drl "remindme/internal/core/domain/rate_limiter"
 	"remindme/internal/core/domain/user"
-	activateuser "remindme/internal/core/services/activate_user"
-	auth "remindme/internal/core/services/auth"
-	createemailchannel "remindme/internal/core/services/create_email_channel"
-	createtelegramchannel "remindme/internal/core/services/create_telegram_channel"
-	getuserbysessiontoken "remindme/internal/core/services/get_user_by_session_token"
-	loginwithemail "remindme/internal/core/services/log_in_with_email"
-	logout "remindme/internal/core/services/log_out"
-	ratelimiting "remindme/internal/core/services/rate_limiting"
-	resetpassword "remindme/internal/core/services/reset_password"
-	sendpasswordresettoken "remindme/internal/core/services/send_password_reset_token"
-	signupanonymously "remindme/internal/core/services/sign_up_anonymously"
-	signupwithemail "remindme/internal/core/services/sign_up_with_email"
-	verifyemailchannel "remindme/internal/core/services/verify_email_channel"
-	verifytelegramchannel "remindme/internal/core/services/verify_telegram_channel"
+	serviceActivateUser "remindme/internal/core/services/activate_user"
+	serviceAuth "remindme/internal/core/services/auth"
+	serviceCreateEmailChannel "remindme/internal/core/services/create_email_channel"
+	serviceCreateTelegramChannel "remindme/internal/core/services/create_telegram_channel"
+	serviceGetUserBySessionToken "remindme/internal/core/services/get_user_by_session_token"
+	serviceListUserChannels "remindme/internal/core/services/list_user_channels"
+	serviceLogInWithEmail "remindme/internal/core/services/log_in_with_email"
+	serviceLogOut "remindme/internal/core/services/log_out"
+	serviceRateLimiting "remindme/internal/core/services/rate_limiting"
+	serviceResetPassword "remindme/internal/core/services/reset_password"
+	serviceSendPasswordResetToken "remindme/internal/core/services/send_password_reset_token"
+	serviceSignUpAnonymously "remindme/internal/core/services/sign_up_anonymously"
+	serviceSignUpWithEmail "remindme/internal/core/services/sign_up_with_email"
+	serviceVerifyEmailChannel "remindme/internal/core/services/verify_email_channel"
+	serviceVerifyTelegramChannel "remindme/internal/core/services/verify_telegram_channel"
 	dbchannel "remindme/internal/db/channel"
 	uow "remindme/internal/db/unit_of_work"
 	dbuser "remindme/internal/db/user"
@@ -38,6 +39,7 @@ import (
 	handlerSignUpWithEmail "remindme/internal/http/handlers/auth/sign_up_with_email"
 	handlerCreateEmailChannel "remindme/internal/http/handlers/channels/create_email_channel"
 	handlerCreateTelegramChannel "remindme/internal/http/handlers/channels/create_telegram_channel"
+	handlerListUserChannels "remindme/internal/http/handlers/channels/list_user_channels"
 	handlerVerifyEmailChannel "remindme/internal/http/handlers/channels/verify_email_channel"
 	handlerTelegramUpdates "remindme/internal/http/handlers/telegram"
 	"remindme/internal/implementations/logging"
@@ -106,10 +108,10 @@ func StartApp() {
 		config.TelegramRequestTimeout,
 	)
 
-	signUpWithEmailService := signupwithemail.NewWithActivationTokenSending(
+	signUpWithEmailService := serviceSignUpWithEmail.NewWithActivationTokenSending(
 		logger,
 		activationTokenSender,
-		signupwithemail.New(
+		serviceSignUpWithEmail.New(
 			logger,
 			unitOfWork,
 			passwordHasher,
@@ -117,7 +119,7 @@ func StartApp() {
 			now,
 		),
 	)
-	signUpAnonymouslyService := signupanonymously.New(
+	signUpAnonymouslyService := serviceSignUpAnonymously.New(
 		logger,
 		unitOfWork,
 		randomStringGenerator,
@@ -125,17 +127,17 @@ func StartApp() {
 		now,
 		defaultAnonymousUserLimits,
 	)
-	activateUserService := activateuser.New(
+	activateUserService := serviceActivateUser.New(
 		logger,
 		unitOfWork,
 		now,
 		defaultUserLimits,
 	)
-	logInWithEmailService := ratelimiting.WithRateLimiting(
+	logInWithEmailService := serviceRateLimiting.WithRateLimiting(
 		logger,
 		rateLimiter,
 		drl.Limit{Interval: drl.Hour, Value: 10},
-		loginwithemail.New(
+		serviceLogInWithEmail.New(
 			logger,
 			userRepository,
 			sessionRepository,
@@ -144,39 +146,39 @@ func StartApp() {
 			now,
 		),
 	)
-	logOutService := logout.New(
+	logOutService := serviceLogOut.New(
 		logger,
 		sessionRepository,
 	)
-	sendPasswordResetToken := ratelimiting.WithRateLimiting(
+	sendPasswordResetToken := serviceRateLimiting.WithRateLimiting(
 		logger,
 		rateLimiter,
 		drl.Limit{Interval: drl.Hour, Value: 3},
-		sendpasswordresettoken.New(
+		serviceSendPasswordResetToken.New(
 			logger,
 			userRepository,
 			passwordResetter,
 			passwordResetTokenSender,
 		),
 	)
-	resetPassword := resetpassword.New(
+	resetPassword := serviceResetPassword.New(
 		logger,
 		userRepository,
 		passwordResetter,
 		passwordHasher,
 	)
 
-	getUserBySessionTokenService := auth.WithAuthentication(
+	getUserBySessionTokenService := serviceAuth.WithAuthentication(
 		sessionRepository,
-		getuserbysessiontoken.New(),
+		serviceGetUserBySessionToken.New(),
 	)
 
-	createEmailChannel := auth.WithAuthentication(
+	createEmailChannel := serviceAuth.WithAuthentication(
 		sessionRepository,
-		createemailchannel.NewWithVerificationTokenSending(
+		serviceCreateEmailChannel.NewWithVerificationTokenSending(
 			logger,
 			channel.NewFakeVerificationTokenSender(),
-			createemailchannel.New(
+			serviceCreateEmailChannel.New(
 				logger,
 				unitOfWork,
 				randomStringGenerator,
@@ -184,32 +186,39 @@ func StartApp() {
 			),
 		),
 	)
-	verifyEmailChannel := auth.WithAuthentication(
+	verifyEmailChannel := serviceAuth.WithAuthentication(
 		sessionRepository,
-		ratelimiting.WithRateLimiting(
+		serviceRateLimiting.WithRateLimiting(
 			logger,
 			rateLimiter,
 			drl.Limit{Interval: drl.Minute, Value: 5},
-			verifyemailchannel.New(
+			serviceVerifyEmailChannel.New(
 				logger,
 				channelRepository,
 				now,
 			),
 		),
 	)
-	createTelegramChannel := auth.WithAuthentication(
+	createTelegramChannel := serviceAuth.WithAuthentication(
 		sessionRepository,
-		createtelegramchannel.New(
+		serviceCreateTelegramChannel.New(
 			logger,
 			unitOfWork,
 			randomStringGenerator,
 			now,
 		),
 	)
-	verifyTelegramChannel := verifytelegramchannel.New(
+	verifyTelegramChannel := serviceVerifyTelegramChannel.New(
 		logger,
 		channelRepository,
 		now,
+	)
+	listUserChannels := serviceAuth.WithAuthentication(
+		sessionRepository,
+		serviceListUserChannels.New(
+			logger,
+			channelRepository,
+		),
 	)
 
 	authRouter := chi.NewRouter()
@@ -231,6 +240,11 @@ func StartApp() {
 
 	channelsRouter := chi.NewRouter()
 	channelsRouter.Use(authMiddleware.SetAuthTokenToContext)
+	channelsRouter.Method(
+		http.MethodGet,
+		"/",
+		handlerListUserChannels.New(listUserChannels),
+	)
 	channelsRouter.Method(
 		http.MethodPost,
 		"/email",

@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	c "remindme/internal/core/domain/common"
+	e "remindme/internal/core/domain/errors"
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
 	signupwithemail "remindme/internal/core/services/sign_up_with_email"
@@ -24,6 +25,9 @@ func New(
 	service services.Service[signupwithemail.Input, signupwithemail.Result],
 	isTestMode bool,
 ) *Handler {
+	if service == nil {
+		panic(e.NewNilArgumentError("service"))
+	}
 	return &Handler{service: service, isTestMode: isTestMode}
 }
 

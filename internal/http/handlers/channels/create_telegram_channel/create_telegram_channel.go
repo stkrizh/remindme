@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"remindme/internal/core/domain/channel"
+	e "remindme/internal/core/domain/errors"
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
 	service "remindme/internal/core/services/create_telegram_channel"
@@ -19,12 +20,15 @@ func New(
 	service services.Service[service.Input, service.Result],
 	defaultTelegramBot channel.TelegramBot,
 ) *Handler {
+	if service == nil {
+		panic(e.NewNilArgumentError("service"))
+	}
 	return &Handler{service: service, defaultTelegramBot: defaultTelegramBot}
 }
 
 type Result struct {
-	ChannelID         int64  `json:"channel_id"`
-	VerificationToken string `json:"token"`
+	Channel           response.Channel `json:"channel"`
+	VerificationToken string           `json:"token"`
 }
 
 func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
@@ -44,10 +48,12 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	channel := response.Channel{}
+	channel.FromDomainChannel(result.Channel)
 	response.Render(
 		rw,
 		Result{
-			ChannelID:         int64(result.Channel.ID),
+			Channel:           channel,
 			VerificationToken: string(result.VerificationToken),
 		},
 		http.StatusCreated,

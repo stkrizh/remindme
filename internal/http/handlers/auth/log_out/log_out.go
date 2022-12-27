@@ -3,6 +3,7 @@ package logout
 import (
 	"errors"
 	"net/http"
+	e "remindme/internal/core/domain/errors"
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
 	logout "remindme/internal/core/services/log_out"
@@ -17,6 +18,9 @@ type Handler struct {
 func New(
 	service services.Service[logout.Input, logout.Result],
 ) *Handler {
+	if service == nil {
+		panic(e.NewNilArgumentError("service"))
+	}
 	return &Handler{service: service}
 }
 

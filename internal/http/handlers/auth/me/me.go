@@ -3,6 +3,7 @@ package me
 import (
 	"errors"
 	"net/http"
+	e "remindme/internal/core/domain/errors"
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
 	service "remindme/internal/core/services/get_user_by_session_token"
@@ -16,6 +17,9 @@ type Handler struct {
 func New(
 	service services.Service[service.Input, service.Result],
 ) *Handler {
+	if service == nil {
+		panic(e.NewNilArgumentError("service"))
+	}
 	return &Handler{service: service}
 }
 
