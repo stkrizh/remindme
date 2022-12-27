@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"remindme/internal/config"
 	"remindme/internal/core/domain/channel"
@@ -22,6 +23,7 @@ import (
 	signupanonymously "remindme/internal/core/services/sign_up_anonymously"
 	signupwithemail "remindme/internal/core/services/sign_up_with_email"
 	verifyemailchannel "remindme/internal/core/services/verify_email_channel"
+	verifytelegramchannel "remindme/internal/core/services/verify_telegram_channel"
 	dbchannel "remindme/internal/db/channel"
 	uow "remindme/internal/db/unit_of_work"
 	dbuser "remindme/internal/db/user"
@@ -37,11 +39,13 @@ import (
 	handlerCreateEmailChannel "remindme/internal/http/handlers/channels/create_email_channel"
 	handlerCreateTelegramChannel "remindme/internal/http/handlers/channels/create_telegram_channel"
 	handlerVerifyEmailChannel "remindme/internal/http/handlers/channels/verify_email_channel"
+	handlerTelegramUpdates "remindme/internal/http/handlers/telegram"
 	"remindme/internal/implementations/logging"
 	passwordhasher "remindme/internal/implementations/password_hasher"
 	passwordresetter "remindme/internal/implementations/password_resetter"
 	randomstringgenerator "remindme/internal/implementations/random_string_generator"
 	ratelimiter "remindme/internal/implementations/rate_limiter"
+	telegrambotmessagesender "remindme/internal/implementations/telegram_bot_message_sender"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -95,6 +99,12 @@ func StartApp() {
 		EmailChannelCount:    c.NewOptional(uint32(1), true),
 		TelegramChannelCount: c.NewOptional(uint32(1), true),
 	}
+
+	telegramBotSender := telegrambotmessagesender.New(
+		config.TelegramBaseURL,
+		config.TelegramTokenByBot(),
+		config.TelegramRequestTimeout,
+	)
 
 	signUpWithEmailService := signupwithemail.NewWithActivationTokenSending(
 		logger,
@@ -196,6 +206,11 @@ func StartApp() {
 			now,
 		),
 	)
+	verifyTelegramChannel := verifytelegramchannel.New(
+		logger,
+		channelRepository,
+		now,
+	)
 
 	authRouter := chi.NewRouter()
 	authRouter.Method(http.MethodPost, "/signup", handlerSignUpWithEmail.New(signUpWithEmailService, config.IsTestMode))
@@ -224,7 +239,7 @@ func StartApp() {
 	channelsRouter.Method(
 		http.MethodPost,
 		"/telegram",
-		handlerCreateTelegramChannel.New(createTelegramChannel, channel.TelegramBot(config.DefaultTelegramBot)),
+		handlerCreateTelegramChannel.New(createTelegramChannel, channel.TelegramBot(config.TelegramBots[0])),
 	)
 	channelsRouter.Method(
 		http.MethodPut,
@@ -232,12 +247,20 @@ func StartApp() {
 		handlerVerifyEmailChannel.New(verifyEmailChannel),
 	)
 
+	telegramRouter := chi.NewRouter()
+	telegramRouter.Method(
+		http.MethodPost,
+		fmt.Sprintf("/updates/{bot}/%s", config.TelegramURLSecret),
+		handlerTelegramUpdates.New(logger, telegramBotSender, verifyTelegramChannel),
+	)
+
 	router := chi.NewRouter()
 	router.Mount("/auth", authRouter)
 	router.Mount("/profile", profileRouter)
 	router.Mount("/channels", channelsRouter)
+	router.Mount("/telegram", telegramRouter)
 
-	address := "0.0.0.0:9090"
+	address := fmt.Sprintf("0.0.0.0:%d", config.Port)
 
 	srv := &http.Server{
 		Handler:           router,
@@ -253,6 +276,7 @@ func StartApp() {
 		"Server has started.",
 		dl.Entry("address", address),
 		dl.Entry("isTestMode", config.IsTestMode),
+		dl.Entry("telegramBots", config.TelegramBots),
 	)
 	srv.ListenAndServe()
 }
