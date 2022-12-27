@@ -132,6 +132,10 @@ func (r *PgxChannelRepository) Update(
 	ctx context.Context,
 	input channel.UpdateInput,
 ) (c channel.Channel, err error) {
+	settingsEncoder := newSettingsJSONBEncoder()
+	if input.DoSettingsUpdate {
+		input.Settings.Accept(settingsEncoder)
+	}
 	dbChannel, err := r.queries.UpdateChannel(
 		ctx,
 		sqlcgen.UpdateChannelParams{
@@ -146,6 +150,8 @@ func (r *PgxChannelRepository) Update(
 				Time:  input.VerifiedAt.Value,
 				Valid: input.VerifiedAt.IsPresent,
 			},
+			DoSettingsUpdate: input.DoSettingsUpdate,
+			Settings:         settingsEncoder.result,
 		},
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -193,6 +199,10 @@ type settingsJSONBEncoder struct {
 	result pgtype.JSONB
 }
 
+func newSettingsJSONBEncoder() *settingsJSONBEncoder {
+	return &settingsJSONBEncoder{result: pgtype.JSONB{Status: pgtype.Null}}
+}
+
 func (c *settingsJSONBEncoder) VisitEmail(s *channel.EmailSettings) error {
 	settings := make(map[string]interface{})
 	settings[SETTINGS_EMAIL_EMAIL] = string(s.Email)
@@ -221,7 +231,7 @@ func (c *settingsJSONBEncoder) VisitWebsocket(s *channel.WebsocketSettings) erro
 }
 
 func encodeSettings(settings channel.Settings) (encoded pgtype.JSONB, err error) {
-	settingsEncoder := &settingsJSONBEncoder{}
+	settingsEncoder := newSettingsJSONBEncoder()
 	err = settings.Accept(settingsEncoder)
 	if err != nil {
 		return encoded, fmt.Errorf("could not encode channel settings due to error: %w", err)

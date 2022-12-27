@@ -1,4 +1,4 @@
-package verifychannel
+package verifyemailchannel
 
 import (
 	"encoding/json"

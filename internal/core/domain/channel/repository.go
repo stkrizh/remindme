@@ -27,6 +27,8 @@ type UpdateInput struct {
 	VerificationToken         c.Optional[VerificationToken]
 	DoVerifiedAtUpdate        bool
 	VerifiedAt                c.Optional[time.Time]
+	DoSettingsUpdate          bool
+	Settings                  Settings
 }
 
 type Repository interface {

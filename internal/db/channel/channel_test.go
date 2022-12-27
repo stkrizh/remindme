@@ -357,46 +357,99 @@ func (s *testSuite) TestUpdate() {
 		id                 string
 		tokenBefore        c.Optional[channel.VerificationToken]
 		verifiedAtBefore   c.Optional[time.Time]
+		typeBefore         channel.Type
+		settingsBefore     channel.Settings
 		doTokenUpdate      bool
 		token              c.Optional[channel.VerificationToken]
 		doVerifiedAtUpdate bool
 		verifiedAt         c.Optional[time.Time]
+		doSettingsUpdate   bool
+		settings           channel.Settings
 		expectedToken      c.Optional[channel.VerificationToken]
 		expectedVerifiedAt c.Optional[time.Time]
+		expectedSettings   channel.Settings
 	}{
 		{
-			id:                 "1",
-			tokenBefore:        c.NewOptional(channel.VerificationToken("test"), true),
-			verifiedAtBefore:   c.NewOptional(Now, true),
+			id:               "1",
+			typeBefore:       channel.Email,
+			settingsBefore:   channel.NewEmailSettings(c.NewEmail("test@test.test")),
+			tokenBefore:      c.NewOptional(channel.VerificationToken("test"), true),
+			verifiedAtBefore: c.NewOptional(Now, true),
+
 			expectedToken:      c.NewOptional(channel.VerificationToken("test"), true),
 			expectedVerifiedAt: c.NewOptional(Now, true),
+			expectedSettings:   channel.NewEmailSettings(c.NewEmail("test@test.test")),
 		},
 		{
-			id:                 "2",
-			tokenBefore:        c.NewOptional(channel.VerificationToken("test"), true),
-			verifiedAtBefore:   c.NewOptional(Now, true),
-			doTokenUpdate:      true,
-			token:              c.NewOptional(channel.VerificationToken("token-after-update"), true),
+			id:               "2",
+			typeBefore:       channel.Email,
+			settingsBefore:   channel.NewEmailSettings(c.NewEmail("test@test.test")),
+			tokenBefore:      c.NewOptional(channel.VerificationToken("test"), true),
+			verifiedAtBefore: c.NewOptional(Now, true),
+
+			doTokenUpdate: true,
+			token:         c.NewOptional(channel.VerificationToken("token-after-update"), true),
+
 			expectedToken:      c.NewOptional(channel.VerificationToken("token-after-update"), true),
 			expectedVerifiedAt: c.NewOptional(Now, true),
+			expectedSettings:   channel.NewEmailSettings(c.NewEmail("test@test.test")),
 		},
 		{
-			id:                 "3",
-			tokenBefore:        c.NewOptional(channel.VerificationToken("test"), true),
+			id:             "3",
+			typeBefore:     channel.Email,
+			settingsBefore: channel.NewEmailSettings(c.NewEmail("test@test.test")),
+			tokenBefore:    c.NewOptional(channel.VerificationToken("test"), true),
+
 			doVerifiedAtUpdate: true,
 			verifiedAt:         c.NewOptional(Now, true),
+
 			expectedToken:      c.NewOptional(channel.VerificationToken("test"), true),
 			expectedVerifiedAt: c.NewOptional(Now, true),
+			expectedSettings:   channel.NewEmailSettings(c.NewEmail("test@test.test")),
 		},
 		{
-			id:                 "4",
-			tokenBefore:        c.NewOptional(channel.VerificationToken("test"), true),
+			id:             "4",
+			typeBefore:     channel.Email,
+			settingsBefore: channel.NewEmailSettings(c.NewEmail("test@test.test")),
+			tokenBefore:    c.NewOptional(channel.VerificationToken("test"), true),
+
 			doTokenUpdate:      true,
 			token:              c.NewOptional(channel.VerificationToken(""), false),
 			doVerifiedAtUpdate: true,
 			verifiedAt:         c.NewOptional(OtherTime, true),
+
 			expectedToken:      c.NewOptional(channel.VerificationToken(""), false),
 			expectedVerifiedAt: c.NewOptional(OtherTime, true),
+			expectedSettings:   channel.NewEmailSettings(c.NewEmail("test@test.test")),
+		},
+		{
+			id:             "5",
+			typeBefore:     channel.Telegram,
+			settingsBefore: channel.NewTelegramSettings(channel.TelegramBot("test"), channel.TelegramChatID(0)),
+			tokenBefore:    c.NewOptional(channel.VerificationToken("test"), true),
+
+			doTokenUpdate:      true,
+			token:              c.NewOptional(channel.VerificationToken(""), false),
+			doVerifiedAtUpdate: true,
+			verifiedAt:         c.NewOptional(OtherTime, true),
+			doSettingsUpdate:   true,
+			settings:           channel.NewTelegramSettings(channel.TelegramBot("test"), channel.TelegramChatID(123)),
+
+			expectedToken:      c.NewOptional(channel.VerificationToken(""), false),
+			expectedVerifiedAt: c.NewOptional(OtherTime, true),
+			expectedSettings:   channel.NewTelegramSettings(channel.TelegramBot("test"), channel.TelegramChatID(123)),
+		},
+		{
+			id:             "6",
+			typeBefore:     channel.Telegram,
+			settingsBefore: channel.NewTelegramSettings(channel.TelegramBot("test"), channel.TelegramChatID(0)),
+			tokenBefore:    c.NewOptional(channel.VerificationToken("test"), true),
+
+			doSettingsUpdate: true,
+			settings:         channel.NewTelegramSettings(channel.TelegramBot("test"), channel.TelegramChatID(1)),
+
+			expectedToken:    c.NewOptional(channel.VerificationToken("test"), true),
+			expectedSettings: channel.NewTelegramSettings(channel.TelegramBot("test"), channel.TelegramChatID(1)),
 		},
 	}
 
@@ -404,8 +457,8 @@ func (s *testSuite) TestUpdate() {
 		s.Run(testcase.id, func() {
 			createdChannel, err := s.repo.Create(context.Background(), channel.CreateInput{
 				CreatedBy:         s.user.ID,
-				Type:              channel.Email,
-				Settings:          channel.NewEmailSettings(c.NewEmail("test@test.com")),
+				Type:              testcase.typeBefore,
+				Settings:          testcase.settingsBefore,
 				CreatedAt:         Now,
 				VerificationToken: testcase.tokenBefore,
 				VerifiedAt:        testcase.verifiedAtBefore,
@@ -419,6 +472,8 @@ func (s *testSuite) TestUpdate() {
 				VerificationToken:         testcase.token,
 				DoVerifiedAtUpdate:        testcase.doVerifiedAtUpdate,
 				VerifiedAt:                testcase.verifiedAt,
+				DoSettingsUpdate:          testcase.doSettingsUpdate,
+				Settings:                  testcase.settings,
 			})
 
 			assert.Nil(err)
@@ -426,7 +481,7 @@ func (s *testSuite) TestUpdate() {
 			assert.Equal(createdChannel.Type, updateChannel.Type)
 			assert.Equal(createdChannel.CreatedAt, updateChannel.CreatedAt)
 			assert.Equal(createdChannel.CreatedBy, updateChannel.CreatedBy)
-			assert.Equal(createdChannel.Settings, updateChannel.Settings)
+			assert.Equal(testcase.expectedSettings, updateChannel.Settings)
 			assert.Equal(testcase.expectedToken, updateChannel.VerificationToken)
 			assert.Equal(testcase.expectedVerifiedAt, updateChannel.VerifiedAt)
 		})

@@ -147,7 +147,9 @@ SET
     verification_token = CASE WHEN $2::boolean THEN $3
         ELSE verification_token END,
     verified_at = CASE WHEN $4::boolean THEN $5
-        ELSE verified_at END
+        ELSE verified_at END,
+    settings = CASE WHEN $6::boolean THEN $7
+        ELSE settings END
 WHERE id = $1
 RETURNING id, user_id, created_at, type, settings, verification_token, verified_at
 `
@@ -158,6 +160,8 @@ type UpdateChannelParams struct {
 	VerificationToken         sql.NullString
 	DoVerifiedAtUpdate        bool
 	VerifiedAt                sql.NullTime
+	DoSettingsUpdate          bool
+	Settings                  pgtype.JSONB
 }
 
 func (q *Queries) UpdateChannel(ctx context.Context, arg UpdateChannelParams) (Channel, error) {
@@ -167,6 +171,8 @@ func (q *Queries) UpdateChannel(ctx context.Context, arg UpdateChannelParams) (C
 		arg.VerificationToken,
 		arg.DoVerifiedAtUpdate,
 		arg.VerifiedAt,
+		arg.DoSettingsUpdate,
+		arg.Settings,
 	)
 	var i Channel
 	err := row.Scan(

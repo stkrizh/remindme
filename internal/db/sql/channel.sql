@@ -23,6 +23,8 @@ SET
     verification_token = CASE WHEN @do_verification_token_update::boolean THEN @verification_token
         ELSE verification_token END,
     verified_at = CASE WHEN @do_verified_at_update::boolean THEN @verified_at
-        ELSE verified_at END
+        ELSE verified_at END,
+    settings = CASE WHEN @do_settings_update::boolean THEN @settings
+        ELSE settings END
 WHERE id = $1
 RETURNING *;

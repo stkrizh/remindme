@@ -83,6 +83,9 @@ func (r *FakeRepository) Update(ctx context.Context, input UpdateInput) (channel
 	if input.DoVerifiedAtUpdate {
 		channel.VerifiedAt = input.VerifiedAt
 	}
+	if input.DoSettingsUpdate {
+		channel.Settings = input.Settings
+	}
 	return channel, nil
 }
 
