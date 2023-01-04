@@ -14,6 +14,9 @@ var (
 )
 
 var (
-	ErrLimitEmailChannelCountExceeded    = errors.New("email channel count limit exceeded")
-	ErrLimitTelegramChannelCountExceeded = errors.New("telegram channel count limit exceeded")
+	ErrLimitEmailChannelCountExceeded        = errors.New("email channel count limit exceeded")
+	ErrLimitTelegramChannelCountExceeded     = errors.New("telegram channel count limit exceeded")
+	ErrLimitReminderEveryPerDayCountExceeded = errors.New("reminder every per day count exceeded")
+	ErrLimitActiveReminderCountExceeded      = errors.New("active reminder count limit exceeded")
+	ErrLimitSentReminderCountExceeded        = errors.New("sent reminder count monthly limit exceeded")
 )

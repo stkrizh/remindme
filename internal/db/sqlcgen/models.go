@@ -22,10 +22,31 @@ type Channel struct {
 }
 
 type Limit struct {
-	ID                   int64
-	UserID               int64
-	EmailChannelCount    sql.NullInt32
-	TelegramChannelCount sql.NullInt32
+	ID                       int64
+	UserID                   int64
+	EmailChannelCount        sql.NullInt32
+	TelegramChannelCount     sql.NullInt32
+	ActiveReminderCount      sql.NullInt32
+	MonthlySentReminderCount sql.NullInt32
+	ReminderEveryPerDayCount sql.NullFloat64
+}
+
+type Reminder struct {
+	ID          int64
+	UserID      int64
+	CreatedAt   time.Time
+	At          time.Time
+	Status      string
+	Every       sql.NullString
+	ScheduledAt sql.NullTime
+	SentAt      sql.NullTime
+	CanceledAt  sql.NullTime
+}
+
+type ReminderChannel struct {
+	ID         int64
+	ReminderID int64
+	ChannelID  int64
 }
 
 type Session struct {

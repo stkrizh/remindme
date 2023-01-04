@@ -15,19 +15,24 @@ import (
 
 const countChannels = `-- name: CountChannels :one
 SELECT COUNT(id) FROM channel WHERE
-    ($1::boolean OR user_id = $2::bigint)
-    AND ($3::boolean OR type = $4::text)
+    ($1::boolean OR id = ANY($2::bigint[])) 
+    AND ($3::boolean OR user_id = $4::bigint)
+    AND ($5::boolean OR type = $6::text)
 `
 
 type CountChannelsParams struct {
-	AllUserIds   bool
-	UserIDEquals int64
-	AllTypes     bool
-	TypeEquals   string
+	AllChannelIds bool
+	IDIn          []int64
+	AllUserIds    bool
+	UserIDEquals  int64
+	AllTypes      bool
+	TypeEquals    string
 }
 
 func (q *Queries) CountChannels(ctx context.Context, arg CountChannelsParams) (int64, error) {
 	row := q.db.QueryRow(ctx, countChannels,
+		arg.AllChannelIds,
+		arg.IDIn,
 		arg.AllUserIds,
 		arg.UserIDEquals,
 		arg.AllTypes,
@@ -96,20 +101,25 @@ func (q *Queries) GetChannelByID(ctx context.Context, id int64) (Channel, error)
 
 const readChanels = `-- name: ReadChanels :many
 SELECT id, user_id, created_at, type, settings, verification_token, verified_at FROM channel WHERE 
-    ($1::boolean OR user_id = $2::bigint)
-    AND ($3::boolean OR type = $4::text)
+    ($1::boolean OR id = ANY($2::bigint[])) 
+    AND ($3::boolean OR user_id = $4::bigint)
+    AND ($5::boolean OR type = $6::text)
 ORDER BY id
 `
 
 type ReadChanelsParams struct {
-	AllUserIds   bool
-	UserIDEquals int64
-	AllTypes     bool
-	TypeEquals   string
+	AllChannelIds bool
+	IDIn          []int64
+	AllUserIds    bool
+	UserIDEquals  int64
+	AllTypes      bool
+	TypeEquals    string
 }
 
 func (q *Queries) ReadChanels(ctx context.Context, arg ReadChanelsParams) ([]Channel, error) {
 	rows, err := q.db.Query(ctx, readChanels,
+		arg.AllChannelIds,
+		arg.IDIn,
 		arg.AllUserIds,
 		arg.UserIDEquals,
 		arg.AllTypes,

@@ -5,7 +5,8 @@ RETURNING *;
 
 -- name: ReadChanels :many
 SELECT * FROM channel WHERE 
-    (@all_user_ids::boolean OR user_id = @user_id_equals::bigint)
+    (@all_channel_ids::boolean OR id = ANY(@id_in::bigint[])) 
+    AND (@all_user_ids::boolean OR user_id = @user_id_equals::bigint)
     AND (@all_types::boolean OR type = @type_equals::text)
 ORDER BY id;
 
@@ -14,7 +15,8 @@ SELECT * FROM channel WHERE id = $1;
 
 -- name: CountChannels :one
 SELECT COUNT(id) FROM channel WHERE
-    (@all_user_ids::boolean OR user_id = @user_id_equals::bigint)
+    (@all_channel_ids::boolean OR id = ANY(@id_in::bigint[])) 
+    AND (@all_user_ids::boolean OR user_id = @user_id_equals::bigint)
     AND (@all_types::boolean OR type = @type_equals::text);
 
 -- name: UpdateChannel :one

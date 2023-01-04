@@ -3,45 +3,51 @@ package reminder
 import (
 	"remindme/internal/core/domain/channel"
 	c "remindme/internal/core/domain/common"
-	e "remindme/internal/core/domain/errors"
 	"remindme/internal/core/domain/user"
 	"time"
+)
+
+const (
+	MIN_DURATION_FROM_NOW   = 30 * time.Second
+	DURATION_FOR_SCHEDULING = 24 * time.Hour
+	MAX_CHANNEL_COUNT       = 5
 )
 
 type ID int64
 
 type Reminder struct {
-	Id         ID
-	CreatedBy  user.ID
-	At         time.Time
-	Every      c.Optional[Every]
-	CreatedAt  time.Time
-	SentAt     c.Optional[time.Time]
-	CanceledAt c.Optional[time.Time]
-	Status     Status
-	ChannelIDs map[channel.ID]struct{}
+	ID          ID
+	CreatedBy   user.ID
+	At          time.Time
+	Every       c.Optional[Every]
+	CreatedAt   time.Time
+	Status      Status
+	ScheduledAt c.Optional[time.Time]
+	SentAt      c.Optional[time.Time]
+	CanceledAt  c.Optional[time.Time]
 }
 
 func (r *Reminder) Validate() error {
-	if !r.Every.Value.IsValid() {
-		return e.NewInvalidStateError("value of Every is not valid")
-	}
-	if r.SentAt.IsPresent && r.CanceledAt.IsPresent {
-		return e.NewInvalidStateError("either SentAt or CanceledAt must not be set")
-	}
-	if r.Status == Sent && !r.SentAt.IsPresent {
-		return e.NewInvalidStateError("SentAt must be set for sent reminders")
-	}
-	if r.Status == Canceled && !r.CanceledAt.IsPresent {
-		return e.NewInvalidStateError("CanceledAt must be set for canceled reminders")
-	}
-	if len(r.ChannelIDs) == 0 {
-		return e.NewInvalidStateError("reminder must have at least one channel")
+	if r.Every.IsPresent {
+		if err := r.Every.Value.Validate(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 type ReminderWithChannels struct {
-	Reminder Reminder
+	Reminder
 	Channels []channel.Channel
+}
+
+func (r *ReminderWithChannels) FromReminderAndChannels(reminder Reminder, channels []channel.Channel) {
+	r.ID = reminder.ID
+	r.CreatedBy = reminder.CreatedBy
+	r.At = reminder.At
+	r.Every = reminder.Every
+	r.CreatedAt = reminder.CreatedAt
+	r.SentAt = reminder.SentAt
+	r.CanceledAt = reminder.CanceledAt
+	r.Channels = channels
 }

@@ -31,6 +31,18 @@ func (r *PgxLimitsRepository) Create(ctx context.Context, input user.CreateLimit
 			Int32: int32(input.Limits.TelegramChannelCount.Value),
 			Valid: input.Limits.TelegramChannelCount.IsPresent,
 		},
+		ActiveReminderCount: sql.NullInt32{
+			Int32: int32(input.Limits.ActiveReminderCount.Value),
+			Valid: input.Limits.ActiveReminderCount.IsPresent,
+		},
+		MonthlySentReminderCount: sql.NullInt32{
+			Int32: int32(input.Limits.MonthlySentReminderCount.Value),
+			Valid: input.Limits.MonthlySentReminderCount.IsPresent,
+		},
+		ReminderEveryPerDayCount: sql.NullFloat64{
+			Float64: input.Limits.ReminderEveryPerDayCount.Value,
+			Valid:   input.Limits.ReminderEveryPerDayCount.IsPresent,
+		},
 	})
 	return decodeLimits(dbLimits), err
 }
@@ -44,5 +56,14 @@ func decodeLimits(l sqlcgen.Limit) user.Limits {
 	return user.Limits{
 		EmailChannelCount:    c.NewOptional(uint32(l.EmailChannelCount.Int32), l.EmailChannelCount.Valid),
 		TelegramChannelCount: c.NewOptional(uint32(l.TelegramChannelCount.Int32), l.TelegramChannelCount.Valid),
+		ActiveReminderCount:  c.NewOptional(uint32(l.ActiveReminderCount.Int32), l.ActiveReminderCount.Valid),
+		MonthlySentReminderCount: c.NewOptional(
+			uint32(l.MonthlySentReminderCount.Int32),
+			l.MonthlySentReminderCount.Valid,
+		),
+		ReminderEveryPerDayCount: c.NewOptional(
+			l.ReminderEveryPerDayCount.Float64,
+			l.ReminderEveryPerDayCount.Valid,
+		),
 	}
 }

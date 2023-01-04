@@ -69,13 +69,21 @@ func (r *PgxChannelRepository) Read(
 	ctx context.Context,
 	options channel.ReadOptions,
 ) (channels []channel.Channel, err error) {
+	channelIDIn := make([]int64, len(options.IDIn.Value))
+	if options.IDIn.IsPresent {
+		for i := 0; i < len(options.IDIn.Value); i++ {
+			channelIDIn[i] = int64(options.IDIn.Value[i])
+		}
+	}
 	dbChannels, err := r.queries.ReadChanels(
 		ctx,
 		sqlcgen.ReadChanelsParams{
-			AllUserIds:   !options.UserIDEquals.IsPresent,
-			UserIDEquals: int64(options.UserIDEquals.Value),
-			AllTypes:     !options.TypeEquals.IsPresent,
-			TypeEquals:   options.TypeEquals.Value.String(),
+			AllChannelIds: !options.IDIn.IsPresent,
+			IDIn:          channelIDIn,
+			AllUserIds:    !options.UserIDEquals.IsPresent,
+			UserIDEquals:  int64(options.UserIDEquals.Value),
+			AllTypes:      !options.TypeEquals.IsPresent,
+			TypeEquals:    options.TypeEquals.Value.String(),
 		},
 	)
 	if err != nil {
@@ -113,13 +121,21 @@ func (r *PgxChannelRepository) Count(
 	ctx context.Context,
 	options channel.ReadOptions,
 ) (count uint, err error) {
+	channelIDIn := make([]int64, len(options.IDIn.Value))
+	if options.IDIn.IsPresent {
+		for i := 0; i < len(options.IDIn.Value); i++ {
+			channelIDIn[i] = int64(options.IDIn.Value[i])
+		}
+	}
 	rawCount, err := r.queries.CountChannels(
 		ctx,
 		sqlcgen.CountChannelsParams{
-			AllUserIds:   !options.UserIDEquals.IsPresent,
-			UserIDEquals: int64(options.UserIDEquals.Value),
-			AllTypes:     !options.TypeEquals.IsPresent,
-			TypeEquals:   options.TypeEquals.Value.String(),
+			AllChannelIds: !options.IDIn.IsPresent,
+			IDIn:          channelIDIn,
+			AllUserIds:    !options.UserIDEquals.IsPresent,
+			UserIDEquals:  int64(options.UserIDEquals.Value),
+			AllTypes:      !options.TypeEquals.IsPresent,
+			TypeEquals:    options.TypeEquals.Value.String(),
 		},
 	)
 	if err != nil {

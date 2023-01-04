@@ -65,6 +65,9 @@ func (u *User) IsAnonymous() bool {
 }
 
 type Limits struct {
-	EmailChannelCount    c.Optional[uint32]
-	TelegramChannelCount c.Optional[uint32]
+	EmailChannelCount        c.Optional[uint32]
+	TelegramChannelCount     c.Optional[uint32]
+	ActiveReminderCount      c.Optional[uint32]
+	MonthlySentReminderCount c.Optional[uint32]
+	ReminderEveryPerDayCount c.Optional[float64]
 }

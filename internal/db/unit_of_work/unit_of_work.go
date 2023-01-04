@@ -3,9 +3,11 @@ package uow
 import (
 	"context"
 	"remindme/internal/core/domain/channel"
+	"remindme/internal/core/domain/reminder"
 	uow "remindme/internal/core/domain/unit_of_work"
 	"remindme/internal/core/domain/user"
 	dbchannel "remindme/internal/db/channel"
+	dbreminder "remindme/internal/db/reminder"
 	dbuser "remindme/internal/db/user"
 
 	"github.com/jackc/pgx/v4"
@@ -44,6 +46,14 @@ func (c *pgxUnitOfWorkContext) Limits() user.LimitsRepository {
 
 func (c *pgxUnitOfWorkContext) Channels() channel.Repository {
 	return dbchannel.NewPgxChannelRepository(c.tx)
+}
+
+func (c *pgxUnitOfWorkContext) Reminders() reminder.ReminderRepository {
+	return dbreminder.NewPgxReminderRepository(c.tx)
+}
+
+func (c *pgxUnitOfWorkContext) ReminderChannels() reminder.ReminderChannelRepository {
+	return dbreminder.NewPgxReminderChannelRepository(c.tx)
 }
 
 type PgxUnitOfWork struct {

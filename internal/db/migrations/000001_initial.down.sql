@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS reminder_channel;
+DROP TABLE IF EXISTS reminder;
 DROP TABLE IF EXISTS channel;
 DROP TABLE IF EXISTS session;
 DROP TABLE IF EXISTS limits;

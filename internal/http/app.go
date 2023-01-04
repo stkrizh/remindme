@@ -94,12 +94,18 @@ func StartApp() {
 	)
 	passwordResetTokenSender := user.NewFakePasswordResetTokenSender()
 	defaultUserLimits := user.Limits{
-		EmailChannelCount:    c.NewOptional(uint32(1), true),
-		TelegramChannelCount: c.NewOptional(uint32(1), true),
+		EmailChannelCount:        c.NewOptional(uint32(1), true),
+		TelegramChannelCount:     c.NewOptional(uint32(1), true),
+		ActiveReminderCount:      c.NewOptional(uint32(10), true),
+		MonthlySentReminderCount: c.NewOptional(uint32(100), true),
+		ReminderEveryPerDayCount: c.NewOptional(1.0, true),
 	}
 	defaultAnonymousUserLimits := user.Limits{
-		EmailChannelCount:    c.NewOptional(uint32(1), true),
-		TelegramChannelCount: c.NewOptional(uint32(1), true),
+		EmailChannelCount:        c.NewOptional(uint32(1), true),
+		TelegramChannelCount:     c.NewOptional(uint32(1), true),
+		ActiveReminderCount:      c.NewOptional(uint32(5), true),
+		MonthlySentReminderCount: c.NewOptional(uint32(50), true),
+		ReminderEveryPerDayCount: c.NewOptional(1.0, true),
 	}
 
 	telegramBotSender := telegrambotmessagesender.New(

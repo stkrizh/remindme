@@ -36,7 +36,7 @@ func TestPgxLimitsRepository(t *testing.T) {
 	suite.Run(t, new(testLimitsSuite))
 }
 
-func (s *testLimitsSuite) TestCreate() {
+func (s *testLimitsSuite) TestCreateAndGet() {
 	cases := []struct {
 		ID     string
 		Limits user.Limits
@@ -58,18 +58,43 @@ func (s *testLimitsSuite) TestCreate() {
 			EmailChannelCount:    c.NewOptional(uint32(12345), true),
 			TelegramChannelCount: c.NewOptional(uint32(12345), true),
 		}},
+		{ID: "9", Limits: user.Limits{
+			EmailChannelCount:        c.NewOptional(uint32(1), true),
+			TelegramChannelCount:     c.NewOptional(uint32(1), true),
+			ActiveReminderCount:      c.NewOptional(uint32(10), true),
+			MonthlySentReminderCount: c.NewOptional(uint32(1000), true),
+		}},
+		{ID: "10", Limits: user.Limits{
+			ActiveReminderCount:      c.NewOptional(uint32(5), true),
+			MonthlySentReminderCount: c.NewOptional(uint32(50), true),
+		}},
+		{ID: "11", Limits: user.Limits{
+			ReminderEveryPerDayCount: c.NewOptional(24.0, true),
+		}},
+		{ID: "12", Limits: user.Limits{
+			EmailChannelCount:        c.NewOptional(uint32(1), true),
+			TelegramChannelCount:     c.NewOptional(uint32(2), true),
+			ActiveReminderCount:      c.NewOptional(uint32(10), true),
+			MonthlySentReminderCount: c.NewOptional(uint32(1000), true),
+			ReminderEveryPerDayCount: c.NewOptional(1.0, true),
+		}},
 	}
 
 	for _, testCase := range cases {
 		s.Run(testCase.ID, func() {
 			defer db.TruncateTables(s.pool)
 			activeUser := s.createActiveUser()
-			limits, err := s.limitsRepository.Create(context.Background(), user.CreateLimitsInput{
+
+			createdLimits, err := s.limitsRepository.Create(context.Background(), user.CreateLimitsInput{
 				UserID: activeUser.ID,
 				Limits: testCase.Limits,
 			})
 			s.Nil(err)
-			s.Equal(testCase.Limits, limits)
+			s.Equal(testCase.Limits, createdLimits)
+
+			readLimits, err := s.limitsRepository.GetUserLimitsWithLock(context.Background(), activeUser.ID)
+			s.Nil(err)
+			s.Equal(testCase.Limits, readLimits)
 		})
 	}
 }

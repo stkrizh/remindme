@@ -285,6 +285,39 @@ func (s *testSuite) TestReadAndCount() {
 			},
 			expectedIDs: []channel.ID{},
 		},
+		{
+			id: "10",
+			options: channel.ReadOptions{
+				IDIn: c.NewOptional([]channel.ID{}, true),
+			},
+			expectedIDs: []channel.ID{},
+		},
+		{
+			id: "11",
+			options: channel.ReadOptions{
+				IDIn: c.NewOptional([]channel.ID{channelIDs[0]}, true),
+			},
+			expectedIDs: []channel.ID{channelIDs[0]},
+		},
+		{
+			id: "12",
+			options: channel.ReadOptions{
+				IDIn: c.NewOptional([]channel.ID{channelIDs[0], channelIDs[6], channelIDs[3]}, true),
+			},
+			expectedIDs: []channel.ID{channelIDs[0], channelIDs[3], channelIDs[6]},
+		},
+		{
+			id: "13",
+			options: channel.ReadOptions{
+				IDIn: c.NewOptional(
+					[]channel.ID{channelIDs[0], channelIDs[1], channelIDs[2], channelIDs[3]},
+					true,
+				),
+				UserIDEquals: c.NewOptional(s.otherUser.ID, true),
+				TypeEquals:   c.NewOptional(channel.Telegram, true),
+			},
+			expectedIDs: []channel.ID{channelIDs[3]},
+		},
 	}
 	for _, testcase := range cases {
 		s.Run(testcase.id, func() {

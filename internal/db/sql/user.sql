@@ -35,8 +35,15 @@ RETURNING *;
 DELETE FROM session WHERE token = $1 RETURNING user_id;
 
 -- name: CreateLimits :one
-INSERT INTO limits (user_id, email_channel_count, telegram_channel_count) 
-VALUES ($1, $2, $3)
+INSERT INTO limits (
+    user_id, 
+    email_channel_count, 
+    telegram_channel_count, 
+    active_reminder_count, 
+    monthly_sent_reminder_count,
+    reminder_every_per_day_count
+) 
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 -- name: GetUserLimitsWithLock :one

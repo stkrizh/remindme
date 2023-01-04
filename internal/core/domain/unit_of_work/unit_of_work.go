@@ -3,6 +3,7 @@ package uow
 import (
 	"context"
 	"remindme/internal/core/domain/channel"
+	"remindme/internal/core/domain/reminder"
 	"remindme/internal/core/domain/user"
 )
 
@@ -14,6 +15,8 @@ type Context interface {
 	Sessions() user.SessionRepository
 	Limits() user.LimitsRepository
 	Channels() channel.Repository
+	Reminders() reminder.ReminderRepository
+	ReminderChannels() reminder.ReminderChannelRepository
 }
 
 type UnitOfWork interface {

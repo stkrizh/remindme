@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"remindme/internal/core/domain/bot"
@@ -58,13 +58,12 @@ func (s *TelegramBotMessageSender) SendTelegramBotMessage(ctx context.Context, m
 		return err
 	}
 	defer resp.Body.Close()
-
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
 	if resp.StatusCode != http.StatusOK {
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-		return fmt.Errorf("got unsuccessfull response from Telegram: %s", string(body))
+		return fmt.Errorf("got unsuccessfull response from Telegram: %s", string(respBody))
 	}
 	return nil
 }

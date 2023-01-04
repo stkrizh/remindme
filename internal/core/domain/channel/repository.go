@@ -17,6 +17,7 @@ type CreateInput struct {
 }
 
 type ReadOptions struct {
+	IDIn         c.Optional[[]ID]
 	UserIDEquals c.Optional[user.ID]
 	TypeEquals   c.Optional[Type]
 }
