@@ -3,8 +3,11 @@ package reminder
 import "errors"
 
 var (
-	ErrReminderTooEarly        = errors.New("reminder time is too early")
-	ErrReminderTooManyChannels = errors.New("reminder has too many channels")
-	ErrReminderChannelsNotSet  = errors.New("reminder channels are not set")
-	ErrReminderInvalidChannels = errors.New("reminder channels are not valid")
+	ErrReminderAtTimeIsNotUTC      = errors.New("remider at time is not UTC")
+	ErrReminderTooEarly            = errors.New("reminder time is too early")
+	ErrReminderTooLate             = errors.New("reminder time is too late")
+	ErrReminderTooManyChannels     = errors.New("reminder has too many channels")
+	ErrReminderChannelsNotSet      = errors.New("reminder channels are not set")
+	ErrReminderChannelsNotValid    = errors.New("reminder channels are not valid")
+	ErrReminderChannelsNotVerified = errors.New("reminder channels are not verified")
 )

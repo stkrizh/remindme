@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-type FakeReminderRepository struct {
+type TestReminderRepository struct {
 	CreateError   error
 	ReadError     error
 	ReadReminders []Reminder
@@ -16,11 +16,11 @@ type FakeReminderRepository struct {
 	lock          sync.Mutex
 }
 
-func NewFakeReminderRepository() *FakeReminderRepository {
-	return &FakeReminderRepository{}
+func NewTestReminderRepository() *TestReminderRepository {
+	return &TestReminderRepository{}
 }
 
-func (r *FakeReminderRepository) Create(ctx context.Context, input CreateInput) (rem Reminder, err error) {
+func (r *TestReminderRepository) Create(ctx context.Context, input CreateInput) (rem Reminder, err error) {
 	if r.CreateError != nil {
 		return rem, r.CreateError
 	}
@@ -29,10 +29,13 @@ func (r *FakeReminderRepository) Create(ctx context.Context, input CreateInput) 
 	rem.At = input.At
 	rem.Every = input.Every
 	rem.Status = input.Status
+	rem.ScheduledAt = input.ScheduledAt
+	rem.SentAt = input.SentAt
+	rem.CanceledAt = input.CanceledAt
 	return rem, err
 }
 
-func (r *FakeReminderRepository) Read(ctx context.Context, options ReadOptions) ([]Reminder, error) {
+func (r *TestReminderRepository) Read(ctx context.Context, options ReadOptions) ([]Reminder, error) {
 	if r.ReadError != nil {
 		return nil, r.ReadError
 	}
@@ -42,7 +45,7 @@ func (r *FakeReminderRepository) Read(ctx context.Context, options ReadOptions) 
 	return r.ReadReminders, nil
 }
 
-func (r *FakeReminderRepository) Count(ctx context.Context, options ReadOptions) (uint, error) {
+func (r *TestReminderRepository) Count(ctx context.Context, options ReadOptions) (uint, error) {
 	if r.CountError != nil {
 		return 0, r.CountError
 	}
@@ -52,19 +55,39 @@ func (r *FakeReminderRepository) Count(ctx context.Context, options ReadOptions)
 	return r.CountResult, nil
 }
 
-type FakeReminderChannelRepository struct {
+type TestReminderChannelRepository struct {
 	CreateError        error
 	CreatedForReminder ID
 }
 
-func NewFakeReminderChannelRepository() *FakeReminderChannelRepository {
-	return &FakeReminderChannelRepository{}
+func NewTestReminderChannelRepository() *TestReminderChannelRepository {
+	return &TestReminderChannelRepository{}
 }
 
-func (r *FakeReminderChannelRepository) Create(ctx context.Context, input CreateChannelsInput) (ChannelIDs, error) {
+func (r *TestReminderChannelRepository) Create(ctx context.Context, input CreateChannelsInput) (ChannelIDs, error) {
 	if r.CreateError != nil {
 		return nil, r.CreateError
 	}
 	r.CreatedForReminder = input.ReminderID
 	return input.ChannelIDs, nil
+}
+
+type TestReminderScheduler struct {
+	Scheduled []Reminder
+	Error     error
+	lock      sync.Mutex
+}
+
+func (s *TestReminderScheduler) ScheduleReminder(ctx context.Context, r Reminder) error {
+	if s.Error != nil {
+		return s.Error
+	}
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.Scheduled = append(s.Scheduled, r)
+	return nil
+}
+
+func NewTestReminderScheduler() *TestReminderScheduler {
+	return &TestReminderScheduler{}
 }

@@ -9,10 +9,12 @@ import (
 	c "remindme/internal/core/domain/common"
 	dl "remindme/internal/core/domain/logging"
 	drl "remindme/internal/core/domain/rate_limiter"
+	"remindme/internal/core/domain/reminder"
 	"remindme/internal/core/domain/user"
 	serviceActivateUser "remindme/internal/core/services/activate_user"
 	serviceAuth "remindme/internal/core/services/auth"
 	serviceCreateEmailChannel "remindme/internal/core/services/create_email_channel"
+	serviceCreateReminder "remindme/internal/core/services/create_reminder"
 	serviceCreateTelegramChannel "remindme/internal/core/services/create_telegram_channel"
 	serviceGetUserBySessionToken "remindme/internal/core/services/get_user_by_session_token"
 	serviceListUserChannels "remindme/internal/core/services/list_user_channels"
@@ -41,6 +43,7 @@ import (
 	handlerCreateTelegramChannel "remindme/internal/http/handlers/channels/create_telegram_channel"
 	handlerListUserChannels "remindme/internal/http/handlers/channels/list_user_channels"
 	handlerVerifyEmailChannel "remindme/internal/http/handlers/channels/verify_email_channel"
+	handlerCreateReminder "remindme/internal/http/handlers/reminders/create_reminder"
 	handlerTelegramUpdates "remindme/internal/http/handlers/telegram"
 	"remindme/internal/implementations/logging"
 	passwordhasher "remindme/internal/implementations/password_hasher"
@@ -84,6 +87,7 @@ func StartApp() {
 	channelRepository := dbchannel.NewPgxChannelRepository(db)
 	rateLimiter := ratelimiter.NewRedis(redisClient, logger, now)
 	randomStringGenerator := randomstringgenerator.NewGenerator()
+	reminderScheduler := reminder.NewTestReminderScheduler()
 
 	passwordHasher := passwordhasher.NewBcrypt(config.Secret, config.BcryptHasherCost)
 	activationTokenSender := user.NewFakeActivationTokenSender()
@@ -227,6 +231,16 @@ func StartApp() {
 		),
 	)
 
+	createReminder := serviceAuth.WithAuthentication(
+		sessionRepository,
+		serviceCreateReminder.New(
+			logger,
+			unitOfWork,
+			reminderScheduler,
+			now,
+		),
+	)
+
 	authRouter := chi.NewRouter()
 	authRouter.Method(http.MethodPost, "/signup", handlerSignUpWithEmail.New(signUpWithEmailService, config.IsTestMode))
 	authRouter.Method(http.MethodPost, "/signup/anonymously", handlerSignUpAnon.New(signUpAnonymouslyService))
@@ -267,6 +281,14 @@ func StartApp() {
 		handlerVerifyEmailChannel.New(verifyEmailChannel),
 	)
 
+	reminderRouter := chi.NewRouter()
+	reminderRouter.Use(authMiddleware.SetAuthTokenToContext)
+	reminderRouter.Method(
+		http.MethodPost,
+		"/",
+		handlerCreateReminder.New(createReminder),
+	)
+
 	telegramRouter := chi.NewRouter()
 	telegramRouter.Method(
 		http.MethodPost,
@@ -278,6 +300,7 @@ func StartApp() {
 	router.Mount("/auth", authRouter)
 	router.Mount("/profile", profileRouter)
 	router.Mount("/channels", channelsRouter)
+	router.Mount("/reminders", reminderRouter)
 	router.Mount("/telegram", telegramRouter)
 
 	address := fmt.Sprintf("0.0.0.0:%d", config.Port)

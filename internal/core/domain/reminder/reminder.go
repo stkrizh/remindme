@@ -9,6 +9,7 @@ import (
 
 const (
 	MIN_DURATION_FROM_NOW   = 30 * time.Second
+	MAX_DURATION_FROM_NOW   = 2 * 366 * 24 * time.Hour
 	DURATION_FOR_SCHEDULING = 24 * time.Hour
 	MAX_CHANNEL_COUNT       = 5
 )
@@ -44,9 +45,11 @@ type ReminderWithChannels struct {
 func (r *ReminderWithChannels) FromReminderAndChannels(reminder Reminder, channels []channel.Channel) {
 	r.ID = reminder.ID
 	r.CreatedBy = reminder.CreatedBy
+	r.Status = reminder.Status
 	r.At = reminder.At
 	r.Every = reminder.Every
 	r.CreatedAt = reminder.CreatedAt
+	r.ScheduledAt = reminder.ScheduledAt
 	r.SentAt = reminder.SentAt
 	r.CanceledAt = reminder.CanceledAt
 	r.Channels = channels

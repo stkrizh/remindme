@@ -12,8 +12,8 @@ type FakeUnitOfWorkContext struct {
 	SessionRepository         *user.FakeSessionRepository
 	LimitsRepository          *user.FakeLimitsRepository
 	ChannelRepository         *channel.FakeRepository
-	ReminderRepository        *reminder.FakeReminderRepository
-	ReminderChannelRepository *reminder.FakeReminderChannelRepository
+	ReminderRepository        *reminder.TestReminderRepository
+	ReminderChannelRepository *reminder.TestReminderChannelRepository
 	WasRollbackCalled         bool
 	WasCommitCalled           bool
 }
@@ -23,8 +23,8 @@ func NewFakeUnitOfWorkContext(
 	sessionRepository *user.FakeSessionRepository,
 	limitsRepository *user.FakeLimitsRepository,
 	channelRepository *channel.FakeRepository,
-	reminderRepository *reminder.FakeReminderRepository,
-	reminderChannelRepository *reminder.FakeReminderChannelRepository,
+	reminderRepository *reminder.TestReminderRepository,
+	reminderChannelRepository *reminder.TestReminderChannelRepository,
 ) *FakeUnitOfWorkContext {
 	return &FakeUnitOfWorkContext{
 		UserRepository:            userRepository,
@@ -82,8 +82,8 @@ func NewFakeUnitOfWork() *FakeUnitOfWork {
 			user.NewFakeSessionRepository(userRepository),
 			user.NewFakeLimitsRepository(),
 			channel.NewFakeRepository(),
-			reminder.NewFakeReminderRepository(),
-			reminder.NewFakeReminderChannelRepository(),
+			reminder.NewTestReminderRepository(),
+			reminder.NewTestReminderChannelRepository(),
 		),
 	}
 }
@@ -108,10 +108,10 @@ func (u *FakeUnitOfWork) Channels() *channel.FakeRepository {
 	return u.Context.ChannelRepository
 }
 
-func (u *FakeUnitOfWork) Reminders() *reminder.FakeReminderRepository {
+func (u *FakeUnitOfWork) Reminders() *reminder.TestReminderRepository {
 	return u.Context.ReminderRepository
 }
 
-func (u *FakeUnitOfWork) ReminderChannels() *reminder.FakeReminderChannelRepository {
+func (u *FakeUnitOfWork) ReminderChannels() *reminder.TestReminderChannelRepository {
 	return u.Context.ReminderChannelRepository
 }

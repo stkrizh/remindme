@@ -22,11 +22,21 @@ type Input struct {
 }
 
 func (i Input) Validate(now time.Time) error {
-	if i.At.Sub(now) < reminder.MIN_DURATION_FROM_NOW {
+	if i.At.Location() != time.UTC {
+		return reminder.ErrReminderAtTimeIsNotUTC
+	}
+	duration_from_now := i.At.Sub(now)
+	if duration_from_now < reminder.MIN_DURATION_FROM_NOW {
 		return reminder.ErrReminderTooEarly
+	}
+	if duration_from_now > reminder.MAX_DURATION_FROM_NOW {
+		return reminder.ErrReminderTooLate
 	}
 	if i.Every.IsPresent {
 		return i.Every.Value.Validate()
+	}
+	if len(i.ChannelIDs) == 0 {
+		return reminder.ErrReminderChannelsNotSet
 	}
 	if len(i.ChannelIDs) > reminder.MAX_CHANNEL_COUNT {
 		return reminder.ErrReminderTooManyChannels
@@ -104,20 +114,18 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		return result, err
 	}
 
-	status := reminder.StatusCreated
-	if input.At.Sub(s.now()) < reminder.DURATION_FOR_SCHEDULING {
-		status = reminder.StatusScheduled
+	createInput := reminder.CreateInput{
+		CreatedBy: input.User.ID,
+		CreatedAt: s.now(),
+		At:        input.At,
+		Every:     input.Every,
+		Status:    reminder.StatusCreated,
 	}
-	createdReminder, err := uow.Reminders().Create(
-		ctx,
-		reminder.CreateInput{
-			CreatedBy: input.User.ID,
-			CreatedAt: s.now(),
-			At:        input.At,
-			Every:     input.Every,
-			Status:    status,
-		},
-	)
+	if input.At.Sub(s.now()) < reminder.DURATION_FOR_SCHEDULING {
+		createInput.Status = reminder.StatusScheduled
+		createInput.ScheduledAt = c.NewOptional(createInput.CreatedAt, true)
+	}
+	createdReminder, err := uow.Reminders().Create(ctx, createInput)
 	if err != nil {
 		logging.Error(s.log, ctx, err, logging.Entry("input", input))
 		return result, err
@@ -178,12 +186,15 @@ func (s *service) readChannels(
 	}
 	readChannelIDs := make(map[channel.ID]struct{})
 	for _, readChannel := range channels {
+		if !readChannel.IsVerified() {
+			return channels, reminder.ErrReminderChannelsNotVerified
+		}
 		readChannelIDs[readChannel.ID] = struct{}{}
 	}
 	for _, channelID := range channelIDs {
 		_, ok := readChannelIDs[channelID]
 		if !ok {
-			return channels, reminder.ErrReminderInvalidChannels
+			return channels, reminder.ErrReminderChannelsNotValid
 		}
 	}
 
