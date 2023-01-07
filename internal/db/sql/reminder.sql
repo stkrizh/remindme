@@ -33,3 +33,30 @@ SELECT COUNT(id) FROM reminder WHERE
     (@any_user_id::boolean OR user_id = @user_id_equals::bigint)
     AND (@any_sent_at::boolean OR sent_at >= @sent_after::timestamp)
     AND (@any_status::boolean OR status = ANY(@status_in::text[]));
+
+
+-- name: GetReminderByID :one
+SELECT reminder.*, array_agg(channel.id ORDER BY channel.id)::bigint[] AS channel_ids FROM reminder
+JOIN reminder_channel ON reminder_channel.reminder_id = reminder.id
+JOIN channel ON reminder_channel.channel_id = channel.id
+WHERE reminder.id = $1
+GROUP BY reminder.id;
+
+
+-- name: UpdateReminder :one
+UPDATE reminder 
+SET 
+    at = CASE WHEN @do_at_update::boolean THEN @at
+        ELSE at END,
+    every = CASE WHEN @do_every_update::boolean THEN @every
+        ELSE every END,
+    status = CASE WHEN @do_status_update::boolean THEN @status
+        ELSE status END,
+    scheduled_at = CASE WHEN @do_scheduled_at_update::boolean THEN @scheduled_at
+        ELSE scheduled_at END,
+    sent_at = CASE WHEN @do_sent_at_update::boolean THEN @sent_at
+        ELSE sent_at END,
+    canceled_at = CASE WHEN @do_canceled_at_update::boolean THEN @canceled_at
+        ELSE canceled_at END
+WHERE id = $1
+RETURNING *;

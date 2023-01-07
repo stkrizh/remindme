@@ -215,6 +215,35 @@ func (s *testSuite) TestCreateReminderChannels() {
 	}
 }
 
+func (s *testSuite) TestGetByID() {
+	expectedReminder1 := s.createReminder()
+	_, err := s.reminderChannelRepo.Create(
+		context.Background(),
+		reminder.NewCreateChannelsInput(expectedReminder1.ID, s.channel.ID),
+	)
+	s.Nil(err)
+
+	expectedReminder2 := s.createReminder()
+	_, err = s.reminderChannelRepo.Create(
+		context.Background(),
+		reminder.NewCreateChannelsInput(expectedReminder2.ID, s.channel.ID, s.otherChannel.ID),
+	)
+	s.Nil(err)
+
+	reminder1, err := s.repo.GetByID(context.Background(), expectedReminder1.ID)
+	s.Nil(err)
+	s.Equal(expectedReminder1, reminder1.Reminder)
+	s.Equal([]channel.ID{s.channel.ID}, reminder1.ChannelIDs)
+
+	reminder2, err := s.repo.GetByID(context.Background(), expectedReminder2.ID)
+	s.Nil(err)
+	s.Equal(expectedReminder2, reminder2.Reminder)
+	s.Equal([]channel.ID{s.channel.ID, s.otherChannel.ID}, reminder2.ChannelIDs)
+
+	_, err = s.repo.GetByID(context.Background(), reminder.ID(111222333))
+	s.ErrorIs(err, reminder.ErrReminderDoesNotExist)
+}
+
 func (s *testSuite) TestReadAndCount() {
 	reminderIDs := s.createReminders([]reminder.CreateInput{
 		{
@@ -513,6 +542,135 @@ func (s *testSuite) TestReadReminderChannels() {
 	))
 }
 
+func (s *testSuite) TestUpdateSuccess() {
+	cases := []struct {
+		id    string
+		input reminder.UpdateInput
+	}{
+		{
+			id:    "1",
+			input: reminder.UpdateInput{},
+		},
+		{
+			id: "2",
+			input: reminder.UpdateInput{
+				DoAtUpdate: true,
+				At:         time.Date(2000, 5, 12, 23, 13, 44, 0, time.UTC),
+			},
+		},
+		{
+			id: "3",
+			input: reminder.UpdateInput{
+				DoStatusUpdate:     true,
+				Status:             reminder.StatusCanceled,
+				DoCanceledAtUpdate: true,
+				CanceledAt:         c.NewOptional(time.Date(2000, 5, 6, 7, 8, 9, 0, time.UTC), true),
+			},
+		},
+		{
+			id: "4",
+			input: reminder.UpdateInput{
+				DoStatusUpdate:      true,
+				Status:              reminder.StatusScheduled,
+				DoScheduledAtUpdate: true,
+				ScheduledAt:         c.NewOptional(time.Date(2000, 6, 7, 8, 9, 10, 0, time.UTC), true),
+			},
+		},
+		{
+			id: "5",
+			input: reminder.UpdateInput{
+				DoStatusUpdate: true,
+				Status:         reminder.StatusSendSuccess,
+				DoSentAtUpdate: true,
+				SentAt:         c.NewOptional(time.Date(2000, 7, 8, 9, 10, 11, 0, time.UTC), true),
+			},
+		},
+		{
+			id: "6",
+			input: reminder.UpdateInput{
+				DoStatusUpdate: true,
+				Status:         reminder.StatusSendError,
+				DoSentAtUpdate: true,
+				SentAt:         c.NewOptional(time.Date(2000, 8, 9, 10, 11, 12, 0, time.UTC), true),
+			},
+		},
+		{
+			id: "7",
+			input: reminder.UpdateInput{
+				DoStatusUpdate: true,
+				Status:         reminder.StatusSendLimitExceeded,
+				DoSentAtUpdate: true,
+				SentAt:         c.NewOptional(time.Date(2000, 10, 11, 12, 13, 14, 0, time.UTC), true),
+			},
+		},
+		{
+			id: "8",
+			input: reminder.UpdateInput{
+				DoEveryUpdate: true,
+				Every:         c.NewOptional(reminder.NewEvery(3, reminder.PeriodDay), true),
+			},
+		},
+		{
+			id: "9",
+			input: reminder.UpdateInput{
+				DoEveryUpdate: true,
+				Every:         c.NewOptional(reminder.EveryYear, true),
+			},
+		},
+		{
+			id: "10",
+			input: reminder.UpdateInput{
+				DoEveryUpdate: true,
+			},
+		},
+	}
+
+	for _, testcase := range cases {
+		s.Run(testcase.id, func() {
+			reminderBefore := s.createReminderWithChannels()
+			testcase.input.ID = reminderBefore.ID
+			rem, err := s.repo.Update(context.Background(), testcase.input)
+
+			assert := s.Require()
+			assert.Nil(err)
+			if testcase.input.DoAtUpdate {
+				assert.Equal(testcase.input.At, rem.At)
+			} else {
+				assert.Equal(reminderBefore.At, rem.At)
+			}
+			if testcase.input.DoEveryUpdate {
+				assert.Equal(testcase.input.Every, rem.Every)
+			} else {
+				assert.Equal(reminderBefore.Every, rem.Every)
+			}
+			if testcase.input.DoStatusUpdate {
+				assert.Equal(testcase.input.Status, rem.Status)
+			} else {
+				assert.Equal(reminderBefore.Status, rem.Status)
+			}
+			if testcase.input.DoScheduledAtUpdate {
+				assert.Equal(testcase.input.ScheduledAt, rem.ScheduledAt)
+			} else {
+				assert.Equal(reminderBefore.ScheduledAt, rem.ScheduledAt)
+			}
+			if testcase.input.DoSentAtUpdate {
+				assert.Equal(testcase.input.SentAt, rem.SentAt)
+			} else {
+				assert.Equal(reminderBefore.SentAt, rem.SentAt)
+			}
+			if testcase.input.DoCanceledAtUpdate {
+				assert.Equal(testcase.input.CanceledAt, rem.CanceledAt)
+			} else {
+				assert.Equal(reminderBefore.CanceledAt, rem.CanceledAt)
+			}
+
+			remAfter, err := s.repo.GetByID(context.Background(), rem.ID)
+			assert.Nil(err)
+			assert.Equal(rem, remAfter.Reminder)
+		})
+	}
+}
+
 func (s *testSuite) createReminder() reminder.Reminder {
 	s.T().Helper()
 	r, err := s.repo.Create(
@@ -526,6 +684,18 @@ func (s *testSuite) createReminder() reminder.Reminder {
 	)
 	s.Nil(err)
 	return r
+}
+
+func (s *testSuite) createReminderWithChannels() (rem reminder.ReminderWithChannels) {
+	s.T().Helper()
+	r := s.createReminder()
+	_, err := s.reminderChannelRepo.Create(
+		context.Background(),
+		reminder.NewCreateChannelsInput(r.ID, s.channel.ID, s.otherChannel.ID),
+	)
+	s.Nil(err)
+	rem.FromReminderAndChannels(r, []channel.ID{s.channel.ID, s.otherChannel.ID})
+	return rem
 }
 
 func (s *testSuite) createReminders(inputs []reminder.CreateInput) []reminder.ID {

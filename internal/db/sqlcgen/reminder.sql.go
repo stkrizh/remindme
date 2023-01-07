@@ -89,6 +89,45 @@ type CreateReminderChannelsParams struct {
 	ChannelID  int64
 }
 
+const getReminderByID = `-- name: GetReminderByID :one
+SELECT reminder.id, reminder.user_id, reminder.created_at, reminder.at, reminder.status, reminder.every, reminder.scheduled_at, reminder.sent_at, reminder.canceled_at, array_agg(channel.id ORDER BY channel.id)::bigint[] AS channel_ids FROM reminder
+JOIN reminder_channel ON reminder_channel.reminder_id = reminder.id
+JOIN channel ON reminder_channel.channel_id = channel.id
+WHERE reminder.id = $1
+GROUP BY reminder.id
+`
+
+type GetReminderByIDRow struct {
+	ID          int64
+	UserID      int64
+	CreatedAt   time.Time
+	At          time.Time
+	Status      string
+	Every       sql.NullString
+	ScheduledAt sql.NullTime
+	SentAt      sql.NullTime
+	CanceledAt  sql.NullTime
+	ChannelIds  []int64
+}
+
+func (q *Queries) GetReminderByID(ctx context.Context, id int64) (GetReminderByIDRow, error) {
+	row := q.db.QueryRow(ctx, getReminderByID, id)
+	var i GetReminderByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.At,
+		&i.Status,
+		&i.Every,
+		&i.ScheduledAt,
+		&i.SentAt,
+		&i.CanceledAt,
+		&i.ChannelIds,
+	)
+	return i, err
+}
+
 const readReminders = `-- name: ReadReminders :many
 SELECT reminder.id, reminder.user_id, reminder.created_at, reminder.at, reminder.status, reminder.every, reminder.scheduled_at, reminder.sent_at, reminder.canceled_at, array_agg(channel.id ORDER BY channel.id)::bigint[] AS channel_ids FROM reminder 
 JOIN reminder_channel ON reminder_channel.reminder_id = reminder.id
@@ -180,4 +219,70 @@ func (q *Queries) ReadReminders(ctx context.Context, arg ReadRemindersParams) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateReminder = `-- name: UpdateReminder :one
+UPDATE reminder 
+SET 
+    at = CASE WHEN $2::boolean THEN $3
+        ELSE at END,
+    every = CASE WHEN $4::boolean THEN $5
+        ELSE every END,
+    status = CASE WHEN $6::boolean THEN $7
+        ELSE status END,
+    scheduled_at = CASE WHEN $8::boolean THEN $9
+        ELSE scheduled_at END,
+    sent_at = CASE WHEN $10::boolean THEN $11
+        ELSE sent_at END,
+    canceled_at = CASE WHEN $12::boolean THEN $13
+        ELSE canceled_at END
+WHERE id = $1
+RETURNING id, user_id, created_at, at, status, every, scheduled_at, sent_at, canceled_at
+`
+
+type UpdateReminderParams struct {
+	ID                  int64
+	DoAtUpdate          bool
+	At                  time.Time
+	DoEveryUpdate       bool
+	Every               sql.NullString
+	DoStatusUpdate      bool
+	Status              string
+	DoScheduledAtUpdate bool
+	ScheduledAt         sql.NullTime
+	DoSentAtUpdate      bool
+	SentAt              sql.NullTime
+	DoCanceledAtUpdate  bool
+	CanceledAt          sql.NullTime
+}
+
+func (q *Queries) UpdateReminder(ctx context.Context, arg UpdateReminderParams) (Reminder, error) {
+	row := q.db.QueryRow(ctx, updateReminder,
+		arg.ID,
+		arg.DoAtUpdate,
+		arg.At,
+		arg.DoEveryUpdate,
+		arg.Every,
+		arg.DoStatusUpdate,
+		arg.Status,
+		arg.DoScheduledAtUpdate,
+		arg.ScheduledAt,
+		arg.DoSentAtUpdate,
+		arg.SentAt,
+		arg.DoCanceledAtUpdate,
+		arg.CanceledAt,
+	)
+	var i Reminder
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.At,
+		&i.Status,
+		&i.Every,
+		&i.ScheduledAt,
+		&i.SentAt,
+		&i.CanceledAt,
+	)
+	return i, err
 }

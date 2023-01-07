@@ -10,4 +10,5 @@ var (
 	ErrReminderChannelsNotSet      = errors.New("reminder channels are not set")
 	ErrReminderChannelsNotValid    = errors.New("reminder channels are not valid")
 	ErrReminderChannelsNotVerified = errors.New("reminder channels are not verified")
+	ErrReminderDoesNotExist        = errors.New("reminder does not exist")
 )

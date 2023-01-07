@@ -29,10 +29,28 @@ type ReadOptions struct {
 	Offset          uint
 }
 
+type UpdateInput struct {
+	ID                  ID
+	DoAtUpdate          bool
+	At                  time.Time
+	DoEveryUpdate       bool
+	Every               c.Optional[Every]
+	DoStatusUpdate      bool
+	Status              Status
+	DoScheduledAtUpdate bool
+	ScheduledAt         c.Optional[time.Time]
+	DoSentAtUpdate      bool
+	SentAt              c.Optional[time.Time]
+	DoCanceledAtUpdate  bool
+	CanceledAt          c.Optional[time.Time]
+}
+
 type ReminderRepository interface {
 	Create(ctx context.Context, input CreateInput) (Reminder, error)
+	GetByID(ctx context.Context, id ID) (ReminderWithChannels, error)
 	Read(ctx context.Context, options ReadOptions) ([]ReminderWithChannels, error)
 	Count(ctx context.Context, options ReadOptions) (uint, error)
+	Update(ctx context.Context, input UpdateInput) (Reminder, error)
 }
 
 type ChannelIDs map[channel.ID]struct{}

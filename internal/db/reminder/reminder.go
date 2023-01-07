@@ -10,6 +10,7 @@ import (
 	"remindme/internal/core/domain/reminder"
 	"remindme/internal/core/domain/user"
 	"remindme/internal/db/sqlcgen"
+	"time"
 
 	"github.com/jackc/pgx/v4"
 )
@@ -58,6 +59,20 @@ func (r *PgxReminderRepository) Create(
 		return rem, err
 	}
 	return decodeReminder(dbReminder)
+}
+
+func (r *PgxReminderRepository) GetByID(
+	ctx context.Context,
+	id reminder.ID,
+) (rem reminder.ReminderWithChannels, err error) {
+	dbReminder, err := r.queries.GetReminderByID(ctx, int64(id))
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return rem, reminder.ErrReminderDoesNotExist
+		}
+		return rem, err
+	}
+	return decodeReminderWithChannels(dbReminder)
 }
 
 func (r *PgxReminderRepository) Read(
@@ -136,6 +151,49 @@ func (r *PgxReminderRepository) Count(ctx context.Context, options reminder.Read
 	return uint(count), nil
 }
 
+func (r *PgxReminderRepository) Update(
+	ctx context.Context,
+	input reminder.UpdateInput,
+) (rem reminder.Reminder, err error) {
+	dbReminder, err := r.queries.UpdateReminder(
+		ctx,
+		sqlcgen.UpdateReminderParams{
+			ID:            int64(input.ID),
+			DoAtUpdate:    input.DoAtUpdate,
+			At:            input.At,
+			DoEveryUpdate: input.DoEveryUpdate,
+			Every: sql.NullString{
+				Valid:  input.Every.IsPresent,
+				String: input.Every.Value.String(),
+			},
+			DoStatusUpdate:      input.DoStatusUpdate,
+			Status:              input.Status.String(),
+			DoScheduledAtUpdate: input.DoScheduledAtUpdate,
+			ScheduledAt: sql.NullTime{
+				Valid: input.ScheduledAt.IsPresent,
+				Time:  input.ScheduledAt.Value,
+			},
+			DoSentAtUpdate: input.DoSentAtUpdate,
+			SentAt: sql.NullTime{
+				Valid: input.SentAt.IsPresent,
+				Time:  input.SentAt.Value,
+			},
+			DoCanceledAtUpdate: input.DoCanceledAtUpdate,
+			CanceledAt: sql.NullTime{
+				Valid: input.CanceledAt.IsPresent,
+				Time:  input.CanceledAt.Value,
+			},
+		},
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return rem, reminder.ErrReminderDoesNotExist
+		}
+		return rem, err
+	}
+	return decodeReminder(dbReminder)
+}
+
 func decodeReminder(dbReminder sqlcgen.Reminder) (rem reminder.Reminder, err error) {
 	rem.ID = reminder.ID(dbReminder.ID)
 	rem.CreatedBy = user.ID(dbReminder.UserID)
@@ -169,7 +227,18 @@ func decodeReminder(dbReminder sqlcgen.Reminder) (rem reminder.Reminder, err err
 	return rem, rem.Validate()
 }
 
-func decodeReminderWithChannels(dbRow sqlcgen.ReadRemindersRow) (rem reminder.ReminderWithChannels, err error) {
+func decodeReminderWithChannels(dbRow struct {
+	ID          int64
+	UserID      int64
+	CreatedAt   time.Time
+	At          time.Time
+	Status      string
+	Every       sql.NullString
+	ScheduledAt sql.NullTime
+	SentAt      sql.NullTime
+	CanceledAt  sql.NullTime
+	ChannelIds  []int64
+}) (rem reminder.ReminderWithChannels, err error) {
 	dbReminder := sqlcgen.Reminder{
 		ID:          dbRow.ID,
 		UserID:      dbRow.UserID,
