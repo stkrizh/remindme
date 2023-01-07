@@ -39,10 +39,10 @@ func (r *Reminder) Validate() error {
 
 type ReminderWithChannels struct {
 	Reminder
-	Channels []channel.Channel
+	ChannelIDs []channel.ID
 }
 
-func (r *ReminderWithChannels) FromReminderAndChannels(reminder Reminder, channels []channel.Channel) {
+func (r *ReminderWithChannels) FromReminderAndChannels(reminder Reminder, channelIDs []channel.ID) {
 	r.ID = reminder.ID
 	r.CreatedBy = reminder.CreatedBy
 	r.Status = reminder.Status
@@ -52,5 +52,5 @@ func (r *ReminderWithChannels) FromReminderAndChannels(reminder Reminder, channe
 	r.ScheduledAt = reminder.ScheduledAt
 	r.SentAt = reminder.SentAt
 	r.CanceledAt = reminder.CanceledAt
-	r.Channels = channels
+	r.ChannelIDs = channelIDs
 }

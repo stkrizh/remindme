@@ -175,7 +175,7 @@ func (s *testSuite) TestCreateSuccessWithStatusCreated() {
 			assert.Equal(testcase.now, result.Reminder.CreatedAt)
 			assert.Equal(testcase.every, result.Reminder.Every)
 			assert.Equal(reminder.StatusCreated, result.Reminder.Status)
-			assert.True(reflect.DeepEqual(s.unitOfWork.Channels().ReadChannels, result.Reminder.Channels))
+			assert.ElementsMatch([]channel.ID{CHANNEL_ID_1, CHANNEL_ID_2}, result.Reminder.ChannelIDs)
 
 			assert.True(s.unitOfWork.Context.WasCommitCalled)
 
@@ -218,7 +218,7 @@ func (s *testSuite) TestCreateSuccessWithStatusScheduled() {
 			assert.Equal(testcase.now, result.Reminder.CreatedAt)
 			assert.Equal(reminder.StatusScheduled, result.Reminder.Status)
 			assert.Equal(c.NewOptional(testcase.now, true), result.Reminder.ScheduledAt)
-			assert.True(reflect.DeepEqual(s.unitOfWork.Channels().ReadChannels, result.Reminder.Channels))
+			assert.True(reflect.DeepEqual([]channel.ID{CHANNEL_ID_1, CHANNEL_ID_2}, result.Reminder.ChannelIDs))
 
 			assert.True(s.unitOfWork.Context.WasCommitCalled)
 

@@ -19,28 +19,19 @@ type CreateInput struct {
 	Status      Status
 }
 
-type OrderBy struct {
-	v int
-}
-
-var (
-	OrderByIDAsc  OrderBy = OrderBy{}
-	OrderByIDDesc OrderBy = OrderBy{v: 1}
-	OrderByAtAsc  OrderBy = OrderBy{v: 2}
-	OrderByAtDesc OrderBy = OrderBy{v: 3}
-)
-
 type ReadOptions struct {
 	CreatedByEquals c.Optional[user.ID]
 	SentAfter       c.Optional[time.Time]
 	StatusIn        c.Optional[[]Status]
 	StatusNotEquals c.Optional[Status]
 	OrderBy         OrderBy
+	Limit           c.Optional[uint]
+	Offset          uint
 }
 
 type ReminderRepository interface {
 	Create(ctx context.Context, input CreateInput) (Reminder, error)
-	Read(ctx context.Context, options ReadOptions) ([]Reminder, error)
+	Read(ctx context.Context, options ReadOptions) ([]ReminderWithChannels, error)
 	Count(ctx context.Context, options ReadOptions) (uint, error)
 }
 

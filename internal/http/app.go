@@ -18,6 +18,7 @@ import (
 	serviceCreateTelegramChannel "remindme/internal/core/services/create_telegram_channel"
 	serviceGetUserBySessionToken "remindme/internal/core/services/get_user_by_session_token"
 	serviceListUserChannels "remindme/internal/core/services/list_user_channels"
+	serviceListUserReminders "remindme/internal/core/services/list_user_reminders"
 	serviceLogInWithEmail "remindme/internal/core/services/log_in_with_email"
 	serviceLogOut "remindme/internal/core/services/log_out"
 	serviceRateLimiting "remindme/internal/core/services/rate_limiting"
@@ -28,6 +29,7 @@ import (
 	serviceVerifyEmailChannel "remindme/internal/core/services/verify_email_channel"
 	serviceVerifyTelegramChannel "remindme/internal/core/services/verify_telegram_channel"
 	dbchannel "remindme/internal/db/channel"
+	dbreminder "remindme/internal/db/reminder"
 	uow "remindme/internal/db/unit_of_work"
 	dbuser "remindme/internal/db/user"
 	authMiddleware "remindme/internal/http/handlers/auth"
@@ -44,6 +46,7 @@ import (
 	handlerListUserChannels "remindme/internal/http/handlers/channels/list_user_channels"
 	handlerVerifyEmailChannel "remindme/internal/http/handlers/channels/verify_email_channel"
 	handlerCreateReminder "remindme/internal/http/handlers/reminders/create_reminder"
+	handlerListUserReminders "remindme/internal/http/handlers/reminders/list_user_reminders"
 	handlerTelegramUpdates "remindme/internal/http/handlers/telegram"
 	"remindme/internal/implementations/logging"
 	passwordhasher "remindme/internal/implementations/password_hasher"
@@ -66,7 +69,7 @@ func StartApp() {
 
 	db, err := pgxpool.Connect(context.Background(), config.PostgresqlURL)
 	if err != nil {
-		panic("Could not connect to the database.")
+		panic("could not connect to the database")
 	}
 	defer db.Close()
 
@@ -87,6 +90,7 @@ func StartApp() {
 	channelRepository := dbchannel.NewPgxChannelRepository(db)
 	rateLimiter := ratelimiter.NewRedis(redisClient, logger, now)
 	randomStringGenerator := randomstringgenerator.NewGenerator()
+	reminderRepository := dbreminder.NewPgxReminderRepository(db)
 	reminderScheduler := reminder.NewTestReminderScheduler()
 
 	passwordHasher := passwordhasher.NewBcrypt(config.Secret, config.BcryptHasherCost)
@@ -240,6 +244,13 @@ func StartApp() {
 			now,
 		),
 	)
+	listUserReminders := serviceAuth.WithAuthentication(
+		sessionRepository,
+		serviceListUserReminders.New(
+			logger,
+			reminderRepository,
+		),
+	)
 
 	authRouter := chi.NewRouter()
 	authRouter.Method(http.MethodPost, "/signup", handlerSignUpWithEmail.New(signUpWithEmailService, config.IsTestMode))
@@ -287,6 +298,11 @@ func StartApp() {
 		http.MethodPost,
 		"/",
 		handlerCreateReminder.New(createReminder),
+	)
+	reminderRouter.Method(
+		http.MethodGet,
+		"/",
+		handlerListUserReminders.New(listUserReminders),
 	)
 
 	telegramRouter := chi.NewRouter()

@@ -27,12 +27,12 @@ func ParseStatus(value string) (Status, error) {
 	case "canceled":
 		return StatusCanceled, nil
 	default:
-		return StatusUnknown, ErrParseStatus
+		return StatusInvalid, ErrParseStatus
 	}
 }
 
 var (
-	StatusUnknown           = Status{}
+	StatusInvalid           = Status{}
 	StatusCreated           = Status{v: "created"}
 	StatusScheduled         = Status{v: "scheduled"}
 	StatusSendSuccess       = Status{v: "send_success"}

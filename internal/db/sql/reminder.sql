@@ -10,16 +10,22 @@ VALUES ($1, $2);
 
 
 -- name: ReadReminders :many
-SELECT * FROM reminder WHERE 
-    (@any_user_id::boolean OR user_id = @user_id_equals::bigint)
-    AND (@any_sent_at::boolean OR sent_at >= @sent_after::timestamp)
-    AND (@any_status::boolean OR status = ANY(@status_in::text[]))
+SELECT reminder.*, array_agg(channel.id ORDER BY channel.id)::bigint[] AS channel_ids FROM reminder 
+JOIN reminder_channel ON reminder_channel.reminder_id = reminder.id
+JOIN channel ON reminder_channel.channel_id = channel.id
+WHERE 
+    (@any_user_id::boolean OR reminder.user_id = @user_id_equals::bigint)
+    AND (@any_sent_at::boolean OR reminder.sent_at >= @sent_after::timestamp)
+    AND (@any_status::boolean OR reminder.status = ANY(@status_in::text[]))
+GROUP BY reminder.id
 ORDER BY 
-    CASE WHEN @order_by_id_asc::boolean THEN id ELSE null END,
-    CASE WHEN @order_by_id_desc::boolean THEN id ELSE null END DESC,
-    CASE WHEN @order_by_at_asc::boolean THEN at ELSE null END,
-    CASE WHEN @order_by_at_desc::boolean THEN at ELSE null END DESC,
-    id ASC;
+    CASE WHEN @order_by_id_asc::boolean THEN reminder.id ELSE null END,
+    CASE WHEN @order_by_id_desc::boolean THEN reminder.id ELSE null END DESC,
+    CASE WHEN @order_by_at_asc::boolean THEN reminder.at ELSE null END,
+    CASE WHEN @order_by_at_desc::boolean THEN reminder.at ELSE null END DESC,
+    id ASC
+LIMIT CASE WHEN @all_rows::boolean THEN null ELSE @limit_::integer END
+OFFSET @offset_::integer;
 
 
 -- name: CountReminders :one

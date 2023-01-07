@@ -3,11 +3,15 @@ package remidner
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"remindme/internal/core/domain/channel"
 	e "remindme/internal/core/domain/errors"
 	"remindme/internal/core/domain/reminder"
 	"remindme/internal/core/domain/user"
 	"remindme/internal/db/sqlcgen"
+
+	"github.com/jackc/pgx/v4"
 )
 
 type PgxReminderRepository struct {
@@ -59,7 +63,7 @@ func (r *PgxReminderRepository) Create(
 func (r *PgxReminderRepository) Read(
 	ctx context.Context,
 	options reminder.ReadOptions,
-) (reminders []reminder.Reminder, err error) {
+) (reminders []reminder.ReminderWithChannels, err error) {
 	var statusIn []string
 	if options.StatusIn.IsPresent {
 		statusIn = make([]string, len(options.StatusIn.Value))
@@ -81,19 +85,25 @@ func (r *PgxReminderRepository) Read(
 			OrderByIDDesc: options.OrderBy == reminder.OrderByIDDesc,
 			OrderByAtAsc:  options.OrderBy == reminder.OrderByAtAsc,
 			OrderByAtDesc: options.OrderBy == reminder.OrderByAtDesc,
+			AllRows:       !options.Limit.IsPresent,
+			Limit:         int32(options.Limit.Value),
+			Offset:        int32(options.Offset),
 		},
 	)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return reminders, nil
+		}
 		return reminders, err
 	}
 
-	reminders = make([]reminder.Reminder, len(dbReminders))
-	for ix, dbReminder := range dbReminders {
-		rem, err := decodeReminder(dbReminder)
+	reminders = make([]reminder.ReminderWithChannels, 0, len(dbReminders))
+	for _, dbReminder := range dbReminders {
+		rem, err := decodeReminderWithChannels(dbReminder)
 		if err != nil {
 			return reminders, err
 		}
-		reminders[ix] = rem
+		reminders = append(reminders, rem)
 	}
 
 	return reminders, nil
@@ -157,6 +167,32 @@ func decodeReminder(dbReminder sqlcgen.Reminder) (rem reminder.Reminder, err err
 		rem.CanceledAt.IsPresent = true
 	}
 	return rem, rem.Validate()
+}
+
+func decodeReminderWithChannels(dbRow sqlcgen.ReadRemindersRow) (rem reminder.ReminderWithChannels, err error) {
+	dbReminder := sqlcgen.Reminder{
+		ID:          dbRow.ID,
+		UserID:      dbRow.UserID,
+		CreatedAt:   dbRow.CreatedAt,
+		At:          dbRow.At,
+		Status:      dbRow.Status,
+		Every:       dbRow.Every,
+		ScheduledAt: dbRow.ScheduledAt,
+		SentAt:      dbRow.SentAt,
+		CanceledAt:  dbRow.CanceledAt,
+	}
+	r, err := decodeReminder(dbReminder)
+	if err != nil {
+		return rem, err
+	}
+
+	channelIDs := make([]channel.ID, 0, len(dbRow.ChannelIds))
+	for _, rawChannelID := range dbRow.ChannelIds {
+		channelIDs = append(channelIDs, channel.ID(rawChannelID))
+	}
+
+	rem.FromReminderAndChannels(r, channelIDs)
+	return rem, nil
 }
 
 type PgxReminderChannelRepository struct {

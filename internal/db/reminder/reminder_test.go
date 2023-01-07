@@ -33,6 +33,7 @@ type testSuite struct {
 	otherUser           user.User
 	channel             channel.Channel
 	otherChannel        channel.Channel
+	otherUserChannel    channel.Channel
 }
 
 func (suite *testSuite) SetupSuite() {
@@ -78,15 +79,27 @@ func (s *testSuite) SetupTest() {
 		channel.CreateInput{
 			CreatedBy:  u.ID,
 			Type:       channel.Email,
-			Settings:   channel.NewEmailSettings(c.NewEmail("test@test.test")),
+			Settings:   channel.NewEmailSettings(c.NewEmail("test-1@test.test")),
 			CreatedAt:  Now,
 			VerifiedAt: c.NewOptional(Now, true),
 		},
 	)
 	s.Nil(err)
 	s.channel = ch
+	ch, err = s.channelRepo.Create(
+		context.Background(),
+		channel.CreateInput{
+			CreatedBy:  u.ID,
+			Type:       channel.Email,
+			Settings:   channel.NewEmailSettings(c.NewEmail("test-2@test.test")),
+			CreatedAt:  Now,
+			VerifiedAt: c.NewOptional(Now, true),
+		},
+	)
+	s.Nil(err)
+	s.otherChannel = ch
 
-	otherChannel, err := s.channelRepo.Create(
+	ch, err = s.channelRepo.Create(
 		context.Background(),
 		channel.CreateInput{
 			CreatedBy:  otherUser.ID,
@@ -97,7 +110,7 @@ func (s *testSuite) SetupTest() {
 		},
 	)
 	s.Nil(err)
-	s.otherChannel = otherChannel
+	s.otherUserChannel = ch
 }
 
 func (suite *testSuite) TearDownTest() {
@@ -315,36 +328,42 @@ func (s *testSuite) TestReadAndCount() {
 	})
 
 	cases := []struct {
-		id          string
-		options     reminder.ReadOptions
-		expectedIxs []int
+		id            string
+		options       reminder.ReadOptions
+		expectedIxs   []int
+		expectedCount uint
 	}{
 		{
-			id:          "1",
-			options:     reminder.ReadOptions{},
-			expectedIxs: []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
+			id:            "1",
+			options:       reminder.ReadOptions{},
+			expectedIxs:   []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
+			expectedCount: 13,
 		},
 		{
-			id:          "2",
-			options:     reminder.ReadOptions{OrderBy: reminder.OrderByIDDesc},
-			expectedIxs: []int{12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0},
+			id:            "2",
+			options:       reminder.ReadOptions{OrderBy: reminder.OrderByIDDesc},
+			expectedIxs:   []int{12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0},
+			expectedCount: 13,
 		},
 		{
-			id:          "3",
-			options:     reminder.ReadOptions{OrderBy: reminder.OrderByAtAsc},
-			expectedIxs: []int{6, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 0},
+			id:            "3",
+			options:       reminder.ReadOptions{OrderBy: reminder.OrderByAtAsc},
+			expectedIxs:   []int{6, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 0},
+			expectedCount: 13,
 		},
 		{
-			id:          "4",
-			options:     reminder.ReadOptions{OrderBy: reminder.OrderByAtDesc},
-			expectedIxs: []int{0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 6},
+			id:            "4",
+			options:       reminder.ReadOptions{OrderBy: reminder.OrderByAtDesc},
+			expectedIxs:   []int{0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 6},
+			expectedCount: 13,
 		},
 		{
 			id: "5",
 			options: reminder.ReadOptions{
 				CreatedByEquals: c.NewOptional(s.user.ID, true),
 			},
-			expectedIxs: []int{0, 1, 2, 3, 4, 5},
+			expectedIxs:   []int{0, 1, 2, 3, 4, 5},
+			expectedCount: 6,
 		},
 		{
 			id: "6",
@@ -352,7 +371,8 @@ func (s *testSuite) TestReadAndCount() {
 				CreatedByEquals: c.NewOptional(s.otherUser.ID, true),
 				OrderBy:         reminder.OrderByIDDesc,
 			},
-			expectedIxs: []int{12, 11, 10, 9, 8, 7, 6},
+			expectedIxs:   []int{12, 11, 10, 9, 8, 7, 6},
+			expectedCount: 7,
 		},
 		{
 			id: "7",
@@ -360,14 +380,16 @@ func (s *testSuite) TestReadAndCount() {
 				SentAfter: c.NewOptional(At.Add(3*time.Second), true),
 				OrderBy:   reminder.OrderByIDDesc,
 			},
-			expectedIxs: []int{},
+			expectedIxs:   []int{},
+			expectedCount: 0,
 		},
 		{
 			id: "8",
 			options: reminder.ReadOptions{
 				SentAfter: c.NewOptional(At, true),
 			},
-			expectedIxs: []int{2, 3, 5, 8, 9, 10, 12},
+			expectedIxs:   []int{2, 3, 5, 8, 9, 10, 12},
+			expectedCount: 7,
 		},
 		{
 			id: "9",
@@ -375,7 +397,8 @@ func (s *testSuite) TestReadAndCount() {
 				SentAfter: c.NewOptional(At, true),
 				StatusIn:  c.NewOptional([]reminder.Status{reminder.StatusSendSuccess}, true),
 			},
-			expectedIxs: []int{2, 8, 9},
+			expectedIxs:   []int{2, 8, 9},
+			expectedCount: 3,
 		},
 		{
 			id: "10",
@@ -384,7 +407,8 @@ func (s *testSuite) TestReadAndCount() {
 				StatusIn:        c.NewOptional([]reminder.Status{reminder.StatusSendSuccess}, true),
 				CreatedByEquals: c.NewOptional(s.user.ID, true),
 			},
-			expectedIxs: []int{2},
+			expectedIxs:   []int{2},
+			expectedCount: 1,
 		},
 		{
 			id: "11",
@@ -393,7 +417,8 @@ func (s *testSuite) TestReadAndCount() {
 				StatusIn:        c.NewOptional([]reminder.Status{reminder.StatusSendSuccess}, true),
 				CreatedByEquals: c.NewOptional(s.otherUser.ID, true),
 			},
-			expectedIxs: []int{9},
+			expectedIxs:   []int{9},
+			expectedCount: 1,
 		},
 		{
 			id: "12",
@@ -403,7 +428,44 @@ func (s *testSuite) TestReadAndCount() {
 				CreatedByEquals: c.NewOptional(s.otherUser.ID, true),
 				OrderBy:         reminder.OrderByIDDesc,
 			},
-			expectedIxs: []int{9, 8},
+			expectedIxs:   []int{9, 8},
+			expectedCount: 2,
+		},
+		{
+			id: "13",
+			options: reminder.ReadOptions{
+				CreatedByEquals: c.NewOptional(s.user.ID, true),
+				Limit:           c.NewOptional(uint(2), true),
+				Offset:          0,
+			},
+			expectedIxs:   []int{0, 1},
+			expectedCount: 6,
+		},
+		{
+			id: "14",
+			options: reminder.ReadOptions{
+				CreatedByEquals: c.NewOptional(s.user.ID, true),
+				Limit:           c.NewOptional(uint(3), true),
+				Offset:          2,
+			},
+			expectedIxs:   []int{2, 3, 4},
+			expectedCount: 6,
+		},
+		{
+			id: "15",
+			options: reminder.ReadOptions{
+				CreatedByEquals: c.NewOptional(s.otherUser.ID, true),
+				OrderBy:         reminder.OrderByIDDesc,
+				StatusIn: c.NewOptional([]reminder.Status{
+					reminder.StatusCanceled,
+					reminder.StatusSendSuccess,
+					reminder.StatusScheduled,
+				}, true),
+				Limit:  c.NewOptional(uint(2), true),
+				Offset: 1,
+			},
+			expectedIxs:   []int{9, 8},
+			expectedCount: 4,
 		},
 	}
 	for _, testcase := range cases {
@@ -414,9 +476,41 @@ func (s *testSuite) TestReadAndCount() {
 
 			count, err := s.repo.Count(context.Background(), testcase.options)
 			s.Nil(err)
-			s.Equal(uint(len(testcase.expectedIxs)), count)
+			s.Equal(testcase.expectedCount, count)
 		})
 	}
+}
+
+func (s *testSuite) TestReadReminderChannels() {
+	r1 := s.createReminder()
+	_, err := s.reminderChannelRepo.Create(context.Background(), reminder.NewCreateChannelsInput(r1.ID, s.channel.ID))
+	s.Nil(err)
+
+	r2 := s.createReminder()
+	_, err = s.reminderChannelRepo.Create(
+		context.Background(),
+		reminder.NewCreateChannelsInput(r2.ID, s.channel.ID, s.otherChannel.ID),
+	)
+	s.Nil(err)
+
+	r3 := s.createReminder()
+	_, err = s.reminderChannelRepo.Create(
+		context.Background(),
+		reminder.NewCreateChannelsInput(r3.ID, s.otherUserChannel.ID, s.channel.ID, s.otherChannel.ID),
+	)
+	s.Nil(err)
+
+	reminders, err := s.repo.Read(context.Background(), reminder.ReadOptions{OrderBy: reminder.OrderByIDAsc})
+	s.Nil(err)
+
+	assert := s.Require()
+	assert.Equal(3, len(reminders))
+	assert.True(reflect.DeepEqual([]channel.ID{s.channel.ID}, reminders[0].ChannelIDs))
+	assert.True(reflect.DeepEqual([]channel.ID{s.channel.ID, s.otherChannel.ID}, reminders[1].ChannelIDs))
+	assert.True(reflect.DeepEqual(
+		[]channel.ID{s.channel.ID, s.otherChannel.ID, s.otherUserChannel.ID},
+		reminders[2].ChannelIDs,
+	))
 }
 
 func (s *testSuite) createReminder() reminder.Reminder {
@@ -440,9 +534,16 @@ func (s *testSuite) createReminders(inputs []reminder.CreateInput) []reminder.ID
 	for _, input := range inputs {
 		rem, err := s.repo.Create(context.Background(), input)
 		if err != nil {
-			s.FailNow("could not create reminder: %v", input)
+			s.FailNow("could not create reminder: %v, %v", input, err)
 		}
 		reminderIDs = append(reminderIDs, rem.ID)
+		_, err = s.reminderChannelRepo.Create(
+			context.Background(),
+			reminder.NewCreateChannelsInput(rem.ID, s.channel.ID, s.otherChannel.ID),
+		)
+		if err != nil {
+			s.FailNow("could not create reminder channels: %v, %v", input, err)
+		}
 	}
 	return reminderIDs
 }
@@ -450,7 +551,7 @@ func (s *testSuite) createReminders(inputs []reminder.CreateInput) []reminder.ID
 func (s *testSuite) assertReminderIDsEqual(
 	reminderIDs []reminder.ID,
 	expectedIxs []int,
-	actualReminders []reminder.Reminder,
+	actualReminders []reminder.ReminderWithChannels,
 ) {
 	s.T().Helper()
 

@@ -109,7 +109,7 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		return result, err
 	}
 
-	channels, err := s.readChannels(ctx, uow, input)
+	channelIDs, err := s.readChannels(ctx, uow, input)
 	if err != nil {
 		return result, err
 	}
@@ -156,7 +156,7 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		"Reminder successfully created.",
 		logging.Entry("reminder", createdReminder),
 	)
-	result.Reminder.FromReminderAndChannels(createdReminder, channels)
+	result.Reminder.FromReminderAndChannels(createdReminder, channelIDs)
 	return result, nil
 }
 
@@ -164,16 +164,16 @@ func (s *service) readChannels(
 	ctx context.Context,
 	uow uow.Context,
 	input Input,
-) (channels []channel.Channel, err error) {
+) ([]channel.ID, error) {
 	if len(input.ChannelIDs) == 0 {
-		return channels, reminder.ErrReminderChannelsNotSet
+		return nil, reminder.ErrReminderChannelsNotSet
 	}
 	channelIDs := make([]channel.ID, 0, len(input.ChannelIDs))
 	for channelID := range input.ChannelIDs {
 		channelIDs = append(channelIDs, channelID)
 	}
 
-	channels, err = uow.Channels().Read(
+	channels, err := uow.Channels().Read(
 		ctx,
 		channel.ReadOptions{
 			IDIn:         c.NewOptional(channelIDs, true),
@@ -182,23 +182,23 @@ func (s *service) readChannels(
 	)
 	if err != nil {
 		logging.Error(s.log, ctx, err, logging.Entry("input", input))
-		return channels, err
+		return nil, err
 	}
 	readChannelIDs := make(map[channel.ID]struct{})
 	for _, readChannel := range channels {
 		if !readChannel.IsVerified() {
-			return channels, reminder.ErrReminderChannelsNotVerified
+			return nil, reminder.ErrReminderChannelsNotVerified
 		}
 		readChannelIDs[readChannel.ID] = struct{}{}
 	}
 	for _, channelID := range channelIDs {
 		_, ok := readChannelIDs[channelID]
 		if !ok {
-			return channels, reminder.ErrReminderChannelsNotValid
+			return nil, reminder.ErrReminderChannelsNotValid
 		}
 	}
 
-	return channels, nil
+	return channelIDs, nil
 }
 
 func (s *service) checkUserLimits(ctx context.Context, uow uow.Context, limits user.Limits, input Input) error {

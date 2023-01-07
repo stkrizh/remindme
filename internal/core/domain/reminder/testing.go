@@ -8,7 +8,7 @@ import (
 type TestReminderRepository struct {
 	CreateError   error
 	ReadError     error
-	ReadReminders []Reminder
+	ReadReminders []ReminderWithChannels
 	ReadWith      []ReadOptions
 	CountError    error
 	CountResult   uint
@@ -35,7 +35,7 @@ func (r *TestReminderRepository) Create(ctx context.Context, input CreateInput) 
 	return rem, err
 }
 
-func (r *TestReminderRepository) Read(ctx context.Context, options ReadOptions) ([]Reminder, error) {
+func (r *TestReminderRepository) Read(ctx context.Context, options ReadOptions) ([]ReminderWithChannels, error) {
 	if r.ReadError != nil {
 		return nil, r.ReadError
 	}
