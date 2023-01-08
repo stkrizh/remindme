@@ -2,7 +2,6 @@ package remidner
 
 import (
 	"context"
-	"reflect"
 	"remindme/internal/core/domain/channel"
 	c "remindme/internal/core/domain/common"
 	"remindme/internal/core/domain/reminder"
@@ -534,12 +533,9 @@ func (s *testSuite) TestReadReminderChannels() {
 
 	assert := s.Require()
 	assert.Equal(3, len(reminders))
-	assert.True(reflect.DeepEqual([]channel.ID{s.channel.ID}, reminders[0].ChannelIDs))
-	assert.True(reflect.DeepEqual([]channel.ID{s.channel.ID, s.otherChannel.ID}, reminders[1].ChannelIDs))
-	assert.True(reflect.DeepEqual(
-		[]channel.ID{s.channel.ID, s.otherChannel.ID, s.otherUserChannel.ID},
-		reminders[2].ChannelIDs,
-	))
+	assert.Equal([]channel.ID{s.channel.ID}, reminders[0].ChannelIDs)
+	assert.Equal([]channel.ID{s.channel.ID, s.otherChannel.ID}, reminders[1].ChannelIDs)
+	assert.Equal([]channel.ID{s.channel.ID, s.otherChannel.ID, s.otherUserChannel.ID}, reminders[2].ChannelIDs)
 }
 
 func (s *testSuite) TestUpdateSuccess() {
@@ -735,5 +731,5 @@ func (s *testSuite) assertReminderIDsEqual(
 		actualIDs = append(actualIDs, rem.ID)
 	}
 
-	s.True(reflect.DeepEqual(expectedIDs, actualIDs), "not equal: %v, %v", expectedIDs, actualIDs)
+	s.Equal(expectedIDs, actualIDs)
 }

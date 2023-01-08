@@ -47,6 +47,7 @@ type UpdateInput struct {
 
 type ReminderRepository interface {
 	Create(ctx context.Context, input CreateInput) (Reminder, error)
+	Lock(ctx context.Context, id ID) error
 	GetByID(ctx context.Context, id ID) (ReminderWithChannels, error)
 	Read(ctx context.Context, options ReadOptions) ([]ReminderWithChannels, error)
 	Count(ctx context.Context, options ReadOptions) (uint, error)

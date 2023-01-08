@@ -61,6 +61,11 @@ func (r *PgxReminderRepository) Create(
 	return decodeReminder(dbReminder)
 }
 
+func (r *PgxReminderRepository) Lock(ctx context.Context, id reminder.ID) error {
+	// The method works only within a DB transaction
+	return r.queries.LockReminder(ctx, int64(id))
+}
+
 func (r *PgxReminderRepository) GetByID(
 	ctx context.Context,
 	id reminder.ID,

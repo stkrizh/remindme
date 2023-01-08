@@ -35,8 +35,13 @@ SELECT COUNT(id) FROM reminder WHERE
     AND (@any_status::boolean OR status = ANY(@status_in::text[]));
 
 
+-- name: LockReminder :exec
+SELECT pg_advisory_xact_lock(@reminder_id::bigint);
+
+
 -- name: GetReminderByID :one
-SELECT reminder.*, array_agg(channel.id ORDER BY channel.id)::bigint[] AS channel_ids FROM reminder
+SELECT reminder.*, array_agg(channel.id ORDER BY channel.id)::bigint[] AS channel_ids 
+FROM reminder
 JOIN reminder_channel ON reminder_channel.reminder_id = reminder.id
 JOIN channel ON reminder_channel.channel_id = channel.id
 WHERE reminder.id = $1

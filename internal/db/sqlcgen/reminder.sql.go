@@ -90,7 +90,8 @@ type CreateReminderChannelsParams struct {
 }
 
 const getReminderByID = `-- name: GetReminderByID :one
-SELECT reminder.id, reminder.user_id, reminder.created_at, reminder.at, reminder.status, reminder.every, reminder.scheduled_at, reminder.sent_at, reminder.canceled_at, array_agg(channel.id ORDER BY channel.id)::bigint[] AS channel_ids FROM reminder
+SELECT reminder.id, reminder.user_id, reminder.created_at, reminder.at, reminder.status, reminder.every, reminder.scheduled_at, reminder.sent_at, reminder.canceled_at, array_agg(channel.id ORDER BY channel.id)::bigint[] AS channel_ids 
+FROM reminder
 JOIN reminder_channel ON reminder_channel.reminder_id = reminder.id
 JOIN channel ON reminder_channel.channel_id = channel.id
 WHERE reminder.id = $1
@@ -126,6 +127,15 @@ func (q *Queries) GetReminderByID(ctx context.Context, id int64) (GetReminderByI
 		&i.ChannelIds,
 	)
 	return i, err
+}
+
+const lockReminder = `-- name: LockReminder :exec
+SELECT pg_advisory_xact_lock($1::bigint)
+`
+
+func (q *Queries) LockReminder(ctx context.Context, reminderID int64) error {
+	_, err := q.db.Exec(ctx, lockReminder, reminderID)
+	return err
 }
 
 const readReminders = `-- name: ReadReminders :many

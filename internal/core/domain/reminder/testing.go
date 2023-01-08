@@ -16,6 +16,8 @@ type TestReminderRepository struct {
 	CountResult     uint
 	CountWith       []ReadOptions
 	UpdateError     error
+	LockError       error
+	LockWith        []ID
 	lock            sync.Mutex
 }
 
@@ -36,6 +38,17 @@ func (r *TestReminderRepository) Create(ctx context.Context, input CreateInput) 
 	rem.SentAt = input.SentAt
 	rem.CanceledAt = input.CanceledAt
 	return rem, err
+}
+
+func (r *TestReminderRepository) Lock(ctx context.Context, id ID) error {
+	if r.LockError != nil {
+		return r.LockError
+	}
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	r.LockWith = append(r.LockWith, id)
+	return nil
 }
 
 func (r *TestReminderRepository) GetByID(ctx context.Context, id ID) (rem ReminderWithChannels, err error) {

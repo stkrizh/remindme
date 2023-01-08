@@ -13,6 +13,7 @@ import (
 	"remindme/internal/core/domain/user"
 	serviceActivateUser "remindme/internal/core/services/activate_user"
 	serviceAuth "remindme/internal/core/services/auth"
+	serviceCancelReminder "remindme/internal/core/services/cancel_reminder"
 	serviceCreateEmailChannel "remindme/internal/core/services/create_email_channel"
 	serviceCreateReminder "remindme/internal/core/services/create_reminder"
 	serviceCreateTelegramChannel "remindme/internal/core/services/create_telegram_channel"
@@ -45,6 +46,7 @@ import (
 	handlerCreateTelegramChannel "remindme/internal/http/handlers/channels/create_telegram_channel"
 	handlerListUserChannels "remindme/internal/http/handlers/channels/list_user_channels"
 	handlerVerifyEmailChannel "remindme/internal/http/handlers/channels/verify_email_channel"
+	handlerCancelReminder "remindme/internal/http/handlers/reminders/cancel_reminder"
 	handlerCreateReminder "remindme/internal/http/handlers/reminders/create_reminder"
 	handlerListUserReminders "remindme/internal/http/handlers/reminders/list_user_reminders"
 	handlerTelegramUpdates "remindme/internal/http/handlers/telegram"
@@ -251,6 +253,14 @@ func StartApp() {
 			reminderRepository,
 		),
 	)
+	cancelReminder := serviceAuth.WithAuthentication(
+		sessionRepository,
+		serviceCancelReminder.New(
+			logger,
+			unitOfWork,
+			now,
+		),
+	)
 
 	authRouter := chi.NewRouter()
 	authRouter.Method(http.MethodPost, "/signup", handlerSignUpWithEmail.New(signUpWithEmailService, config.IsTestMode))
@@ -303,6 +313,11 @@ func StartApp() {
 		http.MethodGet,
 		"/",
 		handlerListUserReminders.New(listUserReminders),
+	)
+	reminderRouter.Method(
+		http.MethodDelete,
+		"/{reminderID:[0-9]+}",
+		handlerCancelReminder.New(cancelReminder),
 	)
 
 	telegramRouter := chi.NewRouter()
