@@ -2,7 +2,6 @@ package createreminder
 
 import (
 	"context"
-	"reflect"
 	"remindme/internal/core/domain/channel"
 	c "remindme/internal/core/domain/common"
 	"remindme/internal/core/domain/logging"
@@ -55,7 +54,7 @@ func (suite *testSuite) SetupTest() {
 		func() time.Time { return Now },
 	)
 	suite.input = Input{
-		User:       user.User{ID: USER_ID},
+		UserID:     USER_ID,
 		ChannelIDs: reminder.NewChannelIDs(CHANNEL_ID_1, CHANNEL_ID_2),
 	}
 }
@@ -218,7 +217,7 @@ func (s *testSuite) TestCreateSuccessWithStatusScheduled() {
 			assert.Equal(testcase.now, result.Reminder.CreatedAt)
 			assert.Equal(reminder.StatusScheduled, result.Reminder.Status)
 			assert.Equal(c.NewOptional(testcase.now, true), result.Reminder.ScheduledAt)
-			assert.True(reflect.DeepEqual([]channel.ID{CHANNEL_ID_1, CHANNEL_ID_2}, result.Reminder.ChannelIDs))
+			assert.Equal([]channel.ID{CHANNEL_ID_1, CHANNEL_ID_2}, result.Reminder.ChannelIDs)
 
 			assert.True(s.unitOfWork.Context.WasCommitCalled)
 
@@ -360,6 +359,15 @@ func (s *testSuite) TestCreateError() {
 			actualReminderCount:           1,
 			expectedError:                 reminder.ErrReminderChannelsNotValid,
 			wasRollbackCalled:             true,
+		},
+		{
+			id:                "14",
+			now:               time.Date(2000, 1, 1, 1, 1, 1, 0, time.UTC),
+			at:                time.Date(2000, 1, 2, 1, 1, 1, 0, time.UTC),
+			every:             c.NewOptional(reminder.EveryDay, true),
+			channelIDs:        nil,
+			expectedError:     reminder.ErrReminderChannelsNotSet,
+			wasRollbackCalled: true,
 		},
 	}
 

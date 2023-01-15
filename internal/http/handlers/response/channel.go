@@ -45,7 +45,7 @@ type Channel struct {
 	Type              string             `json:"type"`
 	CreatedBy         int64              `json:"created_by"`
 	CreatedAt         time.Time          `json:"created_at"`
-	VerifiedAt        *time.Time         `json:"verified_at,omitempty"`
+	VerifiedAt        *time.Time         `json:"verified_at"`
 	EmailSettings     *EmailSettings     `json:"email,omitempty"`
 	TelegramSettings  *TelegramSettings  `json:"telegram,omitempty"`
 	WebsocketSettings *WebsocketSettings `json:"websocket,omitempty"`

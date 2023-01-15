@@ -46,5 +46,8 @@ INSERT INTO limits (
 VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
+-- name: GetUserLimits :one
+SELECT * FROM limits WHERE user_id = $1;
+
 -- name: GetUserLimitsWithLock :one
 SELECT * FROM limits WHERE user_id = $1 FOR UPDATE;

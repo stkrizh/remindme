@@ -9,12 +9,13 @@ type ReminderWithChannels struct {
 	ID          int64      `json:"id"`
 	CreatedBy   int64      `json:"created_by"`
 	At          time.Time  `json:"at"`
-	Every       *string    `json:"every,omitempty"`
+	Every       *string    `json:"every"`
+	Body        string     `json:"body"`
 	CreatedAt   time.Time  `json:"created_at"`
 	Status      string     `json:"status"`
-	ScheduledAt *time.Time `json:"scheduled_at,omitempty"`
-	SentAt      *time.Time `json:"sent_at,omitempty"`
-	CanceledAt  *time.Time `json:"canceled_at,omitempty"`
+	ScheduledAt *time.Time `json:"scheduled_at"`
+	SentAt      *time.Time `json:"sent_at"`
+	CanceledAt  *time.Time `json:"canceled_at"`
 	ChannelIDs  []int64    `json:"channel_ids"`
 }
 
@@ -26,6 +27,7 @@ func (r *ReminderWithChannels) FromDomainType(dr reminder.ReminderWithChannels) 
 		every := dr.Every.Value.String()
 		r.Every = &every
 	}
+	r.Body = dr.Body
 	r.CreatedAt = dr.CreatedAt
 	r.Status = dr.Status.String()
 	if dr.ScheduledAt.IsPresent {

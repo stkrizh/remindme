@@ -42,5 +42,6 @@ type CreateLimitsInput struct {
 
 type LimitsRepository interface {
 	Create(ctx context.Context, input CreateLimitsInput) (Limits, error)
+	GetUserLimits(ctx context.Context, userID ID) (Limits, error)
 	GetUserLimitsWithLock(ctx context.Context, userID ID) (Limits, error)
 }

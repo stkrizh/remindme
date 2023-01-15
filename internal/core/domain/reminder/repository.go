@@ -12,6 +12,7 @@ type CreateInput struct {
 	CreatedBy   user.ID
 	CreatedAt   time.Time
 	At          time.Time
+	Body        string
 	Every       c.Optional[Every]
 	ScheduledAt c.Optional[time.Time]
 	SentAt      c.Optional[time.Time]
@@ -33,6 +34,8 @@ type UpdateInput struct {
 	ID                  ID
 	DoAtUpdate          bool
 	At                  time.Time
+	DoBodyUpdate        bool
+	Body                string
 	DoEveryUpdate       bool
 	Every               c.Optional[Every]
 	DoStatusUpdate      bool

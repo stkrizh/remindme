@@ -47,6 +47,11 @@ func (r *PgxLimitsRepository) Create(ctx context.Context, input user.CreateLimit
 	return decodeLimits(dbLimits), err
 }
 
+func (r *PgxLimitsRepository) GetUserLimits(ctx context.Context, userID user.ID) (user.Limits, error) {
+	dbLimits, err := r.queries.GetUserLimits(ctx, int64(userID))
+	return decodeLimits(dbLimits), err
+}
+
 func (r *PgxLimitsRepository) GetUserLimitsWithLock(ctx context.Context, userID user.ID) (user.Limits, error) {
 	dbLimits, err := r.queries.GetUserLimitsWithLock(ctx, int64(userID))
 	return decodeLimits(dbLimits), err

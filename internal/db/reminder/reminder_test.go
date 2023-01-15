@@ -16,6 +16,8 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+const REMINDER_BODY = "test reminder body"
+
 var (
 	Now = time.Now().UTC()
 	At  = Now.Add(time.Duration(time.Hour))
@@ -143,6 +145,7 @@ func (s *testSuite) TestCreateReminder() {
 				Status:      reminder.StatusScheduled,
 				ScheduledAt: c.NewOptional(time.Date(2023, 1, 15, 16, 31, 32, 0, time.UTC), true),
 				Every:       c.NewOptional(reminder.EveryDay, true),
+				Body:        "test-1",
 			},
 		},
 		{
@@ -154,6 +157,7 @@ func (s *testSuite) TestCreateReminder() {
 				Status:      reminder.StatusScheduled,
 				ScheduledAt: c.NewOptional(time.Date(2023, 12, 1, 10, 10, 10, 0, time.UTC), true),
 				Every:       c.NewOptional(reminder.NewEvery(3, reminder.PeriodMonth), true),
+				Body:        "test-2",
 			},
 		},
 	}
@@ -170,6 +174,7 @@ func (s *testSuite) TestCreateReminder() {
 			assert.Equal(testcase.input.Every, reminder.Every)
 			assert.Equal(testcase.input.Status, reminder.Status)
 			assert.Equal(testcase.input.ScheduledAt, reminder.ScheduledAt)
+			assert.Equal(testcase.input.Body, reminder.Body)
 			assert.False(reminder.SentAt.IsPresent)
 			assert.False(reminder.CanceledAt.IsPresent)
 		})
@@ -619,6 +624,19 @@ func (s *testSuite) TestUpdateSuccess() {
 				DoEveryUpdate: true,
 			},
 		},
+		{
+			id: "11",
+			input: reminder.UpdateInput{
+				DoBodyUpdate: true,
+			},
+		},
+		{
+			id: "12",
+			input: reminder.UpdateInput{
+				DoBodyUpdate: true,
+				Body:         "test new reminder body",
+			},
+		},
 	}
 
 	for _, testcase := range cases {
@@ -633,6 +651,11 @@ func (s *testSuite) TestUpdateSuccess() {
 				assert.Equal(testcase.input.At, rem.At)
 			} else {
 				assert.Equal(reminderBefore.At, rem.At)
+			}
+			if testcase.input.DoBodyUpdate {
+				assert.Equal(testcase.input.Body, rem.Body)
+			} else {
+				assert.Equal(reminderBefore.Body, rem.Body)
 			}
 			if testcase.input.DoEveryUpdate {
 				assert.Equal(testcase.input.Every, rem.Every)
@@ -676,6 +699,7 @@ func (s *testSuite) createReminder() reminder.Reminder {
 			At:        Now.Add(time.Duration(time.Hour * 3)),
 			CreatedAt: Now,
 			Status:    reminder.StatusCreated,
+			Body:      REMINDER_BODY,
 		},
 	)
 	s.Nil(err)

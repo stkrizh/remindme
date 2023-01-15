@@ -92,7 +92,11 @@ func (s *testLimitsSuite) TestCreateAndGet() {
 			s.Nil(err)
 			s.Equal(testCase.Limits, createdLimits)
 
-			readLimits, err := s.limitsRepository.GetUserLimitsWithLock(context.Background(), activeUser.ID)
+			readLimits, err := s.limitsRepository.GetUserLimits(context.Background(), activeUser.ID)
+			s.Nil(err)
+			s.Equal(testCase.Limits, readLimits)
+
+			readLimits, err = s.limitsRepository.GetUserLimitsWithLock(context.Background(), activeUser.ID)
 			s.Nil(err)
 			s.Equal(testCase.Limits, readLimits)
 		})

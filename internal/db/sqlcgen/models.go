@@ -36,6 +36,7 @@ type Reminder struct {
 	UserID      int64
 	CreatedAt   time.Time
 	At          time.Time
+	Body        string
 	Status      string
 	Every       sql.NullString
 	ScheduledAt sql.NullTime

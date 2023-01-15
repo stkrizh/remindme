@@ -12,6 +12,7 @@ const (
 	MAX_DURATION_FROM_NOW   = 2 * 366 * 24 * time.Hour
 	DURATION_FOR_SCHEDULING = 24 * time.Hour
 	MAX_CHANNEL_COUNT       = 5
+	MAX_BODY_LEN            = 280
 )
 
 type ID int64
@@ -20,6 +21,7 @@ type Reminder struct {
 	ID          ID
 	CreatedBy   user.ID
 	At          time.Time
+	Body        string
 	Every       c.Optional[Every]
 	CreatedAt   time.Time
 	Status      Status
@@ -47,6 +49,7 @@ func (r *ReminderWithChannels) FromReminderAndChannels(reminder Reminder, channe
 	r.CreatedBy = reminder.CreatedBy
 	r.Status = reminder.Status
 	r.At = reminder.At
+	r.Body = reminder.Body
 	r.Every = reminder.Every
 	r.CreatedAt = reminder.CreatedAt
 	r.ScheduledAt = reminder.ScheduledAt

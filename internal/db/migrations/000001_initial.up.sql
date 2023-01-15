@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS reminder (
     user_id BIGINT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
     created_at TIMESTAMP NOT NULL,
     at TIMESTAMP NOT NULL,
+    body TEXT NOT NULL,
     status TEXT NOT NULL,
     every TEXT,
     scheduled_at TIMESTAMP,

@@ -214,9 +214,9 @@ func (s *testSuite) createReminders() {
 	_, err = s.uow.db.Exec(
 		context.Background(),
 		`
-		INSERT INTO reminder (id, user_id, at, created_at, status) VALUES 
-		($1, 1, now(), now(), 'created'),
-		($2, 1, now(), now(), 'created');
+		INSERT INTO reminder (id, user_id, at, body, created_at, status) VALUES 
+		($1, 1, now(), '', now(), 'created'),
+		($2, 1, now(), '', now(), 'created');
 		`,
 		REMINDER_ID_1,
 		REMINDER_ID_2,

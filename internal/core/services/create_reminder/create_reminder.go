@@ -15,8 +15,9 @@ import (
 )
 
 type Input struct {
-	User       user.User
+	UserID     user.ID
 	At         time.Time
+	Body       string
 	Every      c.Optional[reminder.Every]
 	ChannelIDs reminder.ChannelIDs
 }
@@ -33,7 +34,9 @@ func (i Input) Validate(now time.Time) error {
 		return reminder.ErrReminderTooLate
 	}
 	if i.Every.IsPresent {
-		return i.Every.Value.Validate()
+		if err := i.Every.Value.Validate(); err != nil {
+			return err
+		}
 	}
 	if len(i.ChannelIDs) == 0 {
 		return reminder.ErrReminderChannelsNotSet
@@ -45,7 +48,7 @@ func (i Input) Validate(now time.Time) error {
 }
 
 func (i Input) WithAuthenticatedUser(u user.User) auth.Input {
-	i.User = u
+	i.UserID = u.ID
 	return i
 }
 
@@ -99,7 +102,7 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 	}
 	defer uow.Rollback(ctx)
 
-	userLimits, err := uow.Limits().GetUserLimitsWithLock(ctx, input.User.ID)
+	userLimits, err := uow.Limits().GetUserLimitsWithLock(ctx, input.UserID)
 	if err != nil {
 		logging.Error(s.log, ctx, err, logging.Entry("input", input))
 		return result, err
@@ -115,8 +118,9 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 	}
 
 	createInput := reminder.CreateInput{
-		CreatedBy: input.User.ID,
+		CreatedBy: input.UserID,
 		CreatedAt: s.now(),
+		Body:      input.Body,
 		At:        input.At,
 		Every:     input.Every,
 		Status:    reminder.StatusCreated,
@@ -177,7 +181,7 @@ func (s *service) readChannels(
 		ctx,
 		channel.ReadOptions{
 			IDIn:         c.NewOptional(channelIDs, true),
-			UserIDEquals: c.NewOptional(input.User.ID, true),
+			UserIDEquals: c.NewOptional(input.UserID, true),
 		},
 	)
 	if err != nil {
@@ -212,7 +216,7 @@ func (s *service) checkUserLimits(ctx context.Context, uow uow.Context, limits u
 		activeReminderCount, err := uow.Reminders().Count(
 			ctx,
 			reminder.ReadOptions{
-				CreatedByEquals: c.NewOptional(input.User.ID, true),
+				CreatedByEquals: c.NewOptional(input.UserID, true),
 				StatusIn: c.NewOptional(
 					[]reminder.Status{reminder.StatusCreated, reminder.StatusScheduled},
 					true,
@@ -234,7 +238,7 @@ func (s *service) checkUserLimits(ctx context.Context, uow uow.Context, limits u
 		sentReminderCount, err := uow.Reminders().Count(
 			ctx,
 			reminder.ReadOptions{
-				CreatedByEquals: c.NewOptional(input.User.ID, true),
+				CreatedByEquals: c.NewOptional(input.UserID, true),
 				StatusIn:        c.NewOptional([]reminder.Status{reminder.StatusSendSuccess}, true),
 				SentAfter:       c.NewOptional(sentAfter, true),
 			},

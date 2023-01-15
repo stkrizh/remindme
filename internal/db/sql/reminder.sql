@@ -1,6 +1,6 @@
 -- name: CreateReminder :one
-INSERT INTO reminder (user_id, created_at, scheduled_at, sent_at, canceled_at, at, every, status)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO reminder (user_id, created_at, scheduled_at, sent_at, canceled_at, at, every, status, body)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 RETURNING *;
 
 
@@ -53,6 +53,8 @@ UPDATE reminder
 SET 
     at = CASE WHEN @do_at_update::boolean THEN @at
         ELSE at END,
+    body = CASE WHEN @do_body_update::boolean THEN @body
+        ELSE body END,
     every = CASE WHEN @do_every_update::boolean THEN @every
         ELSE every END,
     status = CASE WHEN @do_status_update::boolean THEN @status

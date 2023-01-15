@@ -6,19 +6,20 @@ import (
 )
 
 type TestReminderRepository struct {
-	CreateError     error
-	GetByIDError    error
-	GetByIDReminder ReminderWithChannels
-	ReadError       error
-	ReadReminders   []ReminderWithChannels
-	ReadWith        []ReadOptions
-	CountError      error
-	CountResult     uint
-	CountWith       []ReadOptions
-	UpdateError     error
-	LockError       error
-	LockWith        []ID
-	lock            sync.Mutex
+	CreateError          error
+	GetByIDError         error
+	GetByIDReminder      ReminderWithChannels
+	ReadError            error
+	ReadReminders        []ReminderWithChannels
+	ReadWith             []ReadOptions
+	CountError           error
+	CountResult          uint
+	CountWith            []ReadOptions
+	ReminderBeforeUpdate Reminder
+	UpdateError          error
+	LockError            error
+	LockWith             []ID
+	lock                 sync.Mutex
 }
 
 func NewTestReminderRepository() *TestReminderRepository {
@@ -55,7 +56,9 @@ func (r *TestReminderRepository) GetByID(ctx context.Context, id ID) (rem Remind
 	if r.GetByIDError != nil {
 		return rem, r.GetByIDError
 	}
-	return r.GetByIDReminder, nil
+	rem = r.GetByIDReminder
+	rem.ID = id
+	return rem, nil
 }
 
 func (r *TestReminderRepository) Read(ctx context.Context, options ReadOptions) ([]ReminderWithChannels, error) {
@@ -82,12 +85,16 @@ func (r *TestReminderRepository) Update(ctx context.Context, input UpdateInput) 
 	if r.UpdateError != nil {
 		return rem, r.UpdateError
 	}
+	rem = r.ReminderBeforeUpdate
 	rem.ID = input.ID
 	if input.DoAtUpdate {
 		rem.At = input.At
 	}
 	if input.DoEveryUpdate {
 		rem.Every = input.Every
+	}
+	if input.DoBodyUpdate {
+		rem.Body = input.Body
 	}
 	if input.DoStatusUpdate {
 		rem.Status = input.Status

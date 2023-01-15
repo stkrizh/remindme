@@ -249,6 +249,13 @@ func (r *FakeLimitsRepository) Create(ctx context.Context, input CreateLimitsInp
 	return l, nil
 }
 
+func (r *FakeLimitsRepository) GetUserLimits(ctx context.Context, userID ID) (l Limits, err error) {
+	if r.ReturnError {
+		return l, fmt.Errorf("could not get user limits")
+	}
+	return r.Limits, nil
+}
+
 func (r *FakeLimitsRepository) GetUserLimitsWithLock(ctx context.Context, userID ID) (l Limits, err error) {
 	if r.ReturnError {
 		return l, fmt.Errorf("could not get user limits")

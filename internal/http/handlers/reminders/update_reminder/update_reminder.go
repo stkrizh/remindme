@@ -1,20 +1,21 @@
-package createreminder
+package updatereminder
 
 import (
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
-	"remindme/internal/core/domain/channel"
 	c "remindme/internal/core/domain/common"
 	e "remindme/internal/core/domain/errors"
 	"remindme/internal/core/domain/reminder"
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
-	service "remindme/internal/core/services/create_reminder"
+	service "remindme/internal/core/services/update_reminder"
 	"remindme/internal/http/handlers/response"
+	"strconv"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	validation "github.com/go-ozzo/ozzo-validation"
 )
 
@@ -32,10 +33,10 @@ func New(
 }
 
 type Input struct {
-	At         time.Time `json:"at"`
-	Every      *string   `json:"every"`
-	Body       *string   `json:"body"`
-	ChannelIDs []int64   `json:"channel_ids"`
+	At            *time.Time `json:"at"`
+	DoEveryUpdate bool       `json:"do_every_update"`
+	Every         *string    `json:"every"`
+	Body          *string    `json:"body"`
 }
 
 type Result struct {
@@ -49,14 +50,19 @@ func (i *Input) FromJSON(r io.Reader) error {
 
 func (i Input) Validate() error {
 	return validation.ValidateStruct(&i,
-		validation.Field(&i.At, validation.Required),
 		validation.Field(&i.Every, validation.Length(0, 64)),
 		validation.Field(&i.Body, validation.Length(0, reminder.MAX_BODY_LEN)),
-		validation.Field(&i.ChannelIDs, validation.Required, validation.Length(1, reminder.MAX_CHANNEL_COUNT)),
 	)
 }
 
 func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+	rawReminderID := chi.URLParam(r, "reminderID")
+	reminderID, err := strconv.ParseInt(rawReminderID, 10, 64)
+	if err != nil {
+		response.RenderError(rw, "invalid reminder ID", http.StatusBadRequest)
+		return
+	}
+
 	input := Input{}
 	if err := input.FromJSON(r.Body); err != nil {
 		response.RenderError(rw, "invalid request data", http.StatusBadRequest)
@@ -67,37 +73,50 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var at time.Time
+	var doAtUpdate bool
+	if input.At != nil {
+		doAtUpdate = true
+		at = (*input.At).UTC()
+	}
 	var every c.Optional[reminder.Every]
-	if input.Every != nil {
+	var doEveryUpdate bool
+	if input.DoEveryUpdate && input.Every != nil {
 		e, err := reminder.ParseEvery(*input.Every)
 		if err != nil {
 			response.RenderError(rw, err.Error(), http.StatusBadRequest)
 			return
 		}
+		doEveryUpdate = true
 		every = c.NewOptional(e, true)
 	}
 	var body string
+	var doBodyUpdate bool
 	if input.Body != nil {
+		doBodyUpdate = true
 		body = *input.Body
-	}
-	channelIDs := make([]channel.ID, len(input.ChannelIDs))
-	for ix, channelID := range input.ChannelIDs {
-		channelIDs[ix] = channel.ID(channelID)
 	}
 
 	result, err := h.service.Run(
 		r.Context(),
 		service.Input{
-			At:         input.At.UTC(),
-			Every:      every,
-			Body:       body,
-			ChannelIDs: reminder.NewChannelIDs(channelIDs...),
+			ReminderID:    reminder.ID(reminderID),
+			DoAtUpdate:    doAtUpdate,
+			At:            at,
+			DoEveryUpdate: doEveryUpdate,
+			Every:         every,
+			DoBodyUpdate:  doBodyUpdate,
+			Body:          body,
 		},
 	)
 	if err != nil {
 		switch {
 		case errors.Is(err, user.ErrUserDoesNotExist):
 			response.RenderUnauthorized(rw)
+		case errors.Is(err, reminder.ErrReminderDoesNotExist):
+			response.RenderError(rw, err.Error(), http.StatusNotFound)
+		case errors.Is(err, reminder.ErrReminderPermission):
+			response.RenderError(rw, err.Error(), http.StatusForbidden)
 		case isExpectedError(err):
 			response.RenderError(rw, err.Error(), http.StatusUnprocessableEntity)
 		default:
@@ -108,7 +127,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	reminder := response.ReminderWithChannels{}
 	reminder.FromDomainType(result.Reminder)
-	response.Render(rw, Result{Reminder: reminder}, http.StatusCreated)
+	response.Render(rw, Result{Reminder: reminder}, http.StatusOK)
 }
 
 func isExpectedError(err error) bool {
@@ -116,10 +135,5 @@ func isExpectedError(err error) bool {
 		errors.Is(err, reminder.ErrReminderTooEarly) ||
 		errors.Is(err, reminder.ErrReminderTooLate) ||
 		errors.Is(err, reminder.ErrInvalidEvery) ||
-		errors.Is(err, reminder.ErrReminderChannelsNotSet) ||
-		errors.Is(err, reminder.ErrReminderChannelsNotValid) ||
-		errors.Is(err, reminder.ErrReminderChannelsNotVerified) ||
-		errors.Is(err, user.ErrLimitActiveReminderCountExceeded) ||
-		errors.Is(err, user.ErrLimitSentReminderCountExceeded) ||
 		errors.Is(err, user.ErrLimitReminderEveryPerDayCountExceeded))
 }

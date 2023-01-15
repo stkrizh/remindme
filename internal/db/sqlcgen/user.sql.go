@@ -213,6 +213,25 @@ func (q *Queries) GetUserBySessionToken(ctx context.Context, token string) (User
 	return i, err
 }
 
+const getUserLimits = `-- name: GetUserLimits :one
+SELECT id, user_id, email_channel_count, telegram_channel_count, active_reminder_count, monthly_sent_reminder_count, reminder_every_per_day_count FROM limits WHERE user_id = $1
+`
+
+func (q *Queries) GetUserLimits(ctx context.Context, userID int64) (Limit, error) {
+	row := q.db.QueryRow(ctx, getUserLimits, userID)
+	var i Limit
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.EmailChannelCount,
+		&i.TelegramChannelCount,
+		&i.ActiveReminderCount,
+		&i.MonthlySentReminderCount,
+		&i.ReminderEveryPerDayCount,
+	)
+	return i, err
+}
+
 const getUserLimitsWithLock = `-- name: GetUserLimitsWithLock :one
 SELECT id, user_id, email_channel_count, telegram_channel_count, active_reminder_count, monthly_sent_reminder_count, reminder_every_per_day_count FROM limits WHERE user_id = $1 FOR UPDATE
 `

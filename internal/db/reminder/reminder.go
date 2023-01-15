@@ -53,6 +53,7 @@ func (r *PgxReminderRepository) Create(
 				Valid: input.CanceledAt.IsPresent,
 			},
 			Status: input.Status.String(),
+			Body:   input.Body,
 		},
 	)
 	if err != nil {
@@ -166,6 +167,8 @@ func (r *PgxReminderRepository) Update(
 			ID:            int64(input.ID),
 			DoAtUpdate:    input.DoAtUpdate,
 			At:            input.At,
+			DoBodyUpdate:  input.DoBodyUpdate,
+			Body:          input.Body,
 			DoEveryUpdate: input.DoEveryUpdate,
 			Every: sql.NullString{
 				Valid:  input.Every.IsPresent,
@@ -203,6 +206,7 @@ func decodeReminder(dbReminder sqlcgen.Reminder) (rem reminder.Reminder, err err
 	rem.ID = reminder.ID(dbReminder.ID)
 	rem.CreatedBy = user.ID(dbReminder.UserID)
 	rem.At = dbReminder.At
+	rem.Body = dbReminder.Body
 	if dbReminder.Every.Valid {
 		every, err := reminder.ParseEvery(dbReminder.Every.String)
 		if err != nil {
@@ -237,6 +241,7 @@ func decodeReminderWithChannels(dbRow struct {
 	UserID      int64
 	CreatedAt   time.Time
 	At          time.Time
+	Body        string
 	Status      string
 	Every       sql.NullString
 	ScheduledAt sql.NullTime
@@ -249,6 +254,7 @@ func decodeReminderWithChannels(dbRow struct {
 		UserID:      dbRow.UserID,
 		CreatedAt:   dbRow.CreatedAt,
 		At:          dbRow.At,
+		Body:        dbRow.Body,
 		Status:      dbRow.Status,
 		Every:       dbRow.Every,
 		ScheduledAt: dbRow.ScheduledAt,
