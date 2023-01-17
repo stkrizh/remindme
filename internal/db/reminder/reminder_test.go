@@ -543,6 +543,19 @@ func (s *testSuite) TestReadReminderChannels() {
 	assert.Equal([]channel.ID{s.channel.ID, s.otherChannel.ID, s.otherUserChannel.ID}, reminders[2].ChannelIDs)
 }
 
+func (s *testSuite) TestDeleteReminderChannels() {
+	rem := s.createReminderWithChannels()
+
+	s.T().Log(rem)
+
+	err := s.reminderChannelRepo.DeleteByReminderID(context.Background(), rem.ID)
+	s.Nil(err)
+
+	_, err = s.repo.GetByID(context.Background(), rem.ID)
+	// ErrReminderDoesNotExist is returned due to the reminder does not have channels
+	s.ErrorIs(err, reminder.ErrReminderDoesNotExist)
+}
+
 func (s *testSuite) TestUpdateSuccess() {
 	cases := []struct {
 		id    string

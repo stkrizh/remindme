@@ -316,3 +316,10 @@ func (r *PgxReminderChannelRepository) Create(
 	}
 	return input.ChannelIDs, nil
 }
+
+func (r *PgxReminderChannelRepository) DeleteByReminderID(
+	ctx context.Context,
+	reminderID reminder.ID,
+) error {
+	return r.queries.DeleteReminderChannels(ctx, int64(reminderID))
+}

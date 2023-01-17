@@ -189,11 +189,13 @@ func (s *service) readChannels(
 		return nil, err
 	}
 	readChannelIDs := make(map[channel.ID]struct{})
+	resultChannelIDs := make([]channel.ID, 0, len(channelIDs))
 	for _, readChannel := range channels {
 		if !readChannel.IsVerified() {
 			return nil, reminder.ErrReminderChannelsNotVerified
 		}
 		readChannelIDs[readChannel.ID] = struct{}{}
+		resultChannelIDs = append(resultChannelIDs, readChannel.ID)
 	}
 	for _, channelID := range channelIDs {
 		_, ok := readChannelIDs[channelID]
@@ -202,7 +204,7 @@ func (s *service) readChannels(
 		}
 	}
 
-	return channelIDs, nil
+	return resultChannelIDs, nil
 }
 
 func (s *service) checkUserLimits(ctx context.Context, uow uow.Context, limits user.Limits, input Input) error {

@@ -81,4 +81,5 @@ func NewCreateChannelsInput(reminderID ID, channelIDs ...channel.ID) CreateChann
 
 type ReminderChannelRepository interface {
 	Create(ctx context.Context, input CreateChannelsInput) (ChannelIDs, error)
+	DeleteByReminderID(ctx context.Context, reminderID ID) error
 }

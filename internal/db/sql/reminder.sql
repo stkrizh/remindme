@@ -4,11 +4,6 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 RETURNING *;
 
 
--- name: CreateReminderChannels :copyfrom
-INSERT INTO reminder_channel (reminder_id, channel_id)
-VALUES ($1, $2);
-
-
 -- name: ReadReminders :many
 SELECT reminder.*, array_agg(channel.id ORDER BY channel.id)::bigint[] AS channel_ids FROM reminder 
 JOIN reminder_channel ON reminder_channel.reminder_id = reminder.id
@@ -67,3 +62,12 @@ SET
         ELSE canceled_at END
 WHERE id = $1
 RETURNING *;
+
+
+-- name: CreateReminderChannels :copyfrom
+INSERT INTO reminder_channel (reminder_id, channel_id)
+VALUES ($1, $2);
+
+
+-- name: DeleteReminderChannels :exec
+DELETE FROM reminder_channel WHERE reminder_id = $1;

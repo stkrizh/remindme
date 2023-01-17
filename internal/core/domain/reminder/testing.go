@@ -112,8 +112,12 @@ func (r *TestReminderRepository) Update(ctx context.Context, input UpdateInput) 
 }
 
 type TestReminderChannelRepository struct {
-	CreateError        error
-	CreatedForReminder ID
+	CreateError             error
+	CreatedForReminder      ID
+	WasCreateCalled         bool
+	DeleteByReminderIDError error
+	DeletedByReminderID     ID
+	WasDeleteCalled         bool
 }
 
 func NewTestReminderChannelRepository() *TestReminderChannelRepository {
@@ -124,8 +128,18 @@ func (r *TestReminderChannelRepository) Create(ctx context.Context, input Create
 	if r.CreateError != nil {
 		return nil, r.CreateError
 	}
+	r.WasCreateCalled = true
 	r.CreatedForReminder = input.ReminderID
 	return input.ChannelIDs, nil
+}
+
+func (r *TestReminderChannelRepository) DeleteByReminderID(ctx context.Context, reminderID ID) error {
+	if r.DeleteByReminderIDError != nil {
+		return r.DeleteByReminderIDError
+	}
+	r.WasDeleteCalled = true
+	r.DeletedByReminderID = reminderID
+	return nil
 }
 
 type TestReminderScheduler struct {

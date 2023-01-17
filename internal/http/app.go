@@ -28,6 +28,7 @@ import (
 	serviceSignUpAnonymously "remindme/internal/core/services/sign_up_anonymously"
 	serviceSignUpWithEmail "remindme/internal/core/services/sign_up_with_email"
 	serviceUpdateReminder "remindme/internal/core/services/update_reminder"
+	serviceUpdateReminderChannels "remindme/internal/core/services/update_reminder_channels"
 	serviceVerifyEmailChannel "remindme/internal/core/services/verify_email_channel"
 	serviceVerifyTelegramChannel "remindme/internal/core/services/verify_telegram_channel"
 	dbchannel "remindme/internal/db/channel"
@@ -51,6 +52,7 @@ import (
 	handlerCreateReminder "remindme/internal/http/handlers/reminders/create_reminder"
 	handlerListUserReminders "remindme/internal/http/handlers/reminders/list_user_reminders"
 	handlerUpdateReminder "remindme/internal/http/handlers/reminders/update_reminder"
+	handlerUpdateReminderChannels "remindme/internal/http/handlers/reminders/update_reminder_channels"
 	handlerTelegramUpdates "remindme/internal/http/handlers/telegram"
 	"remindme/internal/implementations/logging"
 	passwordhasher "remindme/internal/implementations/password_hasher"
@@ -272,6 +274,14 @@ func StartApp() {
 			now,
 		),
 	)
+	updateReminderChannels := serviceAuth.WithAuthentication(
+		sessionRepository,
+		serviceUpdateReminderChannels.New(
+			logger,
+			unitOfWork,
+			now,
+		),
+	)
 
 	authRouter := chi.NewRouter()
 	authRouter.Method(http.MethodPost, "/signup", handlerSignUpWithEmail.New(signUpWithEmailService, config.IsTestMode))
@@ -334,6 +344,11 @@ func StartApp() {
 		http.MethodPatch,
 		"/{reminderID:[0-9]+}",
 		handlerUpdateReminder.New(updateReminder),
+	)
+	reminderRouter.Method(
+		http.MethodPut,
+		"/{reminderID:[0-9]+}/channels",
+		handlerUpdateReminderChannels.New(updateReminderChannels),
 	)
 
 	telegramRouter := chi.NewRouter()

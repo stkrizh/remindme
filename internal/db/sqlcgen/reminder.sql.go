@@ -92,6 +92,15 @@ type CreateReminderChannelsParams struct {
 	ChannelID  int64
 }
 
+const deleteReminderChannels = `-- name: DeleteReminderChannels :exec
+DELETE FROM reminder_channel WHERE reminder_id = $1
+`
+
+func (q *Queries) DeleteReminderChannels(ctx context.Context, reminderID int64) error {
+	_, err := q.db.Exec(ctx, deleteReminderChannels, reminderID)
+	return err
+}
+
 const getReminderByID = `-- name: GetReminderByID :one
 SELECT reminder.id, reminder.user_id, reminder.created_at, reminder.at, reminder.body, reminder.status, reminder.every, reminder.scheduled_at, reminder.sent_at, reminder.canceled_at, array_agg(channel.id ORDER BY channel.id)::bigint[] AS channel_ids 
 FROM reminder
