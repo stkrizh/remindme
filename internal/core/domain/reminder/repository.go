@@ -48,6 +48,11 @@ type UpdateInput struct {
 	CanceledAt          c.Optional[time.Time]
 }
 
+type ScheduleInput struct {
+	ScheduledAt time.Time
+	AtBefore    time.Time
+}
+
 type ReminderRepository interface {
 	Create(ctx context.Context, input CreateInput) (Reminder, error)
 	Lock(ctx context.Context, id ID) error
@@ -55,6 +60,7 @@ type ReminderRepository interface {
 	Read(ctx context.Context, options ReadOptions) ([]ReminderWithChannels, error)
 	Count(ctx context.Context, options ReadOptions) (uint, error)
 	Update(ctx context.Context, input UpdateInput) (Reminder, error)
+	Schedule(ctx context.Context, input ScheduleInput) ([]Reminder, error)
 }
 
 type ChannelIDs map[channel.ID]struct{}

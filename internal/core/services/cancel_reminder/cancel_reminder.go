@@ -58,7 +58,7 @@ func New(
 func (s *service) Run(ctx context.Context, input Input) (result Result, err error) {
 	uow, err := s.unitOfWork.Begin(ctx)
 	if err != nil {
-		logging.Error(s.log, ctx, err, logging.Entry("input", input))
+		logging.Error(ctx, s.log, err, logging.Entry("input", input))
 		return result, err
 	}
 	defer uow.Rollback(ctx)
@@ -71,7 +71,7 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		case errors.Is(err, reminder.ErrReminderDoesNotExist):
 			s.log.Info(ctx, "Reminder not found.", logging.Entry("input", input))
 		default:
-			logging.Error(s.log, ctx, err, logging.Entry("input", input))
+			logging.Error(ctx, s.log, err, logging.Entry("input", input))
 		}
 		return result, err
 	}
@@ -92,12 +92,12 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		CanceledAt:         c.NewOptional(s.now(), true),
 	})
 	if err != nil {
-		logging.Error(s.log, ctx, err, logging.Entry("input", input))
+		logging.Error(ctx, s.log, err, logging.Entry("input", input))
 		return result, err
 	}
 
 	if err := uow.Commit(ctx); err != nil {
-		logging.Error(s.log, ctx, err, logging.Entry("input", input))
+		logging.Error(ctx, s.log, err, logging.Entry("input", input))
 		return result, err
 	}
 

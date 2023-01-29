@@ -75,7 +75,7 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 
 	uow, err := s.unitOfWork.Begin(ctx)
 	if err != nil {
-		logging.Error(s.log, ctx, err, logging.Entry("input", input))
+		logging.Error(ctx, s.log, err, logging.Entry("input", input))
 	}
 	defer uow.Rollback(ctx)
 
@@ -87,7 +87,7 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		case errors.Is(err, reminder.ErrReminderDoesNotExist):
 			s.log.Info(ctx, "Reminder not found.", logging.Entry("input", input))
 		default:
-			logging.Error(s.log, ctx, err, logging.Entry("input", input))
+			logging.Error(ctx, s.log, err, logging.Entry("input", input))
 		}
 		return result, err
 	}
@@ -110,7 +110,7 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 	reminderChannelRepo := uow.ReminderChannels()
 	err = reminderChannelRepo.DeleteByReminderID(ctx, input.ReminderID)
 	if err != nil {
-		logging.Error(s.log, ctx, err, logging.Entry("input", input))
+		logging.Error(ctx, s.log, err, logging.Entry("input", input))
 		return result, err
 	}
 	_, err = reminderChannelRepo.Create(
@@ -118,12 +118,12 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		reminder.NewCreateChannelsInput(input.ReminderID, channelIDs...),
 	)
 	if err != nil {
-		logging.Error(s.log, ctx, err, logging.Entry("input", input))
+		logging.Error(ctx, s.log, err, logging.Entry("input", input))
 		return result, err
 	}
 
 	if err := uow.Commit(ctx); err != nil {
-		logging.Error(s.log, ctx, err, logging.Entry("input", input))
+		logging.Error(ctx, s.log, err, logging.Entry("input", input))
 		return result, err
 	}
 
@@ -149,7 +149,7 @@ func (s *service) readChannels(
 		},
 	)
 	if err != nil {
-		logging.Error(s.log, ctx, err, logging.Entry("input", input))
+		logging.Error(ctx, s.log, err, logging.Entry("input", input))
 		return nil, err
 	}
 	readChannelIDs := make(map[channel.ID]struct{})

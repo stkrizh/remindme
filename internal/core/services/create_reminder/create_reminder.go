@@ -97,14 +97,14 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 
 	uow, err := s.unitOfWork.Begin(ctx)
 	if err != nil {
-		logging.Error(s.log, ctx, err, logging.Entry("input", input))
+		logging.Error(ctx, s.log, err, logging.Entry("input", input))
 		return result, err
 	}
 	defer uow.Rollback(ctx)
 
 	userLimits, err := uow.Limits().GetUserLimitsWithLock(ctx, input.UserID)
 	if err != nil {
-		logging.Error(s.log, ctx, err, logging.Entry("input", input))
+		logging.Error(ctx, s.log, err, logging.Entry("input", input))
 		return result, err
 	}
 	err = s.checkUserLimits(ctx, uow, userLimits, input)
@@ -131,7 +131,7 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 	}
 	createdReminder, err := uow.Reminders().Create(ctx, createInput)
 	if err != nil {
-		logging.Error(s.log, ctx, err, logging.Entry("input", input))
+		logging.Error(ctx, s.log, err, logging.Entry("input", input))
 		return result, err
 	}
 	_, err = uow.ReminderChannels().Create(ctx, reminder.CreateChannelsInput{
@@ -139,19 +139,19 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		ChannelIDs: input.ChannelIDs,
 	})
 	if err != nil {
-		logging.Error(s.log, ctx, err, logging.Entry("input", input), logging.Entry("reminder", createdReminder))
+		logging.Error(ctx, s.log, err, logging.Entry("input", input), logging.Entry("reminder", createdReminder))
 		return result, err
 	}
 
 	if createdReminder.Status == reminder.StatusScheduled {
 		if err := s.scheduler.ScheduleReminder(ctx, createdReminder); err != nil {
-			logging.Error(s.log, ctx, err, logging.Entry("input", input), logging.Entry("reminder", createdReminder))
+			logging.Error(ctx, s.log, err, logging.Entry("input", input), logging.Entry("reminder", createdReminder))
 			return result, err
 		}
 	}
 
 	if err := uow.Commit(ctx); err != nil {
-		logging.Error(s.log, ctx, err, logging.Entry("input", input), logging.Entry("reminder", createdReminder))
+		logging.Error(ctx, s.log, err, logging.Entry("input", input), logging.Entry("reminder", createdReminder))
 		return result, err
 	}
 
@@ -185,7 +185,7 @@ func (s *service) readChannels(
 		},
 	)
 	if err != nil {
-		logging.Error(s.log, ctx, err, logging.Entry("input", input))
+		logging.Error(ctx, s.log, err, logging.Entry("input", input))
 		return nil, err
 	}
 	readChannelIDs := make(map[channel.ID]struct{})
@@ -226,7 +226,7 @@ func (s *service) checkUserLimits(ctx context.Context, uow uow.Context, limits u
 			},
 		)
 		if err != nil {
-			logging.Error(s.log, ctx, err, logging.Entry("input", input))
+			logging.Error(ctx, s.log, err, logging.Entry("input", input))
 			return err
 		}
 		if activeReminderCount >= uint(limits.ActiveReminderCount.Value) {
@@ -241,12 +241,12 @@ func (s *service) checkUserLimits(ctx context.Context, uow uow.Context, limits u
 			ctx,
 			reminder.ReadOptions{
 				CreatedByEquals: c.NewOptional(input.UserID, true),
-				StatusIn:        c.NewOptional([]reminder.Status{reminder.StatusSendSuccess}, true),
+				StatusIn:        c.NewOptional([]reminder.Status{reminder.StatusSentSuccess}, true),
 				SentAfter:       c.NewOptional(sentAfter, true),
 			},
 		)
 		if err != nil {
-			logging.Error(s.log, ctx, err, logging.Entry("input", input), logging.Entry("sentAfter", sentAfter))
+			logging.Error(ctx, s.log, err, logging.Entry("input", input), logging.Entry("sentAfter", sentAfter))
 			return err
 		}
 		if sentReminderCount >= uint(limits.MonthlySentReminderCount.Value) {

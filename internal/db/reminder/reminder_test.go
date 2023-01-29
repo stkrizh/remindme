@@ -163,21 +163,19 @@ func (s *testSuite) TestCreateReminder() {
 	}
 
 	for _, testcase := range cases {
-		s.Run(testcase.id, func() {
-			reminder, err := s.repo.Create(context.Background(), testcase.input)
+		reminder, err := s.repo.Create(context.Background(), testcase.input)
 
-			assert := s.Require()
-			assert.Nil(err)
-			assert.True(reminder.ID > 0)
-			assert.Equal(testcase.input.CreatedBy, reminder.CreatedBy)
-			assert.Equal(testcase.input.At, reminder.At)
-			assert.Equal(testcase.input.Every, reminder.Every)
-			assert.Equal(testcase.input.Status, reminder.Status)
-			assert.Equal(testcase.input.ScheduledAt, reminder.ScheduledAt)
-			assert.Equal(testcase.input.Body, reminder.Body)
-			assert.False(reminder.SentAt.IsPresent)
-			assert.False(reminder.CanceledAt.IsPresent)
-		})
+		assert := s.Require()
+		assert.Nil(err, testcase.id)
+		assert.True(reminder.ID > 0, testcase.id)
+		assert.Equal(testcase.input.CreatedBy, reminder.CreatedBy, testcase.id)
+		assert.Equal(testcase.input.At, reminder.At, testcase.id)
+		assert.Equal(testcase.input.Every, reminder.Every, testcase.id)
+		assert.Equal(testcase.input.Status, reminder.Status, testcase.id)
+		assert.Equal(testcase.input.ScheduledAt, reminder.ScheduledAt, testcase.id)
+		assert.Equal(testcase.input.Body, reminder.Body, testcase.id)
+		assert.False(reminder.SentAt.IsPresent, testcase.id)
+		assert.False(reminder.CanceledAt.IsPresent, testcase.id)
 	}
 }
 
@@ -207,15 +205,13 @@ func (s *testSuite) TestCreateReminderChannels() {
 	}
 
 	for _, testcase := range cases {
-		s.Run(testcase.id, func() {
-			reminder := s.createReminder()
-			testcase.input.ReminderID = reminder.ID
-			channelIDs, err := s.reminderChannelRepo.Create(context.Background(), testcase.input)
+		reminder := s.createReminder()
+		testcase.input.ReminderID = reminder.ID
+		channelIDs, err := s.reminderChannelRepo.Create(context.Background(), testcase.input)
 
-			assert := s.Require()
-			assert.Nil(err)
-			assert.Equal(testcase.input.ChannelIDs, channelIDs)
-		})
+		assert := s.Require()
+		assert.Nil(err, testcase.id)
+		assert.Equal(testcase.input.ChannelIDs, channelIDs, testcase.id)
 	}
 }
 
@@ -272,7 +268,7 @@ func (s *testSuite) TestReadAndCount() {
 			At:          At,
 			ScheduledAt: c.NewOptional(Now, true),
 			SentAt:      c.NewOptional(At.Add(time.Second), true),
-			Status:      reminder.StatusSendSuccess,
+			Status:      reminder.StatusSentSuccess,
 		},
 		{
 			// 3
@@ -281,7 +277,7 @@ func (s *testSuite) TestReadAndCount() {
 			At:          At,
 			ScheduledAt: c.NewOptional(Now, true),
 			SentAt:      c.NewOptional(At.Add(time.Second), true),
-			Status:      reminder.StatusSendError,
+			Status:      reminder.StatusSentError,
 		},
 		{
 			// 4
@@ -297,7 +293,7 @@ func (s *testSuite) TestReadAndCount() {
 			CreatedAt: Now,
 			At:        At,
 			SentAt:    c.NewOptional(At.Add(time.Second), true),
-			Status:    reminder.StatusSendLimitExceeded,
+			Status:    reminder.StatusSentLimitExceeded,
 		},
 		{
 			// 6
@@ -321,7 +317,7 @@ func (s *testSuite) TestReadAndCount() {
 			At:          At,
 			ScheduledAt: c.NewOptional(Now, true),
 			SentAt:      c.NewOptional(At.Add(time.Second), true),
-			Status:      reminder.StatusSendSuccess,
+			Status:      reminder.StatusSentSuccess,
 		},
 		{
 			// 9
@@ -330,7 +326,7 @@ func (s *testSuite) TestReadAndCount() {
 			At:          At,
 			ScheduledAt: c.NewOptional(Now, true),
 			SentAt:      c.NewOptional(At.Add(2*time.Second), true),
-			Status:      reminder.StatusSendSuccess,
+			Status:      reminder.StatusSentSuccess,
 		},
 		{
 			// 10
@@ -339,7 +335,7 @@ func (s *testSuite) TestReadAndCount() {
 			At:          At,
 			ScheduledAt: c.NewOptional(Now, true),
 			SentAt:      c.NewOptional(At.Add(time.Second), true),
-			Status:      reminder.StatusSendError,
+			Status:      reminder.StatusSentError,
 		},
 		{
 			// 11
@@ -356,7 +352,15 @@ func (s *testSuite) TestReadAndCount() {
 			At:          At,
 			ScheduledAt: c.NewOptional(Now, true),
 			SentAt:      c.NewOptional(At.Add(time.Second), true),
-			Status:      reminder.StatusSendLimitExceeded,
+			Status:      reminder.StatusSentLimitExceeded,
+		},
+		{
+			// 13
+			CreatedBy:   s.otherUser.ID,
+			CreatedAt:   Now,
+			At:          At,
+			ScheduledAt: c.NewOptional(Now, true),
+			Status:      reminder.StatusSending,
 		},
 	})
 
@@ -369,26 +373,26 @@ func (s *testSuite) TestReadAndCount() {
 		{
 			id:            "1",
 			options:       reminder.ReadOptions{},
-			expectedIxs:   []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-			expectedCount: 13,
+			expectedIxs:   []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13},
+			expectedCount: 14,
 		},
 		{
 			id:            "2",
 			options:       reminder.ReadOptions{OrderBy: reminder.OrderByIDDesc},
-			expectedIxs:   []int{12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0},
-			expectedCount: 13,
+			expectedIxs:   []int{13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0},
+			expectedCount: 14,
 		},
 		{
 			id:            "3",
 			options:       reminder.ReadOptions{OrderBy: reminder.OrderByAtAsc},
-			expectedIxs:   []int{6, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 0},
-			expectedCount: 13,
+			expectedIxs:   []int{6, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 0},
+			expectedCount: 14,
 		},
 		{
 			id:            "4",
 			options:       reminder.ReadOptions{OrderBy: reminder.OrderByAtDesc},
-			expectedIxs:   []int{0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 6},
-			expectedCount: 13,
+			expectedIxs:   []int{0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 6},
+			expectedCount: 14,
 		},
 		{
 			id: "5",
@@ -404,8 +408,8 @@ func (s *testSuite) TestReadAndCount() {
 				CreatedByEquals: c.NewOptional(s.otherUser.ID, true),
 				OrderBy:         reminder.OrderByIDDesc,
 			},
-			expectedIxs:   []int{12, 11, 10, 9, 8, 7, 6},
-			expectedCount: 7,
+			expectedIxs:   []int{13, 12, 11, 10, 9, 8, 7, 6},
+			expectedCount: 8,
 		},
 		{
 			id: "7",
@@ -428,7 +432,7 @@ func (s *testSuite) TestReadAndCount() {
 			id: "9",
 			options: reminder.ReadOptions{
 				SentAfter: c.NewOptional(At, true),
-				StatusIn:  c.NewOptional([]reminder.Status{reminder.StatusSendSuccess}, true),
+				StatusIn:  c.NewOptional([]reminder.Status{reminder.StatusSentSuccess}, true),
 			},
 			expectedIxs:   []int{2, 8, 9},
 			expectedCount: 3,
@@ -437,7 +441,7 @@ func (s *testSuite) TestReadAndCount() {
 			id: "10",
 			options: reminder.ReadOptions{
 				SentAfter:       c.NewOptional(At, true),
-				StatusIn:        c.NewOptional([]reminder.Status{reminder.StatusSendSuccess}, true),
+				StatusIn:        c.NewOptional([]reminder.Status{reminder.StatusSentSuccess}, true),
 				CreatedByEquals: c.NewOptional(s.user.ID, true),
 			},
 			expectedIxs:   []int{2},
@@ -447,7 +451,7 @@ func (s *testSuite) TestReadAndCount() {
 			id: "11",
 			options: reminder.ReadOptions{
 				SentAfter:       c.NewOptional(At.Add(2*time.Second), true),
-				StatusIn:        c.NewOptional([]reminder.Status{reminder.StatusSendSuccess}, true),
+				StatusIn:        c.NewOptional([]reminder.Status{reminder.StatusSentSuccess}, true),
 				CreatedByEquals: c.NewOptional(s.otherUser.ID, true),
 			},
 			expectedIxs:   []int{9},
@@ -457,7 +461,7 @@ func (s *testSuite) TestReadAndCount() {
 			id: "12",
 			options: reminder.ReadOptions{
 				SentAfter:       c.NewOptional(At, true),
-				StatusIn:        c.NewOptional([]reminder.Status{reminder.StatusSendSuccess}, true),
+				StatusIn:        c.NewOptional([]reminder.Status{reminder.StatusSentSuccess}, true),
 				CreatedByEquals: c.NewOptional(s.otherUser.ID, true),
 				OrderBy:         reminder.OrderByIDDesc,
 			},
@@ -491,7 +495,7 @@ func (s *testSuite) TestReadAndCount() {
 				OrderBy:         reminder.OrderByIDDesc,
 				StatusIn: c.NewOptional([]reminder.Status{
 					reminder.StatusCanceled,
-					reminder.StatusSendSuccess,
+					reminder.StatusSentSuccess,
 					reminder.StatusScheduled,
 				}, true),
 				Limit:  c.NewOptional(uint(2), true),
@@ -500,17 +504,33 @@ func (s *testSuite) TestReadAndCount() {
 			expectedIxs:   []int{9, 8},
 			expectedCount: 4,
 		},
+		{
+			id: "16",
+			options: reminder.ReadOptions{
+				CreatedByEquals: c.NewOptional(s.otherUser.ID, true),
+				StatusIn:        c.NewOptional([]reminder.Status{reminder.StatusSending}, true),
+			},
+			expectedIxs:   []int{13},
+			expectedCount: 1,
+		},
+		{
+			id: "17",
+			options: reminder.ReadOptions{
+				CreatedByEquals: c.NewOptional(s.user.ID, true),
+				StatusIn:        c.NewOptional([]reminder.Status{reminder.StatusSending}, true),
+			},
+			expectedIxs:   []int{},
+			expectedCount: 0,
+		},
 	}
 	for _, testcase := range cases {
-		s.Run(testcase.id, func() {
-			reminders, err := s.repo.Read(context.Background(), testcase.options)
-			s.Nil(err)
-			s.assertReminderIDsEqual(reminderIDs, testcase.expectedIxs, reminders)
+		reminders, err := s.repo.Read(context.Background(), testcase.options)
+		s.Nil(err, testcase.id)
+		s.assertReminderIDsEqual(testcase.id, reminderIDs, testcase.expectedIxs, reminders)
 
-			count, err := s.repo.Count(context.Background(), testcase.options)
-			s.Nil(err)
-			s.Equal(testcase.expectedCount, count)
-		})
+		count, err := s.repo.Count(context.Background(), testcase.options)
+		s.Nil(err, testcase.id)
+		s.Equal(testcase.expectedCount, count, testcase.id)
 	}
 }
 
@@ -545,8 +565,6 @@ func (s *testSuite) TestReadReminderChannels() {
 
 func (s *testSuite) TestDeleteReminderChannels() {
 	rem := s.createReminderWithChannels()
-
-	s.T().Log(rem)
 
 	err := s.reminderChannelRepo.DeleteByReminderID(context.Background(), rem.ID)
 	s.Nil(err)
@@ -594,7 +612,7 @@ func (s *testSuite) TestUpdateSuccess() {
 			id: "5",
 			input: reminder.UpdateInput{
 				DoStatusUpdate: true,
-				Status:         reminder.StatusSendSuccess,
+				Status:         reminder.StatusSentSuccess,
 				DoSentAtUpdate: true,
 				SentAt:         c.NewOptional(time.Date(2000, 7, 8, 9, 10, 11, 0, time.UTC), true),
 			},
@@ -603,7 +621,7 @@ func (s *testSuite) TestUpdateSuccess() {
 			id: "6",
 			input: reminder.UpdateInput{
 				DoStatusUpdate: true,
-				Status:         reminder.StatusSendError,
+				Status:         reminder.StatusSentError,
 				DoSentAtUpdate: true,
 				SentAt:         c.NewOptional(time.Date(2000, 8, 9, 10, 11, 12, 0, time.UTC), true),
 			},
@@ -612,7 +630,7 @@ func (s *testSuite) TestUpdateSuccess() {
 			id: "7",
 			input: reminder.UpdateInput{
 				DoStatusUpdate: true,
-				Status:         reminder.StatusSendLimitExceeded,
+				Status:         reminder.StatusSentLimitExceeded,
 				DoSentAtUpdate: true,
 				SentAt:         c.NewOptional(time.Date(2000, 10, 11, 12, 13, 14, 0, time.UTC), true),
 			},
@@ -650,56 +668,61 @@ func (s *testSuite) TestUpdateSuccess() {
 				Body:         "test new reminder body",
 			},
 		},
+		{
+			id: "13",
+			input: reminder.UpdateInput{
+				DoStatusUpdate: true,
+				Status:         reminder.StatusSending,
+			},
+		},
 	}
 
 	for _, testcase := range cases {
-		s.Run(testcase.id, func() {
-			reminderBefore := s.createReminderWithChannels()
-			testcase.input.ID = reminderBefore.ID
-			rem, err := s.repo.Update(context.Background(), testcase.input)
+		reminderBefore := s.createReminderWithChannels()
+		testcase.input.ID = reminderBefore.ID
+		rem, err := s.repo.Update(context.Background(), testcase.input)
 
-			assert := s.Require()
-			assert.Nil(err)
-			if testcase.input.DoAtUpdate {
-				assert.Equal(testcase.input.At, rem.At)
-			} else {
-				assert.Equal(reminderBefore.At, rem.At)
-			}
-			if testcase.input.DoBodyUpdate {
-				assert.Equal(testcase.input.Body, rem.Body)
-			} else {
-				assert.Equal(reminderBefore.Body, rem.Body)
-			}
-			if testcase.input.DoEveryUpdate {
-				assert.Equal(testcase.input.Every, rem.Every)
-			} else {
-				assert.Equal(reminderBefore.Every, rem.Every)
-			}
-			if testcase.input.DoStatusUpdate {
-				assert.Equal(testcase.input.Status, rem.Status)
-			} else {
-				assert.Equal(reminderBefore.Status, rem.Status)
-			}
-			if testcase.input.DoScheduledAtUpdate {
-				assert.Equal(testcase.input.ScheduledAt, rem.ScheduledAt)
-			} else {
-				assert.Equal(reminderBefore.ScheduledAt, rem.ScheduledAt)
-			}
-			if testcase.input.DoSentAtUpdate {
-				assert.Equal(testcase.input.SentAt, rem.SentAt)
-			} else {
-				assert.Equal(reminderBefore.SentAt, rem.SentAt)
-			}
-			if testcase.input.DoCanceledAtUpdate {
-				assert.Equal(testcase.input.CanceledAt, rem.CanceledAt)
-			} else {
-				assert.Equal(reminderBefore.CanceledAt, rem.CanceledAt)
-			}
+		assert := s.Require()
+		assert.Nil(err, testcase.id)
+		if testcase.input.DoAtUpdate {
+			assert.Equal(testcase.input.At, rem.At, testcase.id)
+		} else {
+			assert.Equal(reminderBefore.At, rem.At, testcase.id)
+		}
+		if testcase.input.DoBodyUpdate {
+			assert.Equal(testcase.input.Body, rem.Body, testcase.id)
+		} else {
+			assert.Equal(reminderBefore.Body, rem.Body, testcase.id)
+		}
+		if testcase.input.DoEveryUpdate {
+			assert.Equal(testcase.input.Every, rem.Every, testcase.id)
+		} else {
+			assert.Equal(reminderBefore.Every, rem.Every, testcase.id)
+		}
+		if testcase.input.DoStatusUpdate {
+			assert.Equal(testcase.input.Status, rem.Status, testcase.id)
+		} else {
+			assert.Equal(reminderBefore.Status, rem.Status, testcase.id)
+		}
+		if testcase.input.DoScheduledAtUpdate {
+			assert.Equal(testcase.input.ScheduledAt, rem.ScheduledAt, testcase.id)
+		} else {
+			assert.Equal(reminderBefore.ScheduledAt, rem.ScheduledAt, testcase.id)
+		}
+		if testcase.input.DoSentAtUpdate {
+			assert.Equal(testcase.input.SentAt, rem.SentAt, testcase.id)
+		} else {
+			assert.Equal(reminderBefore.SentAt, rem.SentAt, testcase.id)
+		}
+		if testcase.input.DoCanceledAtUpdate {
+			assert.Equal(testcase.input.CanceledAt, rem.CanceledAt, testcase.id)
+		} else {
+			assert.Equal(reminderBefore.CanceledAt, rem.CanceledAt, testcase.id)
+		}
 
-			remAfter, err := s.repo.GetByID(context.Background(), rem.ID)
-			assert.Nil(err)
-			assert.Equal(rem, remAfter.Reminder)
-		})
+		remAfter, err := s.repo.GetByID(context.Background(), rem.ID)
+		assert.Nil(err, testcase.id)
+		assert.Equal(rem, remAfter.Reminder, testcase.id)
 	}
 }
 
@@ -752,6 +775,7 @@ func (s *testSuite) createReminders(inputs []reminder.CreateInput) []reminder.ID
 }
 
 func (s *testSuite) assertReminderIDsEqual(
+	testacaseID string,
 	reminderIDs []reminder.ID,
 	expectedIxs []int,
 	actualReminders []reminder.ReminderWithChannels,
@@ -768,5 +792,13 @@ func (s *testSuite) assertReminderIDsEqual(
 		actualIDs = append(actualIDs, rem.ID)
 	}
 
-	s.Equal(expectedIDs, actualIDs)
+	s.Equal(expectedIDs, actualIDs, testacaseID)
+}
+
+func dt(date string) time.Time {
+	t, err := time.Parse(time.RFC3339, date)
+	if err != nil {
+		panic(date)
+	}
+	return t
 }

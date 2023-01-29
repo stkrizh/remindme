@@ -113,14 +113,23 @@ func TestListUserRemindersHandler(t *testing.T) {
 			},
 		},
 		{
-			url:            "/reminders?status_in=send_success,canceled,send_error,send_limit_exceeded",
+			url:            "/reminders?status_in=sent_success,canceled,sent_error,sent_limit_exceeded",
 			expectedStatus: http.StatusOK,
 			expectedInput: &service.Input{
 				StatusIn: c.NewOptional([]reminder.Status{
-					reminder.StatusSendSuccess,
+					reminder.StatusSentSuccess,
 					reminder.StatusCanceled,
-					reminder.StatusSendError,
-					reminder.StatusSendLimitExceeded,
+					reminder.StatusSentError,
+					reminder.StatusSentLimitExceeded,
+				}, true),
+			},
+		},
+		{
+			url:            "/reminders?status_in=sending",
+			expectedStatus: http.StatusOK,
+			expectedInput: &service.Input{
+				StatusIn: c.NewOptional([]reminder.Status{
+					reminder.StatusSending,
 				}, true),
 			},
 		},

@@ -97,19 +97,19 @@ func (s *testSuite) TestCancelError() {
 		},
 		{
 			id:            "2",
-			status:        reminder.StatusSendSuccess,
+			status:        reminder.StatusSentSuccess,
 			userID:        USER_ID,
 			expectedError: reminder.ErrReminderNotActive,
 		},
 		{
 			id:            "3",
-			status:        reminder.StatusSendError,
+			status:        reminder.StatusSentError,
 			userID:        USER_ID,
 			expectedError: reminder.ErrReminderNotActive,
 		},
 		{
 			id:            "4",
-			status:        reminder.StatusSendLimitExceeded,
+			status:        reminder.StatusSentLimitExceeded,
 			userID:        USER_ID,
 			expectedError: reminder.ErrReminderNotActive,
 		},

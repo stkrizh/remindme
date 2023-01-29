@@ -200,17 +200,15 @@ func (s *testSuite) TestCreateSuccess() {
 	}
 
 	for _, testcase := range cases {
-		s.Run(testcase.id, func() {
-			newChannel, err := s.repo.Create(context.Background(), testcase.input)
+		newChannel, err := s.repo.Create(context.Background(), testcase.input)
 
-			s.Nil(err)
-			s.Equal(testcase.input.CreatedBy, newChannel.CreatedBy)
-			s.Equal(testcase.input.Type, newChannel.Type)
-			s.Equal(testcase.input.Settings, newChannel.Settings)
-			s.Equal(testcase.input.CreatedAt, newChannel.CreatedAt)
-			s.Equal(testcase.input.VerificationToken, newChannel.VerificationToken)
-			s.Equal(testcase.input.VerifiedAt, newChannel.VerifiedAt)
-		})
+		s.Nil(err, testcase.id)
+		s.Equal(testcase.input.CreatedBy, newChannel.CreatedBy, testcase.id)
+		s.Equal(testcase.input.Type, newChannel.Type, testcase.id)
+		s.Equal(testcase.input.Settings, newChannel.Settings, testcase.id)
+		s.Equal(testcase.input.CreatedAt, newChannel.CreatedAt, testcase.id)
+		s.Equal(testcase.input.VerificationToken, newChannel.VerificationToken, testcase.id)
+		s.Equal(testcase.input.VerifiedAt, newChannel.VerifiedAt, testcase.id)
 	}
 
 }
@@ -320,17 +318,11 @@ func (s *testSuite) TestReadAndCount() {
 		},
 	}
 	for _, testcase := range cases {
-		s.Run(testcase.id, func() {
-			actualIDs := s.readChannelIDs(testcase.options)
-			s.Truef(
-				reflect.DeepEqual(testcase.expectedIDs, actualIDs),
-				"expected: %v, actual: %v",
-				testcase.expectedIDs,
-				actualIDs,
-			)
-			actualCount := s.getCount(testcase.options)
-			s.Equal(uint(len(testcase.expectedIDs)), actualCount)
-		})
+		actualIDs := s.readChannelIDs(testcase.options)
+		actualCount := s.getCount(testcase.options)
+
+		s.Equal(testcase.expectedIDs, actualIDs, testcase.id)
+		s.Equal(uint(len(testcase.expectedIDs)), actualCount, testcase.id)
 	}
 }
 
@@ -487,37 +479,34 @@ func (s *testSuite) TestUpdate() {
 	}
 
 	for _, testcase := range cases {
-		s.Run(testcase.id, func() {
-			createdChannel, err := s.repo.Create(context.Background(), channel.CreateInput{
-				CreatedBy:         s.user.ID,
-				Type:              testcase.typeBefore,
-				Settings:          testcase.settingsBefore,
-				CreatedAt:         Now,
-				VerificationToken: testcase.tokenBefore,
-				VerifiedAt:        testcase.verifiedAtBefore,
-			})
-			assert := s.Require()
-			assert.Nil(err)
-
-			updateChannel, err := s.repo.Update(context.Background(), channel.UpdateInput{
-				ID:                        createdChannel.ID,
-				DoVerificationTokenUpdate: testcase.doTokenUpdate,
-				VerificationToken:         testcase.token,
-				DoVerifiedAtUpdate:        testcase.doVerifiedAtUpdate,
-				VerifiedAt:                testcase.verifiedAt,
-				DoSettingsUpdate:          testcase.doSettingsUpdate,
-				Settings:                  testcase.settings,
-			})
-
-			assert.Nil(err)
-			assert.Equal(createdChannel.ID, updateChannel.ID)
-			assert.Equal(createdChannel.Type, updateChannel.Type)
-			assert.Equal(createdChannel.CreatedAt, updateChannel.CreatedAt)
-			assert.Equal(createdChannel.CreatedBy, updateChannel.CreatedBy)
-			assert.Equal(testcase.expectedSettings, updateChannel.Settings)
-			assert.Equal(testcase.expectedToken, updateChannel.VerificationToken)
-			assert.Equal(testcase.expectedVerifiedAt, updateChannel.VerifiedAt)
+		createdChannel, err := s.repo.Create(context.Background(), channel.CreateInput{
+			CreatedBy:         s.user.ID,
+			Type:              testcase.typeBefore,
+			Settings:          testcase.settingsBefore,
+			CreatedAt:         Now,
+			VerificationToken: testcase.tokenBefore,
+			VerifiedAt:        testcase.verifiedAtBefore,
 		})
+		assert := s.Require()
+		assert.Nil(err, testcase.id)
+
+		updateChannel, err := s.repo.Update(context.Background(), channel.UpdateInput{
+			ID:                        createdChannel.ID,
+			DoVerificationTokenUpdate: testcase.doTokenUpdate,
+			VerificationToken:         testcase.token,
+			DoVerifiedAtUpdate:        testcase.doVerifiedAtUpdate,
+			VerifiedAt:                testcase.verifiedAt,
+			DoSettingsUpdate:          testcase.doSettingsUpdate,
+			Settings:                  testcase.settings,
+		})
+		assert.Nil(err, testcase.id)
+		assert.Equal(createdChannel.ID, updateChannel.ID, testcase.id)
+		assert.Equal(createdChannel.Type, updateChannel.Type, testcase.id)
+		assert.Equal(createdChannel.CreatedAt, updateChannel.CreatedAt, testcase.id)
+		assert.Equal(createdChannel.CreatedBy, updateChannel.CreatedBy, testcase.id)
+		assert.Equal(testcase.expectedSettings, updateChannel.Settings, testcase.id)
+		assert.Equal(testcase.expectedToken, updateChannel.VerificationToken, testcase.id)
+		assert.Equal(testcase.expectedVerifiedAt, updateChannel.VerifiedAt, testcase.id)
 	}
 }
 

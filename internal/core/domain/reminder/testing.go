@@ -19,6 +19,9 @@ type TestReminderRepository struct {
 	UpdateError          error
 	LockError            error
 	LockWith             []ID
+	ScheduleWith         []ScheduleInput
+	ScheduleResult       []Reminder
+	ScheduleError        error
 	lock                 sync.Mutex
 }
 
@@ -111,6 +114,16 @@ func (r *TestReminderRepository) Update(ctx context.Context, input UpdateInput) 
 	return rem, nil
 }
 
+func (r *TestReminderRepository) Schedule(ctx context.Context, input ScheduleInput) ([]Reminder, error) {
+	if r.ScheduleError != nil {
+		return nil, r.ScheduleError
+	}
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.ScheduleWith = append(r.ScheduleWith, input)
+	return r.ScheduleResult, nil
+}
+
 type TestReminderChannelRepository struct {
 	CreateError             error
 	CreatedForReminder      ID
@@ -160,4 +173,24 @@ func (s *TestReminderScheduler) ScheduleReminder(ctx context.Context, r Reminder
 
 func NewTestReminderScheduler() *TestReminderScheduler {
 	return &TestReminderScheduler{}
+}
+
+type TestReminderSender struct {
+	Sent      []ReminderWithChannels
+	SentError error
+	lock      sync.Mutex
+}
+
+func NewTestReminderSender() *TestReminderSender {
+	return &TestReminderSender{}
+}
+
+func (s *TestReminderSender) SendReminder(ctx context.Context, reminder ReminderWithChannels) error {
+	if s.SentError != nil {
+		return s.SentError
+	}
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.Sent = append(s.Sent, reminder)
+	return nil
 }

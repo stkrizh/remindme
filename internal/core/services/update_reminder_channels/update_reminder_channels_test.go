@@ -146,7 +146,7 @@ func (s *testSuite) TestErrorReminderBelongsToOtherUser() {
 }
 
 func (s *testSuite) TestErrorReminderIsNotActive() {
-	s.unitOfWork.Reminders().GetByIDReminder.Status = reminder.StatusSendSuccess
+	s.unitOfWork.Reminders().GetByIDReminder.Status = reminder.StatusSentSuccess
 
 	_, err := s.service.Run(context.Background(), s.input)
 

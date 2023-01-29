@@ -18,12 +18,14 @@ func ParseStatus(value string) (Status, error) {
 		return StatusCreated, nil
 	case "scheduled":
 		return StatusScheduled, nil
-	case "send_success":
-		return StatusSendSuccess, nil
-	case "send_error":
-		return StatusSendError, nil
-	case "send_limit_exceeded":
-		return StatusSendLimitExceeded, nil
+	case "sending":
+		return StatusSending, nil
+	case "sent_success":
+		return StatusSentSuccess, nil
+	case "sent_error":
+		return StatusSentError, nil
+	case "sent_limit_exceeded":
+		return StatusSentLimitExceeded, nil
 	case "canceled":
 		return StatusCanceled, nil
 	default:
@@ -35,8 +37,9 @@ var (
 	StatusInvalid           = Status{}
 	StatusCreated           = Status{v: "created"}
 	StatusScheduled         = Status{v: "scheduled"}
-	StatusSendSuccess       = Status{v: "send_success"}
-	StatusSendError         = Status{v: "send_error"}
-	StatusSendLimitExceeded = Status{v: "send_limit_exceeded"}
+	StatusSending           = Status{v: "sending"}
+	StatusSentSuccess       = Status{v: "sent_success"}
+	StatusSentError         = Status{v: "sent_error"}
+	StatusSentLimitExceeded = Status{v: "sent_limit_exceeded"}
 	StatusCanceled          = Status{v: "canceled"}
 )

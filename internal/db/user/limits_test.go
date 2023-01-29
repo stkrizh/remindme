@@ -81,25 +81,23 @@ func (s *testLimitsSuite) TestCreateAndGet() {
 	}
 
 	for _, testCase := range cases {
-		s.Run(testCase.ID, func() {
-			defer db.TruncateTables(s.pool)
-			activeUser := s.createActiveUser()
+		db.TruncateTables(s.pool)
+		activeUser := s.createActiveUser()
 
-			createdLimits, err := s.limitsRepository.Create(context.Background(), user.CreateLimitsInput{
-				UserID: activeUser.ID,
-				Limits: testCase.Limits,
-			})
-			s.Nil(err)
-			s.Equal(testCase.Limits, createdLimits)
-
-			readLimits, err := s.limitsRepository.GetUserLimits(context.Background(), activeUser.ID)
-			s.Nil(err)
-			s.Equal(testCase.Limits, readLimits)
-
-			readLimits, err = s.limitsRepository.GetUserLimitsWithLock(context.Background(), activeUser.ID)
-			s.Nil(err)
-			s.Equal(testCase.Limits, readLimits)
+		createdLimits, err := s.limitsRepository.Create(context.Background(), user.CreateLimitsInput{
+			UserID: activeUser.ID,
+			Limits: testCase.Limits,
 		})
+		s.Nil(err, testCase.ID)
+		s.Equal(testCase.Limits, createdLimits, testCase.ID)
+
+		readLimits, err := s.limitsRepository.GetUserLimits(context.Background(), activeUser.ID)
+		s.Nil(err, testCase.ID)
+		s.Equal(testCase.Limits, readLimits, testCase.ID)
+
+		readLimits, err = s.limitsRepository.GetUserLimitsWithLock(context.Background(), activeUser.ID)
+		s.Nil(err)
+		s.Equal(testCase.Limits, readLimits, testCase.ID)
 	}
 }
 

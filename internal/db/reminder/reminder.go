@@ -202,6 +202,31 @@ func (r *PgxReminderRepository) Update(
 	return decodeReminder(dbReminder)
 }
 
+func (r *PgxReminderRepository) Schedule(
+	ctx context.Context,
+	input reminder.ScheduleInput,
+) (reminders []reminder.Reminder, err error) {
+	dbReminders, err := r.queries.ScheduleReminders(ctx, sqlcgen.ScheduleRemindersParams{
+		Status:                reminder.StatusScheduled.String(),
+		AtBefore:              input.AtBefore,
+		ScheduledAt:           input.ScheduledAt,
+		StatusesForScheduling: []string{reminder.StatusCreated.String()},
+	})
+	if err != nil {
+		return reminders, err
+	}
+	reminders = make([]reminder.Reminder, 0, len(dbReminders))
+	for _, dbReminder := range dbReminders {
+		rem, err := decodeReminder(dbReminder)
+		if err != nil {
+			return reminders, err
+		}
+		reminders = append(reminders, rem)
+	}
+
+	return reminders, nil
+}
+
 func decodeReminder(dbReminder sqlcgen.Reminder) (rem reminder.Reminder, err error) {
 	rem.ID = reminder.ID(dbReminder.ID)
 	rem.CreatedBy = user.ID(dbReminder.UserID)

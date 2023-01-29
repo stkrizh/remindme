@@ -13,6 +13,7 @@ const (
 	DURATION_FOR_SCHEDULING = 24 * time.Hour
 	MAX_CHANNEL_COUNT       = 5
 	MAX_BODY_LEN            = 280
+	MAX_SENDING_DELAY       = 10 * time.Minute
 )
 
 type ID int64

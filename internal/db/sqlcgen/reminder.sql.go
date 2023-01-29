@@ -247,6 +247,56 @@ func (q *Queries) ReadReminders(ctx context.Context, arg ReadRemindersParams) ([
 	return items, nil
 }
 
+const scheduleReminders = `-- name: ScheduleReminders :many
+UPDATE reminder
+SET status = $1, scheduled_at = $2::timestamp
+WHERE at < $3 AND status = ANY($4::text[])
+RETURNING id, user_id, created_at, at, body, status, every, scheduled_at, sent_at, canceled_at
+`
+
+type ScheduleRemindersParams struct {
+	Status                string
+	ScheduledAt           time.Time
+	AtBefore              time.Time
+	StatusesForScheduling []string
+}
+
+func (q *Queries) ScheduleReminders(ctx context.Context, arg ScheduleRemindersParams) ([]Reminder, error) {
+	rows, err := q.db.Query(ctx, scheduleReminders,
+		arg.Status,
+		arg.ScheduledAt,
+		arg.AtBefore,
+		arg.StatusesForScheduling,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Reminder
+	for rows.Next() {
+		var i Reminder
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.At,
+			&i.Body,
+			&i.Status,
+			&i.Every,
+			&i.ScheduledAt,
+			&i.SentAt,
+			&i.CanceledAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateReminder = `-- name: UpdateReminder :one
 UPDATE reminder 
 SET 

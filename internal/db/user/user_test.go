@@ -70,18 +70,16 @@ func (suite *testSuite) TestCreateSuccess() {
 	}
 
 	for _, testcase := range cases {
-		suite.Run(testcase.id, func() {
-			u, err := suite.repo.Create(context.Background(), testcase.input)
+		u, err := suite.repo.Create(context.Background(), testcase.input)
 
-			assert := suite.Require()
-			assert.Nil(err)
-			assert.Equal(testcase.input.Email, u.Email)
-			assert.Equal(testcase.input.PasswordHash, u.PasswordHash)
-			assert.Equal(testcase.input.Identity, u.Identity)
-			assert.True(testcase.input.CreatedAt.Equal(u.CreatedAt))
-			assert.Equal(testcase.input.ActivatedAt, u.ActivatedAt)
-			assert.Equal(testcase.input.ActivationToken, u.ActivationToken)
-		})
+		assert := suite.Require()
+		assert.Nil(err, testcase.id)
+		assert.Equal(testcase.input.Email, u.Email, testcase.id)
+		assert.Equal(testcase.input.PasswordHash, u.PasswordHash, testcase.id)
+		assert.Equal(testcase.input.Identity, u.Identity, testcase.id)
+		assert.True(testcase.input.CreatedAt.Equal(u.CreatedAt), testcase.id)
+		assert.Equal(testcase.input.ActivatedAt, u.ActivatedAt, testcase.id)
+		assert.Equal(testcase.input.ActivationToken, u.ActivationToken, testcase.id)
 	}
 
 }

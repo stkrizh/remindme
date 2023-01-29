@@ -21,7 +21,7 @@ type Logger interface {
 	Error(ctx context.Context, msg string, entries ...LogEntry)
 }
 
-func Error(logger Logger, ctx context.Context, err error, entries ...LogEntry) {
+func Error(ctx context.Context, logger Logger, err error, entries ...LogEntry) {
 	if errors.Is(err, context.Canceled) {
 		return
 	}

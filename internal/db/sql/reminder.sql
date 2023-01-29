@@ -64,6 +64,13 @@ WHERE id = $1
 RETURNING *;
 
 
+-- name: ScheduleReminders :many
+UPDATE reminder
+SET status = @status, scheduled_at = @scheduled_at::timestamp
+WHERE at < @at_before AND status = ANY(@statuses_for_scheduling::text[])
+RETURNING *;
+
+
 -- name: CreateReminderChannels :copyfrom
 INSERT INTO reminder_channel (reminder_id, channel_id)
 VALUES ($1, $2);

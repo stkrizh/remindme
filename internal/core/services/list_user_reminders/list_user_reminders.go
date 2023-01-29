@@ -67,12 +67,12 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 	}
 	reminders, err := s.reminderRepository.Read(ctx, readOptions)
 	if err != nil {
-		logging.Error(s.log, ctx, err, logging.Entry("input", input))
+		logging.Error(ctx, s.log, err, logging.Entry("input", input))
 		return result, err
 	}
 	totalCount, err := s.reminderRepository.Count(ctx, readOptions)
 	if err != nil {
-		logging.Error(s.log, ctx, err, logging.Entry("input", input))
+		logging.Error(ctx, s.log, err, logging.Entry("input", input))
 		return result, err
 	}
 
