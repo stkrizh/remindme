@@ -44,6 +44,7 @@ func (suite *testSuite) SetupTest() {
 	suite.unitOfWork = uow.NewFakeUnitOfWork()
 	suite.unitOfWork.Limits().Limits = UserLimits
 	suite.unitOfWork.Reminders().GetByIDReminder.CreatedBy = USER_ID
+	suite.unitOfWork.Reminders().GetByIDReminder.Status = reminder.StatusCreated
 	suite.unitOfWork.Reminders().GetByIDReminder.ChannelIDs = ChannelIDs
 	suite.scheduler = reminder.NewTestReminderScheduler()
 	suite.service = New(
@@ -317,6 +318,7 @@ func (s *testSuite) TestUpdateSuccess() {
 			input.Every = testcase.every
 			input.DoBodyUpdate = testcase.doBodyUpdate
 			input.Body = testcase.body
+			s.unitOfWork.Reminders().GetByIDReminder.Status = testcase.statusBefore
 			s.unitOfWork.Reminders().ReminderBeforeUpdate.Status = testcase.statusBefore
 			s.unitOfWork.Reminders().ReminderBeforeUpdate.ScheduledAt = testcase.scheduledAtBefore
 			s.unitOfWork.Reminders().ReminderBeforeUpdate.At = Now
@@ -359,6 +361,25 @@ func (s *testSuite) TestItsNotPossibleToUpdateOtherUserReminder() {
 	s.ErrorIs(err, reminder.ErrReminderPermission)
 	s.False(s.unitOfWork.Context.WasCommitCalled)
 	s.Len(s.scheduler.Scheduled, 0)
+}
+
+func (s *testSuite) TestItsNotPossibleToNotActiveReminder() {
+	statuses := []reminder.Status{
+		reminder.StatusSending,
+		reminder.StatusSentSuccess,
+		reminder.StatusSentError,
+		reminder.StatusSentLimitExceeded,
+		reminder.StatusCanceled,
+	}
+	for _, status := range statuses {
+		s.unitOfWork.Reminders().GetByIDReminder.Status = status
+
+		_, err := s.service.Run(context.Background(), s.input)
+		assert := s.Require()
+		assert.ErrorIs(err, reminder.ErrReminderNotActive, status)
+		assert.False(s.unitOfWork.Context.WasCommitCalled, status)
+		assert.Len(s.scheduler.Scheduled, 0, status)
+	}
 }
 
 func (s *testSuite) TestItsNotPossibleToUpdateIfNewAtIsInvalid() {

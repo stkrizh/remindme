@@ -146,15 +146,25 @@ func (s *testSuite) TestErrorReminderBelongsToOtherUser() {
 }
 
 func (s *testSuite) TestErrorReminderIsNotActive() {
-	s.unitOfWork.Reminders().GetByIDReminder.Status = reminder.StatusSentSuccess
+	statuses := []reminder.Status{
+		reminder.StatusSending,
+		reminder.StatusSentSuccess,
+		reminder.StatusSentError,
+		reminder.StatusSentLimitExceeded,
+		reminder.StatusCanceled,
+	}
+	for _, status := range statuses {
+		s.unitOfWork.Reminders().GetByIDReminder.Status = status
 
-	_, err := s.service.Run(context.Background(), s.input)
+		_, err := s.service.Run(context.Background(), s.input)
 
-	s.ErrorIs(err, reminder.ErrReminderNotActive)
-	s.True(s.unitOfWork.Context.WasRollbackCalled)
-	s.False(s.unitOfWork.Context.WasCommitCalled)
-	s.False(s.unitOfWork.ReminderChannels().WasCreateCalled)
-	s.False(s.unitOfWork.ReminderChannels().WasDeleteCalled)
+		assert := s.Require()
+		assert.ErrorIs(err, reminder.ErrReminderNotActive, status)
+		assert.True(s.unitOfWork.Context.WasRollbackCalled, status)
+		assert.False(s.unitOfWork.Context.WasCommitCalled, status)
+		assert.False(s.unitOfWork.ReminderChannels().WasCreateCalled, status)
+		assert.False(s.unitOfWork.ReminderChannels().WasDeleteCalled, status)
+	}
 }
 
 func (s *testSuite) TestErrorChannelNotFound() {

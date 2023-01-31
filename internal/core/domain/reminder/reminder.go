@@ -40,6 +40,10 @@ func (r *Reminder) Validate() error {
 	return nil
 }
 
+func (r *Reminder) IsActive() bool {
+	return r.Status == StatusCreated || r.Status == StatusScheduled
+}
+
 type ReminderWithChannels struct {
 	Reminder
 	ChannelIDs []channel.ID

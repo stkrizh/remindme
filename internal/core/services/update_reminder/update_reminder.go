@@ -92,6 +92,10 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		s.log.Info(ctx, "Reminder belongs to another user.", logging.Entry("input", input))
 		return result, reminder.ErrReminderPermission
 	}
+	if !rem.IsActive() {
+		s.log.Info(ctx, "Reminder is not active and can't be updated.", logging.Entry("input", input))
+		return result, reminder.ErrReminderNotActive
+	}
 
 	doStatusUpdate := false
 	status := rem.Status

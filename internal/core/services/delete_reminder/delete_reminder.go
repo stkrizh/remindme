@@ -79,7 +79,8 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		s.log.Info(ctx, "Reminder belongs to another user.", logging.Entry("input", input))
 		return result, reminder.ErrReminderPermission
 	}
-	if rem.Status != reminder.StatusCreated && rem.Status != reminder.StatusScheduled {
+	if !rem.IsActive() {
+		s.log.Info(ctx, "Reminder is not active and can't be deleted.", logging.Entry("input", input))
 		return result, reminder.ErrReminderNotActive
 	}
 

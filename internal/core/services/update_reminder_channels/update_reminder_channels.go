@@ -97,8 +97,8 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		return result, reminder.ErrReminderPermission
 	}
 
-	if rem.Status != reminder.StatusCreated && rem.Status != reminder.StatusScheduled {
-		s.log.Info(ctx, "Reminder is not active.", logging.Entry("input", input))
+	if !rem.IsActive() {
+		s.log.Info(ctx, "Reminder is not active, channels can't be updated.", logging.Entry("input", input))
 		return result, reminder.ErrReminderNotActive
 	}
 
