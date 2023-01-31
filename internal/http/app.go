@@ -13,10 +13,10 @@ import (
 	"remindme/internal/core/domain/user"
 	serviceActivateUser "remindme/internal/core/services/activate_user"
 	serviceAuth "remindme/internal/core/services/auth"
-	serviceCancelReminder "remindme/internal/core/services/cancel_reminder"
 	serviceCreateEmailChannel "remindme/internal/core/services/create_email_channel"
 	serviceCreateReminder "remindme/internal/core/services/create_reminder"
 	serviceCreateTelegramChannel "remindme/internal/core/services/create_telegram_channel"
+	serviceDeleteReminder "remindme/internal/core/services/delete_reminder"
 	serviceGetUserBySessionToken "remindme/internal/core/services/get_user_by_session_token"
 	serviceListUserChannels "remindme/internal/core/services/list_user_channels"
 	serviceListUserReminders "remindme/internal/core/services/list_user_reminders"
@@ -257,9 +257,9 @@ func StartApp() {
 			reminderRepository,
 		),
 	)
-	cancelReminder := serviceAuth.WithAuthentication(
+	deleteReminder := serviceAuth.WithAuthentication(
 		sessionRepository,
-		serviceCancelReminder.New(
+		serviceDeleteReminder.New(
 			logger,
 			unitOfWork,
 			now,
@@ -338,7 +338,7 @@ func StartApp() {
 	reminderRouter.Method(
 		http.MethodDelete,
 		"/{reminderID:[0-9]+}",
-		handlerCancelReminder.New(cancelReminder),
+		handlerCancelReminder.New(deleteReminder),
 	)
 	reminderRouter.Method(
 		http.MethodPatch,

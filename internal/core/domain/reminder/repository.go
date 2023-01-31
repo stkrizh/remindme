@@ -61,6 +61,7 @@ type ReminderRepository interface {
 	Count(ctx context.Context, options ReadOptions) (uint, error)
 	Update(ctx context.Context, input UpdateInput) (Reminder, error)
 	Schedule(ctx context.Context, input ScheduleInput) ([]Reminder, error)
+	Delete(ctx context.Context, id ID) error
 }
 
 type ChannelIDs map[channel.ID]struct{}

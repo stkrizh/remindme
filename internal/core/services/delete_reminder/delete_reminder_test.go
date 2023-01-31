@@ -1,8 +1,7 @@
-package cancelreminder
+package deletereminder
 
 import (
 	"context"
-	c "remindme/internal/core/domain/common"
 	"remindme/internal/core/domain/logging"
 	"remindme/internal/core/domain/reminder"
 	uow "remindme/internal/core/domain/unit_of_work"
@@ -42,11 +41,11 @@ func (suite *testSuite) SetupTest() {
 
 func (suite *testSuite) TearDownTest() {}
 
-func TestCancelReminderService(t *testing.T) {
+func TestDeleteReminderService(t *testing.T) {
 	suite.Run(t, new(testSuite))
 }
 
-func (s *testSuite) TestCancelSuccess() {
+func (s *testSuite) TestDeleteSuccess() {
 	cases := []struct {
 		id         string
 		status     reminder.Status
@@ -73,15 +72,13 @@ func (s *testSuite) TestCancelSuccess() {
 			assert := s.Require()
 			assert.Nil(err)
 			assert.Equal(testcase.reminderID, result.Reminder.ID)
-			assert.Equal(reminder.StatusCanceled, result.Reminder.Status)
-			assert.Equal(c.NewOptional(Now, true), result.Reminder.CanceledAt)
-
+			assert.Equal([]reminder.ID{testcase.reminderID}, s.unitOfWork.Reminders().DeleteWith)
 			assert.True(s.unitOfWork.Context.WasCommitCalled)
 		})
 	}
 }
 
-func (s *testSuite) TestCancelError() {
+func (s *testSuite) TestDeleteError() {
 	cases := []struct {
 		id            string
 		getByIDError  error
@@ -125,6 +122,12 @@ func (s *testSuite) TestCancelError() {
 			status:        reminder.StatusCreated,
 			userID:        USER_ID,
 			expectedError: reminder.ErrReminderDoesNotExist,
+		},
+		{
+			id:            "7",
+			status:        reminder.StatusSending,
+			userID:        USER_ID,
+			expectedError: reminder.ErrReminderNotActive,
 		},
 	}
 

@@ -71,6 +71,10 @@ WHERE at < @at_before AND status = ANY(@statuses_for_scheduling::text[])
 RETURNING *;
 
 
+-- name: DeleteReminder :one
+DELETE FROM reminder WHERE id = @reminder_id RETURNING id;
+
+
 -- name: CreateReminderChannels :copyfrom
 INSERT INTO reminder_channel (reminder_id, channel_id)
 VALUES ($1, $2);

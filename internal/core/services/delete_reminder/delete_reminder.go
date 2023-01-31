@@ -1,9 +1,8 @@
-package cancelreminder
+package deletereminder
 
 import (
 	"context"
 	"errors"
-	c "remindme/internal/core/domain/common"
 	e "remindme/internal/core/domain/errors"
 	"remindme/internal/core/domain/logging"
 	"remindme/internal/core/domain/reminder"
@@ -84,15 +83,14 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		return result, reminder.ErrReminderNotActive
 	}
 
-	updatedReminder, err := reminderRepository.Update(ctx, reminder.UpdateInput{
-		ID:                 rem.ID,
-		DoStatusUpdate:     true,
-		Status:             reminder.StatusCanceled,
-		DoCanceledAtUpdate: true,
-		CanceledAt:         c.NewOptional(s.now(), true),
-	})
+	err = reminderRepository.Delete(ctx, rem.ID)
 	if err != nil {
-		logging.Error(ctx, s.log, err, logging.Entry("input", input))
+		switch {
+		case errors.Is(err, reminder.ErrReminderDoesNotExist):
+			// do nothing
+		default:
+			logging.Error(ctx, s.log, err, logging.Entry("input", input))
+		}
 		return result, err
 	}
 
@@ -103,11 +101,10 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 
 	s.log.Info(
 		ctx,
-		"Reminder has been successfully canceled.",
+		"Reminder has been successfully deleted.",
 		logging.Entry("input", input),
-		logging.Entry("reminder", updatedReminder),
+		logging.Entry("reminderID", rem.ID),
 	)
-	result.Reminder.Reminder = updatedReminder
-	result.Reminder.ChannelIDs = rem.ChannelIDs
+	result.Reminder = rem
 	return result, nil
 }

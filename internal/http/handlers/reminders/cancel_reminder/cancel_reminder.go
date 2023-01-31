@@ -7,7 +7,7 @@ import (
 	"remindme/internal/core/domain/reminder"
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
-	service "remindme/internal/core/services/cancel_reminder"
+	service "remindme/internal/core/services/delete_reminder"
 	"remindme/internal/http/handlers/response"
 	"strconv"
 

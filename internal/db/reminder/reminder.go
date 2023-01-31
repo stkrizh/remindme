@@ -227,6 +227,17 @@ func (r *PgxReminderRepository) Schedule(
 	return reminders, nil
 }
 
+func (r *PgxReminderRepository) Delete(
+	ctx context.Context,
+	id reminder.ID,
+) error {
+	_, err := r.queries.DeleteReminder(ctx, int64(id))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return reminder.ErrReminderDoesNotExist
+	}
+	return err
+}
+
 func decodeReminder(dbReminder sqlcgen.Reminder) (rem reminder.Reminder, err error) {
 	rem.ID = reminder.ID(dbReminder.ID)
 	rem.CreatedBy = user.ID(dbReminder.UserID)

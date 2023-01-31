@@ -22,6 +22,8 @@ type TestReminderRepository struct {
 	ScheduleWith         []ScheduleInput
 	ScheduleResult       []Reminder
 	ScheduleError        error
+	DeleteWith           []ID
+	DeleteError          error
 	lock                 sync.Mutex
 }
 
@@ -122,6 +124,16 @@ func (r *TestReminderRepository) Schedule(ctx context.Context, input ScheduleInp
 	defer r.lock.Unlock()
 	r.ScheduleWith = append(r.ScheduleWith, input)
 	return r.ScheduleResult, nil
+}
+
+func (r *TestReminderRepository) Delete(ctx context.Context, id ID) error {
+	if r.DeleteError != nil {
+		return r.DeleteError
+	}
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.DeleteWith = append(r.DeleteWith, id)
+	return nil
 }
 
 type TestReminderChannelRepository struct {

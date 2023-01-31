@@ -726,6 +726,27 @@ func (s *testSuite) TestUpdateSuccess() {
 	}
 }
 
+func (s *testSuite) TestDeleteSuccess() {
+	// Setup ---
+	rem := s.createReminder()
+
+	// Exercise ---
+	err := s.repo.Delete(context.Background(), rem.ID)
+
+	// Verify ---
+	s.Nil(err)
+	_, err = s.repo.GetByID(context.Background(), rem.ID)
+	s.ErrorIs(err, reminder.ErrReminderDoesNotExist)
+}
+
+func (s *testSuite) TestDeleteNotExisting() {
+	// Exercise ---
+	err := s.repo.Delete(context.Background(), reminder.ID(111222333))
+
+	// Verify ---
+	s.ErrorIs(err, reminder.ErrReminderDoesNotExist)
+}
+
 func (s *testSuite) createReminder() reminder.Reminder {
 	s.T().Helper()
 	r, err := s.repo.Create(

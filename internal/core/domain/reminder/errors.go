@@ -13,4 +13,5 @@ var (
 	ErrReminderDoesNotExist        = errors.New("reminder does not exist")
 	ErrReminderPermission          = errors.New("reminder permission error")
 	ErrReminderNotActive           = errors.New("reminder is not active")
+	ErrReminderIsSending           = errors.New("reminder is sending")
 )

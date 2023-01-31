@@ -92,6 +92,17 @@ type CreateReminderChannelsParams struct {
 	ChannelID  int64
 }
 
+const deleteReminder = `-- name: DeleteReminder :one
+DELETE FROM reminder WHERE id = $1 RETURNING id
+`
+
+func (q *Queries) DeleteReminder(ctx context.Context, reminderID int64) (int64, error) {
+	row := q.db.QueryRow(ctx, deleteReminder, reminderID)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const deleteReminderChannels = `-- name: DeleteReminderChannels :exec
 DELETE FROM reminder_channel WHERE reminder_id = $1
 `
