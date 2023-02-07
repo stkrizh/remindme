@@ -16,6 +16,9 @@ type Config struct {
 	Secret                          string        `env:"SECRET,notEmpty"`
 	PostgresqlURL                   string        `env:"POSTGRESQL_URL,notEmpty"`
 	RedisURL                        string        `env:"REDIS_URL,notEmpty"`
+	RabbitmqURL                     string        `env:"RABBITMQ_URL,notEmpty"`
+	RabbitmqDelayedExchange         string        `env:"RABBITMQ_DELAYED_EXHANGE" envDefault:"remindme-delayed"`
+	RabbitmqReminderReadyQueue      string        `env:"RABBITMQ_REMINDER_READY_QUEUE" envDefault:"reminders-ready-for-sending"`
 	BcryptHasherCost                int           `env:"BCRYPT_HASHER_COST" envDefault:"10"`
 	PasswordResetValidDurationHours int           `env:"PASSWORD_RESET_VALIDATION_HOURS" envDefault:"24"`
 	TelegramURLSecret               string        `env:"TELEGRAM_URL_SECRET,notEmpty"`

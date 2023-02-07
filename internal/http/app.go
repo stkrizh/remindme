@@ -9,7 +9,6 @@ import (
 	c "remindme/internal/core/domain/common"
 	dl "remindme/internal/core/domain/logging"
 	drl "remindme/internal/core/domain/rate_limiter"
-	"remindme/internal/core/domain/reminder"
 	"remindme/internal/core/domain/user"
 	serviceActivateUser "remindme/internal/core/services/activate_user"
 	serviceAuth "remindme/internal/core/services/auth"
@@ -60,11 +59,15 @@ import (
 	randomstringgenerator "remindme/internal/implementations/random_string_generator"
 	ratelimiter "remindme/internal/implementations/rate_limiter"
 	telegrambotmessagesender "remindme/internal/implementations/telegram_bot_message_sender"
+	"remindme/internal/rabbitmq"
+	reminderreadyforsending "remindme/internal/rabbitmq/consumers/reminder_ready_for_sending"
+	reminderscheduler "remindme/internal/rabbitmq/publishers/reminder_scheduler"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-redis/redis/v9"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/rabbitmq/amqp091-go"
 )
 
 func StartApp() {
@@ -73,22 +76,32 @@ func StartApp() {
 		panic(err)
 	}
 
+	logger := logging.NewZapLogger()
+	defer logger.Sync()
+
 	db, err := pgxpool.Connect(context.Background(), config.PostgresqlURL)
 	if err != nil {
-		panic("could not connect to the database")
+		logger.Error(context.Background(), "Could not connect to DB.", dl.Entry("err", err))
+		panic(err)
 	}
 	defer db.Close()
 
 	redisOpt, err := redis.ParseURL(config.RedisURL)
 	if err != nil {
+		logger.Error(context.Background(), "Could not connect to Redis.", dl.Entry("err", err))
 		panic(err)
 	}
 	redisClient := redis.NewClient(redisOpt)
+	defer redisClient.Close()
+
+	rabbitmqConnection, err := rabbitmq.Dial(config.RabbitmqURL, logger)
+	if err != nil {
+		logger.Error(context.Background(), "Could not connect to RabbitMQ.", dl.Entry("err", err))
+		panic("could not connect to RabbitMQ")
+	}
+	defer rabbitmqConnection.Close()
 
 	now := func() time.Time { return time.Now().UTC() }
-
-	logger := logging.NewZapLogger()
-	defer logger.Sync()
 
 	unitOfWork := uow.NewPgxUnitOfWork(db)
 	userRepository := dbuser.NewPgxRepository(db)
@@ -97,7 +110,65 @@ func StartApp() {
 	rateLimiter := ratelimiter.NewRedis(redisClient, logger, now)
 	randomStringGenerator := randomstringgenerator.NewGenerator()
 	reminderRepository := dbreminder.NewPgxReminderRepository(db)
-	reminderScheduler := reminder.NewTestReminderScheduler()
+
+	rabbitmqChannel, err := rabbitmqConnection.Channel()
+	if err != nil {
+		logger.Error(context.Background(), "Could not create RabbitMQ channel.", dl.Entry("err", err))
+		panic(err)
+	}
+	defer rabbitmqChannel.Close()
+
+	err = rabbitmqChannel.ExchangeDeclare(
+		config.RabbitmqDelayedExchange,
+		"x-delayed-message",
+		true,
+		false,
+		false,
+		false,
+		amqp091.Table{"x-delayed-type": "direct"},
+	)
+	if err != nil {
+		logger.Error(context.Background(), "Could not create RabbitMQ exhange.", dl.Entry("err", err))
+		panic(err)
+	}
+	_, err = rabbitmqChannel.QueueDeclare("scheduled-reminders", true, false, false, false, nil)
+	if err != nil {
+		logger.Error(context.Background(), "Could not create RabbitMQ queue.", dl.Entry("err", err))
+		panic(err)
+	}
+	if err := rabbitmqChannel.QueueBind(
+		config.RabbitmqReminderReadyQueue,
+		config.RabbitmqReminderReadyQueue,
+		config.RabbitmqDelayedExchange,
+		false,
+		nil,
+	); err != nil {
+		logger.Error(context.Background(), "Could not bind queue to RabbitMQ exhange.", dl.Entry("err", err))
+		panic(err)
+	}
+
+	reminderScheduler := reminderscheduler.NewRabbitMQ(
+		logger,
+		rabbitmqChannel,
+		config.RabbitmqDelayedExchange,
+		config.RabbitmqReminderReadyQueue,
+	)
+
+	rabbitmqChannel, err = rabbitmqConnection.Channel()
+	if err != nil {
+		logger.Error(context.Background(), "Could not create RabbitMQ channel.", dl.Entry("err", err))
+		panic(err)
+	}
+	defer rabbitmqChannel.Close()
+	reminderReadyForSendingConsumer := reminderreadyforsending.New(
+		logger,
+		rabbitmqChannel,
+		config.RabbitmqReminderReadyQueue,
+	)
+	if err = reminderReadyForSendingConsumer.Consume(); err != nil {
+		logger.Error(context.Background(), "Could not start RabbitMQ consuming.", dl.Entry("err", err))
+		panic(err)
+	}
 
 	passwordHasher := passwordhasher.NewBcrypt(config.Secret, config.BcryptHasherCost)
 	activationTokenSender := user.NewFakeActivationTokenSender()
