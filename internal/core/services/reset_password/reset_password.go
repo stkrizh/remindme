@@ -1,4 +1,4 @@
-package sendpasswordresettoken
+package reset_password
 
 import (
 	"context"
