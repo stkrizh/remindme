@@ -65,23 +65,34 @@ func (s *sendService) Run(ctx context.Context, input Input) (result Result, err 
 		return prepared, nil
 	}
 
-	err = s.sender.SendReminder(ctx, prepared.Reminder)
-	status := reminder.StatusSentSuccess
-	if err != nil {
-		logging.Error(ctx, s.log, err, logging.Entry("input", input), logging.Entry("reminder", prepared.Reminder))
-		status = reminder.StatusSentError
+	update := reminder.UpdateInput{
+		ID:             prepared.Reminder.ID,
+		DoStatusUpdate: true,
+		Status:         reminder.StatusSentSuccess,
+	}
+	if s.now().Sub(prepared.Reminder.At) > reminder.MAX_SENDING_DELAY {
+		s.log.Error(
+			ctx,
+			"Sending delay exceeded, skip sending.",
+			logging.Entry("input", input),
+			logging.Entry("at", prepared.Reminder.At),
+		)
+		update.Status = reminder.StatusCanceled
+		update.DoCanceledAtUpdate = true
+		update.CanceledAt = c.NewOptional(s.now(), true)
 	}
 
-	updatedReminder, err := s.reminderRepository.Update(
-		ctx,
-		reminder.UpdateInput{
-			ID:             prepared.Reminder.ID,
-			DoSentAtUpdate: true,
-			SentAt:         c.NewOptional(s.now(), true),
-			DoStatusUpdate: true,
-			Status:         status,
-		},
-	)
+	if update.Status != reminder.StatusCanceled {
+		err = s.sender.SendReminder(ctx, prepared.Reminder)
+		update.DoSentAtUpdate = true
+		update.SentAt = c.NewOptional(s.now(), true)
+		if err != nil {
+			logging.Error(ctx, s.log, err, logging.Entry("input", input), logging.Entry("reminder", prepared.Reminder))
+			update.Status = reminder.StatusSentError
+		}
+	}
+
+	updatedReminder, err := s.reminderRepository.Update(ctx, update)
 	if err != nil {
 		logging.Error(ctx, s.log, err, logging.Entry("input", input), logging.Entry("reminder", prepared.Reminder))
 		return prepared, err

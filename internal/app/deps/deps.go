@@ -3,6 +3,7 @@ package deps
 import (
 	"context"
 	"remindme/internal/config"
+	"remindme/internal/core/domain/bot"
 	"remindme/internal/core/domain/channel"
 	c "remindme/internal/core/domain/common"
 	dl "remindme/internal/core/domain/logging"
@@ -64,7 +65,7 @@ type Deps struct {
 	ReminderScheduler reminder.Scheduler
 	ReminderSender    reminder.Sender
 
-	TelegramBotMessageSender *telegrambotmessagesender.TelegramBotMessageSender
+	TelegramBotMessageSender bot.TelegramBotMessageSender
 }
 
 func InitDeps() (*Deps, func()) {
@@ -113,12 +114,19 @@ func InitDeps() (*Deps, func()) {
 	deps.ChannelVerificationTokenGenerator = randomstringgenerator.NewGenerator()
 
 	closeReminderScheduler := deps.initRabbitmqReminderScheduler()
-	deps.ReminderSender = remindersender.New(deps.Logger)
 
 	deps.TelegramBotMessageSender = telegrambotmessagesender.New(
 		deps.Config.TelegramBaseURL,
 		deps.Config.TelegramTokenByBot(),
 		deps.Config.TelegramRequestTimeout,
+	)
+
+	deps.ReminderSender = remindersender.New(
+		deps.Logger,
+		deps.ChannelRepository,
+		remindersender.NewEmail(),
+		remindersender.NewTelegram(deps.TelegramBotMessageSender),
+		remindersender.NewWebsocket(),
 	)
 
 	return deps, func() {

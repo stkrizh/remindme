@@ -102,3 +102,26 @@ func TestReminderSendingError(t *testing.T) {
 	assert.Equal(reminder.StatusSentError, result.Reminder.Status)
 	assert.Equal(c.NewOptional(Now, true), result.Reminder.SentAt)
 }
+
+func TestMaxSendingDelayExceeded(t *testing.T) {
+	// Setup ---
+	log := logging.NewFakeLogger()
+	reminderRepo := reminder.NewTestReminderRepository()
+	sender := reminder.NewTestReminderSender()
+	prepareService := newStubPrepareService()
+	prepareService.result.Reminder.At = Now.Add(-1 * (reminder.MAX_SENDING_DELAY + time.Second))
+	service := NewSendService(log, reminderRepo, sender, func() time.Time { return Now }, prepareService)
+
+	// Exercise ---
+	result, err := service.Run(
+		context.Background(),
+		Input{ReminderID: REMINDER_ID, At: Now.Add(-1 * (reminder.MAX_SENDING_DELAY + time.Second))},
+	)
+
+	// Verify ---
+	assert := require.New(t)
+	assert.Nil(err)
+	assert.Equal(reminder.StatusCanceled, result.Reminder.Status)
+	assert.Equal(c.NewOptional(Now, true), result.Reminder.CanceledAt)
+	assert.Len(sender.Sent, 0)
+}

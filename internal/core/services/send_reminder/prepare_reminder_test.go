@@ -167,25 +167,3 @@ func TestUserMonthlySentLimitExceeded(t *testing.T) {
 	assert.Equal(c.NewOptional(Now, true), result.Reminder.CanceledAt)
 	assert.True(unitOfWork.Context.WasCommitCalled)
 }
-
-func TestMaxSendingDelayExceeded(t *testing.T) {
-	// Setup ---
-	log := logging.NewFakeLogger()
-	unitOfWork := uow.NewFakeUnitOfWork()
-	unitOfWork.Reminders().GetByIDReminder.Status = reminder.StatusScheduled
-	unitOfWork.Reminders().GetByIDReminder.At = Now.Add(-1 * (reminder.MAX_SENDING_DELAY + time.Second))
-	service := NewPrepareService(log, unitOfWork, func() time.Time { return Now })
-
-	// Exercise ---
-	result, err := service.Run(
-		context.Background(),
-		Input{ReminderID: REMINDER_ID, At: Now.Add(-1 * (reminder.MAX_SENDING_DELAY + time.Second))},
-	)
-
-	// Verify ---
-	assert := require.New(t)
-	assert.Nil(err)
-	assert.Equal(reminder.StatusCanceled, result.Reminder.Status)
-	assert.Equal(c.NewOptional(Now, true), result.Reminder.CanceledAt)
-	assert.True(unitOfWork.Context.WasCommitCalled)
-}

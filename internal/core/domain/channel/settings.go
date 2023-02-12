@@ -5,10 +5,10 @@ import (
 )
 
 type Settings interface {
-	Accept(visitor settingsVisitor) error
+	Accept(visitor SettingsVisitor) error
 }
 
-type settingsVisitor interface {
+type SettingsVisitor interface {
 	VisitEmail(s *EmailSettings) error
 	VisitTelegram(s *TelegramSettings) error
 	VisitWebsocket(s *WebsocketSettings) error
@@ -22,7 +22,7 @@ func NewEmailSettings(email c.Email) *EmailSettings {
 	return &EmailSettings{Email: email}
 }
 
-func (s *EmailSettings) Accept(v settingsVisitor) error {
+func (s *EmailSettings) Accept(v SettingsVisitor) error {
 	return v.VisitEmail(s)
 }
 
@@ -39,7 +39,7 @@ func NewTelegramSettings(bot TelegramBot, chatID TelegramChatID) *TelegramSettin
 	return &TelegramSettings{Bot: bot, ChatID: chatID}
 }
 
-func (s *TelegramSettings) Accept(v settingsVisitor) error {
+func (s *TelegramSettings) Accept(v SettingsVisitor) error {
 	return v.VisitTelegram(s)
 }
 
@@ -49,6 +49,6 @@ func NewWebsocketSettings() *WebsocketSettings {
 	return &WebsocketSettings{}
 }
 
-func (s *WebsocketSettings) Accept(v settingsVisitor) error {
+func (s *WebsocketSettings) Accept(v SettingsVisitor) error {
 	return v.VisitWebsocket(s)
 }

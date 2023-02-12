@@ -109,18 +109,6 @@ func (s *prepareService) Run(ctx context.Context, input Input) (result Result, e
 		}
 	}
 
-	if now.Sub(rem.At) > reminder.MAX_SENDING_DELAY {
-		s.log.Error(
-			ctx,
-			"Sending delay exceeded, skip sending.",
-			logging.Entry("input", input),
-			logging.Entry("at", rem.At),
-		)
-		update.Status = reminder.StatusCanceled
-		update.DoCanceledAtUpdate = true
-		update.CanceledAt = c.NewOptional(now, true)
-	}
-
 	updatedReminder, err := reminderRepo.Update(ctx, update)
 	if err != nil {
 		logging.Error(ctx, s.log, err, logging.Entry("input", input))
