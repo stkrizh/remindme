@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"remindme/internal/app"
+	"remindme/internal/app/consumers"
 	"remindme/internal/app/deps"
 	"remindme/internal/app/services"
 	"syscall"
@@ -17,7 +18,12 @@ import (
 
 func main() {
 	deps, shutdownDeps := deps.InitDeps()
+	defer shutdownDeps()
+
 	services := services.InitServices(deps)
+
+	shutdownConsumers := consumers.InitConsumers(deps, services)
+	defer shutdownConsumers()
 
 	httpServer := app.InitHttpServer(deps, services)
 	go start(httpServer, deps)
@@ -26,7 +32,9 @@ func main() {
 	defer closeCh()
 
 	<-stopCh
-	shutdown(context.Background(), httpServer, deps, shutdownDeps)
+	shutdown(context.Background(), httpServer)
+
+	deps.Logger.Info(context.Background(), "Shutdown completed.")
 }
 
 func createChannel() (chan os.Signal, func()) {
@@ -49,18 +57,15 @@ func start(server *http.Server, deps *deps.Deps) {
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		panic(err)
 	} else {
-		deps.Logger.Info(context.Background(), "HTTP service is stopping gracefully.")
+		deps.Logger.Info(context.Background(), "HTTP server is stopping gracefully.")
 	}
 }
 
-func shutdown(ctx context.Context, server *http.Server, deps *deps.Deps, shutDownDeps func()) {
+func shutdown(ctx context.Context, server *http.Server) {
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
 		panic(err)
 	}
-
-	shutDownDeps()
-	deps.Logger.Info(ctx, "HTTP server has shutdowned.")
 }

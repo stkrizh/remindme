@@ -20,6 +20,7 @@ import (
 	resetpassword "remindme/internal/core/services/reset_password"
 	schedulereminders "remindme/internal/core/services/schedule_reminders"
 	sendpasswordresettoken "remindme/internal/core/services/send_password_reset_token"
+	sendreminder "remindme/internal/core/services/send_reminder"
 	signupanonymously "remindme/internal/core/services/sign_up_anonymously"
 	signupwithemail "remindme/internal/core/services/sign_up_with_email"
 	updatereminder "remindme/internal/core/services/update_reminder"
@@ -50,6 +51,7 @@ type Services struct {
 	ScheduleReminders      services.Service[schedulereminders.Input, schedulereminders.Result]
 	UpdateReminder         services.Service[updatereminder.Input, updatereminder.Result]
 	UpdateReminderChannels services.Service[updatereminderchannels.Input, updatereminderchannels.Result]
+	SendReminder           services.Service[sendreminder.Input, sendreminder.Result]
 }
 
 func InitServices(deps *deps.Deps) *Services {
@@ -209,6 +211,17 @@ func InitServices(deps *deps.Deps) *Services {
 	s.UpdateReminderChannels = auth.WithAuthentication(
 		deps.SessionRepository,
 		updatereminderchannels.New(
+			deps.Logger,
+			deps.UnitOfWork,
+			deps.Now,
+		),
+	)
+	s.SendReminder = sendreminder.NewSendService(
+		deps.Logger,
+		deps.ReminderRepository,
+		deps.ReminderSender,
+		deps.Now,
+		sendreminder.NewPrepareService(
 			deps.Logger,
 			deps.UnitOfWork,
 			deps.Now,

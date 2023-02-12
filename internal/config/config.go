@@ -26,6 +26,7 @@ type Config struct {
 	TelegramBots                    []string      `env:"TELEGRAM_BOTS,notEmpty"`
 	TelegramTokens                  []string      `env:"TELEGRAM_TOKENS,notEmpty"`
 	TelegramRequestTimeout          time.Duration `env:"TELEGRAM_REQUEST_DURATION" envDefault:"30s"`
+	RemindersSchedulingPeriod       time.Duration `env:"REMINDERS_SCHEDULING_PERIOD" envDefault:"3h"`
 }
 
 func Load() (*Config, error) {

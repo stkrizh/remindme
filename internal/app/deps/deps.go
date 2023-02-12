@@ -10,7 +10,6 @@ import (
 	"remindme/internal/core/domain/reminder"
 	duow "remindme/internal/core/domain/unit_of_work"
 	"remindme/internal/core/domain/user"
-	sendreminder "remindme/internal/core/services/send_reminder"
 	dbchannel "remindme/internal/db/channel"
 	dbreminder "remindme/internal/db/reminder"
 	uow "remindme/internal/db/unit_of_work"
@@ -23,7 +22,6 @@ import (
 	remindersender "remindme/internal/implementations/reminder_sender"
 	telegrambotmessagesender "remindme/internal/implementations/telegram_bot_message_sender"
 	"remindme/internal/rabbitmq"
-	reminderreadyforsending "remindme/internal/rabbitmq/consumers/reminder_ready_for_sending"
 	reminderscheduler "remindme/internal/rabbitmq/publishers/reminder_scheduler"
 	"sync"
 	"time"
@@ -123,8 +121,6 @@ func InitDeps() (*Deps, func()) {
 		deps.Config.TelegramRequestTimeout,
 	)
 
-	closeReminderReadyForSendingConsumer := deps.initReminderReadyForSendingConsumer()
-
 	return deps, func() {
 		closeFuncs := []func(){
 			closeLogger,
@@ -132,7 +128,6 @@ func InitDeps() (*Deps, func()) {
 			closeRedisClient,
 			closeRabbitmqConn,
 			closeReminderScheduler,
-			closeReminderReadyForSendingConsumer,
 		}
 
 		var wg sync.WaitGroup
@@ -238,34 +233,5 @@ func (deps *Deps) initRabbitmqReminderScheduler() func() {
 		deps.Now,
 	)
 
-	return func() { rabbitmqChannel.Close() }
-}
-
-func (deps *Deps) initReminderReadyForSendingConsumer() func() {
-	rabbitmqChannel, err := deps.Rabbitmq.Channel()
-	if err != nil {
-		deps.Logger.Error(context.Background(), "Could not create RabbitMQ channel.", dl.Entry("err", err))
-		panic(err)
-	}
-	reminderReadyForSendingConsumer := reminderreadyforsending.New(
-		deps.Logger,
-		rabbitmqChannel,
-		deps.Config.RabbitmqReminderReadyQueue,
-		sendreminder.NewSendService(
-			deps.Logger,
-			deps.ReminderRepository,
-			deps.ReminderSender,
-			deps.Now,
-			sendreminder.NewPrepareService(
-				deps.Logger,
-				deps.UnitOfWork,
-				deps.Now,
-			),
-		),
-	)
-	if err = reminderReadyForSendingConsumer.Consume(); err != nil {
-		deps.Logger.Error(context.Background(), "Could not start RabbitMQ consuming.", dl.Entry("err", err))
-		panic(err)
-	}
 	return func() { rabbitmqChannel.Close() }
 }

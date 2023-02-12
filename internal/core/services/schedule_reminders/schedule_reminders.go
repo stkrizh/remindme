@@ -71,7 +71,6 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 	s.log.Info(
 		ctx,
 		"Got reminders for scheduling.",
-		logging.Entry("input", input),
 		logging.Entry("count", len(scheduledReminders)),
 	)
 	scheduledIDs := make([]reminder.ID, 0, len(scheduledReminders))
@@ -82,7 +81,6 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 				ctx,
 				s.log,
 				err,
-				logging.Entry("input", input),
 				logging.Entry("index", ix),
 				logging.Entry("reminderID", reminder.ID),
 				logging.Entry("scheduledIDs", scheduledIDs),
@@ -93,15 +91,17 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 	}
 
 	if err := uow.Commit(ctx); err != nil {
-		logging.Error(ctx, s.log, err, logging.Entry("input", input))
+		logging.Error(ctx, s.log, err)
 		return result, err
 	}
-	s.log.Info(
-		ctx,
-		"Reminders successfully scheduled.",
-		logging.Entry("input", input),
-		logging.Entry("scheduledCount", len(scheduledIDs)),
-		logging.Entry("scheduledIDs", scheduledIDs),
-	)
+
+	if len(scheduledIDs) > 0 {
+		s.log.Info(
+			ctx,
+			"Reminders successfully scheduled.",
+			logging.Entry("scheduledCount", len(scheduledIDs)),
+			logging.Entry("scheduledIDs", scheduledIDs),
+		)
+	}
 	return result, nil
 }
