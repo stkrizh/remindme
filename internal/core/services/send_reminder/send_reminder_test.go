@@ -20,6 +20,7 @@ type stubPrepareService struct {
 func newStubPrepareService() *stubPrepareService {
 	service := &stubPrepareService{}
 	service.result.Reminder.Status = reminder.StatusSending
+	service.result.Reminder.At = Now
 	return service
 }
 
