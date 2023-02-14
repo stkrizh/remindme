@@ -46,18 +46,32 @@ func TestPgxUserRepository(t *testing.T) {
 
 func (suite *testSuite) TestCreateSuccess() {
 	type test struct {
-		id    string
-		input user.CreateUserInput
+		id               string
+		input            user.CreateUserInput
+		expectedTimeZone *time.Location
 	}
 	cases := []test{
 		{
-			id: "email",
+			id: "email-1",
 			input: user.CreateUserInput{
 				Email:           c.NewOptional(c.Email("test@test.test"), true),
 				PasswordHash:    c.NewOptional(user.PasswordHash("test"), true),
 				CreatedAt:       NOW,
 				ActivationToken: c.NewOptional(user.ActivationToken("test"), true),
+				TimeZone:        time.UTC,
 			},
+			expectedTimeZone: time.UTC,
+		},
+		{
+			id: "email-2",
+			input: user.CreateUserInput{
+				Email:           c.NewOptional(c.Email("test-2@test.test"), true),
+				PasswordHash:    c.NewOptional(user.PasswordHash("test"), true),
+				CreatedAt:       NOW,
+				ActivationToken: c.NewOptional(user.ActivationToken("test-2"), true),
+				TimeZone:        loadLocation("Europe/Kaliningrad"),
+			},
+			expectedTimeZone: loadLocation("Europe/Kaliningrad"),
 		},
 		{
 			id: "identity",
@@ -66,6 +80,7 @@ func (suite *testSuite) TestCreateSuccess() {
 				CreatedAt:   NOW,
 				ActivatedAt: c.NewOptional(NOW, true),
 			},
+			expectedTimeZone: time.UTC,
 		},
 	}
 
@@ -80,6 +95,7 @@ func (suite *testSuite) TestCreateSuccess() {
 		assert.True(testcase.input.CreatedAt.Equal(u.CreatedAt), testcase.id)
 		assert.Equal(testcase.input.ActivatedAt, u.ActivatedAt, testcase.id)
 		assert.Equal(testcase.input.ActivationToken, u.ActivationToken, testcase.id)
+		assert.Equal(testcase.expectedTimeZone, u.TimeZone, testcase.id)
 	}
 
 }
@@ -186,4 +202,12 @@ func (s *testSuite) getUserByID(id user.ID) user.User {
 		s.FailNowf("could not get user by ID", "id: %v, err: %v", id, err)
 	}
 	return u
+}
+
+func loadLocation(name string) *time.Location {
+	loc, err := time.LoadLocation(name)
+	if err != nil {
+		panic(err)
+	}
+	return loc
 }

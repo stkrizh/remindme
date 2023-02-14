@@ -8,7 +8,11 @@ SELECT * FROM channel WHERE
     (@all_channel_ids::boolean OR id = ANY(@id_in::bigint[])) 
     AND (@all_user_ids::boolean OR user_id = @user_id_equals::bigint)
     AND (@all_types::boolean OR type = @type_equals::text)
-ORDER BY id;
+ORDER BY 
+    CASE WHEN @order_by_id_asc::boolean THEN channel.id ELSE null END ASC,
+    CASE WHEN @order_by_id_desc::boolean THEN channel.id ELSE null END DESC,
+    id ASC
+LIMIT CASE WHEN @all_rows::boolean THEN null ELSE @limit_::integer END;
 
 -- name: GetChannelByID :one
 SELECT * FROM channel WHERE id = $1;

@@ -196,7 +196,8 @@ func (s *testSuite) createReminders() {
 	_, err := s.uow.db.Exec(
 		context.Background(),
 		`
-		INSERT INTO "user" (id, email, password_hash, created_at) VALUES (1, 'test@test.test', 'test', now());
+		INSERT INTO "user" (id, email, password_hash, created_at, timezone) 
+		VALUES (1, 'test@test.test', 'test', now(), 'UTC');
 		`,
 	)
 	s.Nil(err)

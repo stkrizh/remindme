@@ -11,6 +11,7 @@ type CreateUserInput struct {
 	PasswordHash    c.Optional[PasswordHash]
 	Identity        c.Optional[Identity]
 	CreatedAt       time.Time
+	TimeZone        *time.Location
 	ActivatedAt     c.Optional[time.Time]
 	ActivationToken c.Optional[ActivationToken]
 }

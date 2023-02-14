@@ -14,4 +14,6 @@ var (
 	ErrReminderPermission          = errors.New("reminder permission error")
 	ErrReminderNotActive           = errors.New("reminder is not active")
 	ErrReminderIsSending           = errors.New("reminder is sending")
+
+	ErrNaturalQueryParsing = errors.New("reminder params parsing error")
 )

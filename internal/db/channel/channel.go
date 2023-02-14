@@ -84,6 +84,10 @@ func (r *PgxChannelRepository) Read(
 			UserIDEquals:  int64(options.UserIDEquals.Value),
 			AllTypes:      !options.TypeEquals.IsPresent,
 			TypeEquals:    options.TypeEquals.Value.String(),
+			OrderByIDAsc:  options.OrderBy == channel.OrderByIDAsc,
+			OrderByIDDesc: options.OrderBy == channel.OrderByIDDesc,
+			AllRows:       !options.Limit.IsPresent,
+			Limit:         int32(options.Limit.Value),
 		},
 	)
 	if err != nil {

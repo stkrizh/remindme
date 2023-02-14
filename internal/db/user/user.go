@@ -36,6 +36,7 @@ func (r *PgxUserRepository) Create(ctx context.Context, input user.CreateUserInp
 		CreatedAt:       input.CreatedAt,
 		ActivatedAt:     encodeOptionalTime(input.ActivatedAt),
 		ActivationToken: encodeActivationToken(input.ActivationToken),
+		Timezone:        input.TimeZone.String(),
 	})
 
 	var errEmailUniqueConstraint *pgconn.PgError
@@ -49,7 +50,10 @@ func (r *PgxUserRepository) Create(ctx context.Context, input user.CreateUserInp
 	if err != nil {
 		return u, err
 	}
-	u = decodeUser(dbuser)
+	u, err = decodeUser(dbuser)
+	if err != nil {
+		return u, err
+	}
 	err = u.Validate()
 	if err != nil {
 		return u, err
@@ -65,7 +69,10 @@ func (r *PgxUserRepository) GetByEmail(ctx context.Context, email c.Email) (u us
 	if err != nil {
 		return u, err
 	}
-	u = decodeUser(dbuser)
+	u, err = decodeUser(dbuser)
+	if err != nil {
+		return u, err
+	}
 	err = u.Validate()
 	if err != nil {
 		return u, err
@@ -81,7 +88,10 @@ func (r *PgxUserRepository) GetByID(ctx context.Context, id user.ID) (u user.Use
 	if err != nil {
 		return u, err
 	}
-	u = decodeUser(dbuser)
+	u, err = decodeUser(dbuser)
+	if err != nil {
+		return u, err
+	}
 	err = u.Validate()
 	if err != nil {
 		return u, err
@@ -104,7 +114,11 @@ func (r *PgxUserRepository) Activate(
 	if err != nil {
 		return u, err
 	}
-	return decodeUser(dbuser), nil
+	domainUser, err := decodeUser(dbuser)
+	if err != nil {
+		return u, err
+	}
+	return domainUser, nil
 }
 
 func (r *PgxUserRepository) SetPassword(
@@ -142,7 +156,11 @@ func encodeOptionalTime(at c.Optional[time.Time]) sql.NullTime {
 	return sql.NullTime{Time: at.Value, Valid: at.IsPresent}
 }
 
-func decodeUser(u sqlcgen.User) user.User {
+func decodeUser(u sqlcgen.User) (domainUser user.User, err error) {
+	tz, err := time.LoadLocation(u.Timezone)
+	if err != nil {
+		return domainUser, err
+	}
 	return user.User{
 		ID:              user.ID(u.ID),
 		Email:           c.NewOptional(c.Email(u.Email.String), u.Email.Valid),
@@ -151,5 +169,6 @@ func decodeUser(u sqlcgen.User) user.User {
 		CreatedAt:       u.CreatedAt,
 		ActivatedAt:     c.NewOptional(u.ActivatedAt.Time, u.ActivatedAt.Valid),
 		ActivationToken: c.NewOptional(user.ActivationToken(u.ActivationToken.String), u.ActivationToken.Valid),
-	}
+		TimeZone:        tz,
+	}, nil
 }

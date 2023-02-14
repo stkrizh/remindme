@@ -225,39 +225,46 @@ func (s *testSuite) TestReadAndCount() {
 	}
 
 	cases := []struct {
-		id          string
-		options     channel.ReadOptions
-		expectedIDs []channel.ID
+		id            string
+		options       channel.ReadOptions
+		expectedIDs   []channel.ID
+		expectedCount uint
 	}{
 		{
-			id:          "1",
-			options:     channel.ReadOptions{},
-			expectedIDs: channelIDs,
+			id:            "1",
+			options:       channel.ReadOptions{},
+			expectedIDs:   channelIDs,
+			expectedCount: 7,
 		},
 		{
-			id:          "2",
-			options:     channel.ReadOptions{UserIDEquals: c.NewOptional(s.user.ID, true)},
-			expectedIDs: []channel.ID{channelIDs[0], channelIDs[2], channelIDs[5]},
+			id:            "2",
+			options:       channel.ReadOptions{UserIDEquals: c.NewOptional(s.user.ID, true)},
+			expectedIDs:   []channel.ID{channelIDs[0], channelIDs[2], channelIDs[5]},
+			expectedCount: 3,
 		},
 		{
-			id:          "3",
-			options:     channel.ReadOptions{UserIDEquals: c.NewOptional(s.otherUser.ID, true)},
-			expectedIDs: []channel.ID{channelIDs[1], channelIDs[3], channelIDs[4], channelIDs[6]},
+			id:            "3",
+			options:       channel.ReadOptions{UserIDEquals: c.NewOptional(s.otherUser.ID, true)},
+			expectedIDs:   []channel.ID{channelIDs[1], channelIDs[3], channelIDs[4], channelIDs[6]},
+			expectedCount: 4,
 		},
 		{
-			id:          "4",
-			options:     channel.ReadOptions{TypeEquals: c.NewOptional(channel.Email, true)},
-			expectedIDs: []channel.ID{channelIDs[0], channelIDs[1], channelIDs[5]},
+			id:            "4",
+			options:       channel.ReadOptions{TypeEquals: c.NewOptional(channel.Email, true)},
+			expectedIDs:   []channel.ID{channelIDs[0], channelIDs[1], channelIDs[5]},
+			expectedCount: 3,
 		},
 		{
-			id:          "5",
-			options:     channel.ReadOptions{TypeEquals: c.NewOptional(channel.Telegram, true)},
-			expectedIDs: []channel.ID{channelIDs[2], channelIDs[3], channelIDs[6]},
+			id:            "5",
+			options:       channel.ReadOptions{TypeEquals: c.NewOptional(channel.Telegram, true)},
+			expectedIDs:   []channel.ID{channelIDs[2], channelIDs[3], channelIDs[6]},
+			expectedCount: 3,
 		},
 		{
-			id:          "6",
-			options:     channel.ReadOptions{TypeEquals: c.NewOptional(channel.Websocket, true)},
-			expectedIDs: []channel.ID{channelIDs[4]},
+			id:            "6",
+			options:       channel.ReadOptions{TypeEquals: c.NewOptional(channel.Websocket, true)},
+			expectedIDs:   []channel.ID{channelIDs[4]},
+			expectedCount: 1,
 		},
 		{
 			id: "7",
@@ -265,7 +272,8 @@ func (s *testSuite) TestReadAndCount() {
 				UserIDEquals: c.NewOptional(s.user.ID, true),
 				TypeEquals:   c.NewOptional(channel.Email, true),
 			},
-			expectedIDs: []channel.ID{channelIDs[0], channelIDs[5]},
+			expectedIDs:   []channel.ID{channelIDs[0], channelIDs[5]},
+			expectedCount: 2,
 		},
 		{
 			id: "8",
@@ -273,7 +281,8 @@ func (s *testSuite) TestReadAndCount() {
 				UserIDEquals: c.NewOptional(s.otherUser.ID, true),
 				TypeEquals:   c.NewOptional(channel.Telegram, true),
 			},
-			expectedIDs: []channel.ID{channelIDs[3], channelIDs[6]},
+			expectedIDs:   []channel.ID{channelIDs[3], channelIDs[6]},
+			expectedCount: 2,
 		},
 		{
 			id: "9",
@@ -281,28 +290,32 @@ func (s *testSuite) TestReadAndCount() {
 				UserIDEquals: c.NewOptional(s.user.ID, true),
 				TypeEquals:   c.NewOptional(channel.Websocket, true),
 			},
-			expectedIDs: []channel.ID{},
+			expectedIDs:   []channel.ID{},
+			expectedCount: 0,
 		},
 		{
 			id: "10",
 			options: channel.ReadOptions{
 				IDIn: c.NewOptional([]channel.ID{}, true),
 			},
-			expectedIDs: []channel.ID{},
+			expectedIDs:   []channel.ID{},
+			expectedCount: 0,
 		},
 		{
 			id: "11",
 			options: channel.ReadOptions{
 				IDIn: c.NewOptional([]channel.ID{channelIDs[0]}, true),
 			},
-			expectedIDs: []channel.ID{channelIDs[0]},
+			expectedIDs:   []channel.ID{channelIDs[0]},
+			expectedCount: 1,
 		},
 		{
 			id: "12",
 			options: channel.ReadOptions{
 				IDIn: c.NewOptional([]channel.ID{channelIDs[0], channelIDs[6], channelIDs[3]}, true),
 			},
-			expectedIDs: []channel.ID{channelIDs[0], channelIDs[3], channelIDs[6]},
+			expectedIDs:   []channel.ID{channelIDs[0], channelIDs[3], channelIDs[6]},
+			expectedCount: 3,
 		},
 		{
 			id: "13",
@@ -314,7 +327,36 @@ func (s *testSuite) TestReadAndCount() {
 				UserIDEquals: c.NewOptional(s.otherUser.ID, true),
 				TypeEquals:   c.NewOptional(channel.Telegram, true),
 			},
-			expectedIDs: []channel.ID{channelIDs[3]},
+			expectedIDs:   []channel.ID{channelIDs[3]},
+			expectedCount: 1,
+		},
+		{
+			id: "14",
+			options: channel.ReadOptions{
+				UserIDEquals: c.NewOptional(s.user.ID, true),
+				TypeEquals:   c.NewOptional(channel.Email, true),
+				OrderBy:      channel.OrderByIDDesc,
+			},
+			expectedIDs:   []channel.ID{channelIDs[5], channelIDs[0]},
+			expectedCount: 2,
+		},
+		{
+			id: "15",
+			options: channel.ReadOptions{
+				TypeEquals: c.NewOptional(channel.Telegram, true),
+				Limit:      c.NewOptional(uint(2), true),
+			},
+			expectedIDs:   []channel.ID{channelIDs[2], channelIDs[3]},
+			expectedCount: 3,
+		},
+		{
+			id: "16",
+			options: channel.ReadOptions{
+				OrderBy: channel.OrderByIDDesc,
+				Limit:   c.NewOptional(uint(1), true),
+			},
+			expectedIDs:   []channel.ID{channelIDs[6]},
+			expectedCount: 7,
 		},
 	}
 	for _, testcase := range cases {
@@ -322,7 +364,7 @@ func (s *testSuite) TestReadAndCount() {
 		actualCount := s.getCount(testcase.options)
 
 		s.Equal(testcase.expectedIDs, actualIDs, testcase.id)
-		s.Equal(uint(len(testcase.expectedIDs)), actualCount, testcase.id)
+		s.Equal(testcase.expectedCount, actualCount, testcase.id)
 	}
 }
 

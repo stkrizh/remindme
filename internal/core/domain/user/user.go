@@ -35,6 +35,7 @@ type User struct {
 	CreatedAt       time.Time
 	ActivatedAt     c.Optional[time.Time]
 	ActivationToken c.Optional[ActivationToken]
+	TimeZone        *time.Location
 }
 
 func (u *User) Validate() error {
@@ -46,6 +47,9 @@ func (u *User) Validate() error {
 	}
 	if !u.Identity.IsPresent {
 		return e.NewInvalidStateError(fmt.Sprintf("neither email nor identity is not defined for user %d", u.ID))
+	}
+	if u.TimeZone == nil {
+		return e.NewInvalidStateError(fmt.Sprintf("timezone is not set for user %d", u.ID))
 	}
 	return nil
 }

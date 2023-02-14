@@ -14,7 +14,8 @@ import (
 )
 
 type Input struct {
-	IP netip.Addr
+	IP       netip.Addr
+	TimeZone *time.Location
 }
 
 type Result struct {
@@ -85,6 +86,7 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		Identity:    common.NewOptional(s.identityGenerator.GenerateIdentity(), true),
 		CreatedAt:   now,
 		ActivatedAt: common.NewOptional(now, true),
+		TimeZone:    input.TimeZone,
 	})
 	if errors.Is(err, context.Canceled) {
 		return result, err

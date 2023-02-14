@@ -62,3 +62,9 @@ func (r *ReminderWithChannels) FromReminderAndChannels(reminder Reminder, channe
 	r.CanceledAt = reminder.CanceledAt
 	r.ChannelIDs = channelIDs
 }
+
+type CreateReminderParams struct {
+	At    time.Time
+	Every c.Optional[Every]
+	Body  string
+}

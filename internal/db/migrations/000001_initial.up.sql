@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS "user" (
     identity TEXT,
     password_hash TEXT,
     created_at TIMESTAMP NOT NULL,
+    timezone TEXT NOT NULL,
     activated_at TIMESTAMP,
     activation_token TEXT
 );

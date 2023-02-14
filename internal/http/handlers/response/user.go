@@ -11,6 +11,7 @@ type User struct {
 	Identity    *string   `json:"identity,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	ActivatedAt time.Time `json:"activated_at"`
+	TimeZone    string    `json:"timezone"`
 }
 
 func (u *User) FromDomainUser(du user.User) {
@@ -25,4 +26,5 @@ func (u *User) FromDomainUser(du user.User) {
 	}
 	u.CreatedAt = du.CreatedAt
 	u.ActivatedAt = du.ActivatedAt.Value
+	u.TimeZone = du.TimeZone.String()
 }

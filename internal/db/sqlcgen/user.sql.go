@@ -15,7 +15,7 @@ const activateUser = `-- name: ActivateUser :one
 UPDATE "user" 
 SET activated_at = $1::timestamp, activation_token = null
 WHERE activation_token = $2::text
-RETURNING id, email, identity, password_hash, created_at, activated_at, activation_token
+RETURNING id, email, identity, password_hash, created_at, timezone, activated_at, activation_token
 `
 
 type ActivateUserParams struct {
@@ -32,6 +32,7 @@ func (q *Queries) ActivateUser(ctx context.Context, arg ActivateUserParams) (Use
 		&i.Identity,
 		&i.PasswordHash,
 		&i.CreatedAt,
+		&i.Timezone,
 		&i.ActivatedAt,
 		&i.ActivationToken,
 	)
@@ -107,9 +108,9 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 }
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO "user" (email, identity, password_hash, created_at, activated_at, activation_token) 
-VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, email, identity, password_hash, created_at, activated_at, activation_token
+INSERT INTO "user" (email, identity, password_hash, created_at, timezone, activated_at, activation_token) 
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING id, email, identity, password_hash, created_at, timezone, activated_at, activation_token
 `
 
 type CreateUserParams struct {
@@ -117,6 +118,7 @@ type CreateUserParams struct {
 	Identity        sql.NullString
 	PasswordHash    sql.NullString
 	CreatedAt       time.Time
+	Timezone        string
 	ActivatedAt     sql.NullTime
 	ActivationToken sql.NullString
 }
@@ -127,6 +129,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.Identity,
 		arg.PasswordHash,
 		arg.CreatedAt,
+		arg.Timezone,
 		arg.ActivatedAt,
 		arg.ActivationToken,
 	)
@@ -137,6 +140,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Identity,
 		&i.PasswordHash,
 		&i.CreatedAt,
+		&i.Timezone,
 		&i.ActivatedAt,
 		&i.ActivationToken,
 	)
@@ -155,7 +159,7 @@ func (q *Queries) DeleteSessionByToken(ctx context.Context, token string) (int64
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, identity, password_hash, created_at, activated_at, activation_token FROM "user" WHERE email = $1
+SELECT id, email, identity, password_hash, created_at, timezone, activated_at, activation_token FROM "user" WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email sql.NullString) (User, error) {
@@ -167,6 +171,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email sql.NullString) (Use
 		&i.Identity,
 		&i.PasswordHash,
 		&i.CreatedAt,
+		&i.Timezone,
 		&i.ActivatedAt,
 		&i.ActivationToken,
 	)
@@ -174,7 +179,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email sql.NullString) (Use
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, identity, password_hash, created_at, activated_at, activation_token FROM "user" WHERE id = $1
+SELECT id, email, identity, password_hash, created_at, timezone, activated_at, activation_token FROM "user" WHERE id = $1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
@@ -186,6 +191,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 		&i.Identity,
 		&i.PasswordHash,
 		&i.CreatedAt,
+		&i.Timezone,
 		&i.ActivatedAt,
 		&i.ActivationToken,
 	)
@@ -193,7 +199,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 }
 
 const getUserBySessionToken = `-- name: GetUserBySessionToken :one
-SELECT "user".id, "user".email, "user".identity, "user".password_hash, "user".created_at, "user".activated_at, "user".activation_token FROM "user" 
+SELECT "user".id, "user".email, "user".identity, "user".password_hash, "user".created_at, "user".timezone, "user".activated_at, "user".activation_token FROM "user" 
 JOIN session ON "user".id = session.user_id
 WHERE session.token = $1
 `
@@ -207,6 +213,7 @@ func (q *Queries) GetUserBySessionToken(ctx context.Context, token string) (User
 		&i.Identity,
 		&i.PasswordHash,
 		&i.CreatedAt,
+		&i.Timezone,
 		&i.ActivatedAt,
 		&i.ActivationToken,
 	)

@@ -104,7 +104,11 @@ SELECT id, user_id, created_at, type, settings, verification_token, verified_at 
     ($1::boolean OR id = ANY($2::bigint[])) 
     AND ($3::boolean OR user_id = $4::bigint)
     AND ($5::boolean OR type = $6::text)
-ORDER BY id
+ORDER BY 
+    CASE WHEN $7::boolean THEN channel.id ELSE null END,
+    CASE WHEN $8::boolean THEN channel.id ELSE null END DESC,
+    id ASC
+LIMIT CASE WHEN $9::boolean THEN null ELSE $10::integer END
 `
 
 type ReadChanelsParams struct {
@@ -114,6 +118,10 @@ type ReadChanelsParams struct {
 	UserIDEquals  int64
 	AllTypes      bool
 	TypeEquals    string
+	OrderByIDAsc  bool
+	OrderByIDDesc bool
+	AllRows       bool
+	Limit         int32
 }
 
 func (q *Queries) ReadChanels(ctx context.Context, arg ReadChanelsParams) ([]Channel, error) {
@@ -124,6 +132,10 @@ func (q *Queries) ReadChanels(ctx context.Context, arg ReadChanelsParams) ([]Cha
 		arg.UserIDEquals,
 		arg.AllTypes,
 		arg.TypeEquals,
+		arg.OrderByIDAsc,
+		arg.OrderByIDDesc,
+		arg.AllRows,
+		arg.Limit,
 	)
 	if err != nil {
 		return nil, err

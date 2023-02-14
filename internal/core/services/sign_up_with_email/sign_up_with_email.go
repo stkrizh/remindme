@@ -15,6 +15,7 @@ import (
 type Input struct {
 	Email    c.Email
 	Password user.RawPassword
+	TimeZone *time.Location
 }
 
 type Result struct {
@@ -86,6 +87,7 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		PasswordHash:    c.NewOptional(passwordHash, true),
 		CreatedAt:       s.now(),
 		ActivationToken: c.NewOptional(s.activationTokenGenerator.GenerateActivationToken(), true),
+		TimeZone:        input.TimeZone,
 	})
 	if errors.Is(err, context.Canceled) {
 		return result, err

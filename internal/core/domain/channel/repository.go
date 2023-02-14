@@ -20,6 +20,9 @@ type ReadOptions struct {
 	IDIn         c.Optional[[]ID]
 	UserIDEquals c.Optional[user.ID]
 	TypeEquals   c.Optional[Type]
+	OrderBy      OrderBy
+	Limit        c.Optional[uint]
+	Offset       uint
 }
 
 type UpdateInput struct {

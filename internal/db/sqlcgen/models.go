@@ -63,6 +63,7 @@ type User struct {
 	Identity        sql.NullString
 	PasswordHash    sql.NullString
 	CreatedAt       time.Time
+	Timezone        string
 	ActivatedAt     sql.NullTime
 	ActivationToken sql.NullString
 }

@@ -38,7 +38,10 @@ func (r *PgxSessionRepository) GetUserByToken(ctx context.Context, token user.Se
 	if err != nil {
 		return u, err
 	}
-	u = decodeUser(dbuser)
+	u, err = decodeUser(dbuser)
+	if err != nil {
+		return u, err
+	}
 	err = u.Validate()
 	if err != nil {
 		return u, err
