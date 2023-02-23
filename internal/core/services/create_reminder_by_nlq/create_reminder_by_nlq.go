@@ -12,6 +12,7 @@ import (
 	"remindme/internal/core/services"
 	"remindme/internal/core/services/auth"
 	createreminder "remindme/internal/core/services/create_reminder"
+	"time"
 )
 
 type Input struct {
@@ -28,6 +29,7 @@ type service struct {
 	log           logging.Logger
 	parser        reminder.NaturalLanguageQueryParser
 	channelRepo   channel.Repository
+	now           func() time.Time
 	createService services.Service[createreminder.Input, createreminder.Result]
 }
 
@@ -35,6 +37,7 @@ func New(
 	log logging.Logger,
 	parser reminder.NaturalLanguageQueryParser,
 	channelRepo channel.Repository,
+	now func() time.Time,
 	createSerservice services.Service[createreminder.Input, createreminder.Result],
 ) services.Service[Input, createreminder.Result] {
 	if log == nil {
@@ -46,6 +49,9 @@ func New(
 	if channelRepo == nil {
 		panic(e.NewNilArgumentError("channelRepo"))
 	}
+	if now == nil {
+		panic(e.NewNilArgumentError("now"))
+	}
 	if createSerservice == nil {
 		panic(e.NewNilArgumentError("createSerservice"))
 	}
@@ -54,6 +60,7 @@ func New(
 		log:           log,
 		parser:        parser,
 		channelRepo:   channelRepo,
+		now:           now,
 		createService: createSerservice,
 	}
 }
@@ -69,7 +76,7 @@ func (s *service) Run(ctx context.Context, input Input) (result createreminder.R
 		"Found default channel for reminder.",
 		logging.Entry("channelID", defaultChannel.ID),
 	)
-	createParams, err := s.parser.Parse(ctx, input.Query, input.User.TimeZone)
+	createParams, err := s.parser.Parse(ctx, input.Query, s.now().In(input.User.TimeZone))
 	if err != nil {
 		switch {
 		case errors.Is(err, reminder.ErrNaturalQueryParsing):

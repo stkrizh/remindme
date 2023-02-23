@@ -58,6 +58,10 @@ func (e Every) String() string {
 	return fmt.Sprintf("%d %s", e.n, e.period.v)
 }
 
+func (e Every) IsZero() bool {
+	return e.n == 0 && e.period == PeriodUnknown
+}
+
 func ParseEvery(value string) (e Every, err error) {
 	parts := strings.SplitN(value, " ", 2)
 	if len(parts) != 2 {

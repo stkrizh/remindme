@@ -64,7 +64,8 @@ func (r *ReminderWithChannels) FromReminderAndChannels(reminder Reminder, channe
 }
 
 type CreateReminderParams struct {
-	At    time.Time
-	Every c.Optional[Every]
-	Body  string
+	At          time.Time
+	Every       c.Optional[Every]
+	Body        string
+	ChannelType c.Optional[channel.Type]
 }
