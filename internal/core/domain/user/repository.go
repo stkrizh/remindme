@@ -16,12 +16,19 @@ type CreateUserInput struct {
 	ActivationToken c.Optional[ActivationToken]
 }
 
+type UpdateUserInput struct {
+	ID               ID
+	DoTimeZoneUpdate bool
+	TimeZone         *time.Location
+}
+
 type UserRepository interface {
 	Create(ctx context.Context, input CreateUserInput) (User, error)
 	GetByID(ctx context.Context, id ID) (User, error)
 	GetByEmail(ctx context.Context, email c.Email) (User, error)
 	Activate(ctx context.Context, token ActivationToken, at time.Time) (User, error)
 	SetPassword(ctx context.Context, id ID, password PasswordHash) error
+	Update(ctx context.Context, input UpdateUserInput) (User, error)
 }
 
 type CreateSessionInput struct {

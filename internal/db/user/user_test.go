@@ -164,6 +164,24 @@ func (s *testSuite) TestSetPassword() {
 	s.Equal(newPassword, userAfterUpdate.PasswordHash.Value)
 }
 
+func (s *testSuite) TestUpdateTimeZone() {
+	u := s.createInactiveUser()
+	tz := loadLocation("Europe/Kaliningrad")
+
+	updatedUser, err := s.repo.Update(
+		context.Background(),
+		user.UpdateUserInput{
+			ID:               u.ID,
+			DoTimeZoneUpdate: true,
+			TimeZone:         tz,
+		},
+	)
+
+	s.NoError(err)
+	s.NotEqual(tz, u.TimeZone)
+	s.Equal(tz, updatedUser.TimeZone)
+}
+
 func (s *testSuite) TestSetPasswordReturnsErrorIfUserDoesNotExist() {
 	u := s.createInactiveUser()
 	s.True(u.PasswordHash.IsPresent)

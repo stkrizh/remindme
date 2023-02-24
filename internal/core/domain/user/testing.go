@@ -181,6 +181,20 @@ func (r *FakeUserRepository) SetPassword(ctx context.Context, id ID, password Pa
 	return ErrUserDoesNotExist
 }
 
+func (r *FakeUserRepository) Update(ctx context.Context, input UpdateUserInput) (u User, err error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	for ix, u := range r.Users {
+		if u.ID == input.ID {
+			if input.DoTimeZoneUpdate {
+				r.Users[ix].TimeZone = input.TimeZone
+			}
+			return r.Users[ix], nil
+		}
+	}
+	return u, ErrUserDoesNotExist
+}
+
 type FakeSessionRepository struct {
 	UserIdByToken  map[SessionToken]ID
 	UserRepository UserRepository

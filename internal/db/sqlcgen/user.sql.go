@@ -276,3 +276,34 @@ func (q *Queries) SetPassword(ctx context.Context, arg SetPasswordParams) (int64
 	err := row.Scan(&id)
 	return id, err
 }
+
+const updateUser = `-- name: UpdateUser :one
+UPDATE "user" 
+SET 
+    timezone = CASE WHEN $2::boolean THEN $3
+        ELSE timezone END
+WHERE id = $1
+RETURNING id, email, identity, password_hash, created_at, timezone, activated_at, activation_token
+`
+
+type UpdateUserParams struct {
+	ID               int64
+	DoTimezoneUpdate bool
+	Timezone         string
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateUser, arg.ID, arg.DoTimezoneUpdate, arg.Timezone)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Identity,
+		&i.PasswordHash,
+		&i.CreatedAt,
+		&i.Timezone,
+		&i.ActivatedAt,
+		&i.ActivationToken,
+	)
+	return i, err
+}

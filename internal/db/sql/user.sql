@@ -26,6 +26,14 @@ SET password_hash = @password_hash::text
 WHERE id = @id::bigint
 RETURNING id;
 
+-- name: UpdateUser :one
+UPDATE "user" 
+SET 
+    timezone = CASE WHEN @do_timezone_update::boolean THEN @timezone
+        ELSE timezone END
+WHERE id = $1
+RETURNING *;
+
 -- name: CreateSession :one
 INSERT INTO session (token, user_id, created_at)
 VALUES ($1, $2, $3)

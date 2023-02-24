@@ -8,10 +8,8 @@ import (
 	"remindme/internal/core/domain/channel"
 	"remindme/internal/http/handlers/auth"
 	activateuser "remindme/internal/http/handlers/auth/activate_user"
-	changepassword "remindme/internal/http/handlers/auth/change_password"
 	loginwithemail "remindme/internal/http/handlers/auth/log_in_with_email"
 	logout "remindme/internal/http/handlers/auth/log_out"
-	me "remindme/internal/http/handlers/auth/me"
 	resetpassword "remindme/internal/http/handlers/auth/reset_password"
 	sendpasswordresettoken "remindme/internal/http/handlers/auth/send_password_reset_token"
 	signupanonymously "remindme/internal/http/handlers/auth/sign_up_anonymously"
@@ -27,6 +25,9 @@ import (
 	updatereminder "remindme/internal/http/handlers/reminders/update_reminder"
 	updatereminderchannels "remindme/internal/http/handlers/reminders/update_reminder_channels"
 	telegram "remindme/internal/http/handlers/telegram"
+	changepassword "remindme/internal/http/handlers/user/change_password"
+	me "remindme/internal/http/handlers/user/me"
+	updateuser "remindme/internal/http/handlers/user/update_user"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -51,6 +52,7 @@ func InitHttpServer(deps *deps.Deps, s *services.Services) *http.Server {
 	profileRouter := chi.NewRouter()
 	profileRouter.Use(auth.SetAuthTokenToContext)
 	profileRouter.Method(http.MethodGet, "/me", me.New(s.GetUserBySessionToken))
+	profileRouter.Method(http.MethodPatch, "/me", updateuser.New(s.UpdateUser))
 	profileRouter.Method(http.MethodPut, "/password", changepassword.New(s.ChangePassword))
 
 	channelsRouter := chi.NewRouter()

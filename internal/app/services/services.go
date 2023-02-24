@@ -27,6 +27,7 @@ import (
 	signupwithemail "remindme/internal/core/services/sign_up_with_email"
 	updatereminder "remindme/internal/core/services/update_reminder"
 	updatereminderchannels "remindme/internal/core/services/update_reminder_channels"
+	updateuser "remindme/internal/core/services/update_user"
 	verifyemailchannel "remindme/internal/core/services/verify_email_channel"
 	verifytelegramchannel "remindme/internal/core/services/verify_telegram_channel"
 )
@@ -41,6 +42,7 @@ type Services struct {
 	ResetPassword          services.Service[resetpassword.Input, resetpassword.Result]
 	ChangePassword         services.Service[changepassword.Input, changepassword.Result]
 	GetUserBySessionToken  services.Service[getuserbysessiontoken.Input, getuserbysessiontoken.Result]
+	UpdateUser             services.Service[updateuser.Input, updateuser.Result]
 
 	CreateEmailChannel    services.Service[createemailchannel.Input, createemailchannel.Result]
 	CreateTelegramChannel services.Service[createtelegramchannel.Input, createtelegramchannel.Result]
@@ -126,6 +128,13 @@ func InitServices(deps *deps.Deps) *Services {
 			deps.Logger,
 			deps.UserRepository,
 			deps.PasswordHasher,
+		),
+	)
+	s.UpdateUser = auth.WithAuthentication(
+		deps.SessionRepository,
+		updateuser.New(
+			deps.Logger,
+			deps.UserRepository,
 		),
 	)
 	s.GetUserBySessionToken = auth.WithAuthentication(

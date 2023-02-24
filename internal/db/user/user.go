@@ -136,6 +136,24 @@ func (r *PgxUserRepository) SetPassword(
 	return nil
 }
 
+func (r *PgxUserRepository) Update(
+	ctx context.Context,
+	input user.UpdateUserInput,
+) (u user.User, err error) {
+	dbUser, err := r.queries.UpdateUser(
+		ctx,
+		sqlcgen.UpdateUserParams{
+			ID:               int64(input.ID),
+			DoTimezoneUpdate: input.DoTimeZoneUpdate,
+			Timezone:         input.TimeZone.String(),
+		},
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return u, user.ErrUserDoesNotExist
+	}
+	return decodeUser(dbUser)
+}
+
 func encodeEmail(email c.Optional[c.Email]) sql.NullString {
 	return sql.NullString{String: string(email.Value), Valid: email.IsPresent}
 }
