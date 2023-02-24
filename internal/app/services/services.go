@@ -7,6 +7,7 @@ import (
 	"remindme/internal/core/services"
 	activateuser "remindme/internal/core/services/activate_user"
 	"remindme/internal/core/services/auth"
+	changepassword "remindme/internal/core/services/change_password"
 	createemailchannel "remindme/internal/core/services/create_email_channel"
 	createreminder "remindme/internal/core/services/create_reminder"
 	createreminderbynlq "remindme/internal/core/services/create_reminder_by_nlq"
@@ -38,6 +39,7 @@ type Services struct {
 	LogOut                 services.Service[logout.Input, logout.Result]
 	SendPasswordResetToken services.Service[sendpasswordresettoken.Input, sendpasswordresettoken.Result]
 	ResetPassword          services.Service[resetpassword.Input, resetpassword.Result]
+	ChangePassword         services.Service[changepassword.Input, changepassword.Result]
 	GetUserBySessionToken  services.Service[getuserbysessiontoken.Input, getuserbysessiontoken.Result]
 
 	CreateEmailChannel    services.Service[createemailchannel.Input, createemailchannel.Result]
@@ -117,6 +119,14 @@ func InitServices(deps *deps.Deps) *Services {
 		deps.UserRepository,
 		deps.PasswordResetter,
 		deps.PasswordHasher,
+	)
+	s.ChangePassword = auth.WithAuthentication(
+		deps.SessionRepository,
+		changepassword.New(
+			deps.Logger,
+			deps.UserRepository,
+			deps.PasswordHasher,
+		),
 	)
 	s.GetUserBySessionToken = auth.WithAuthentication(
 		deps.SessionRepository,

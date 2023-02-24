@@ -8,6 +8,7 @@ import (
 	"remindme/internal/core/domain/channel"
 	"remindme/internal/http/handlers/auth"
 	activateuser "remindme/internal/http/handlers/auth/activate_user"
+	changepassword "remindme/internal/http/handlers/auth/change_password"
 	loginwithemail "remindme/internal/http/handlers/auth/log_in_with_email"
 	logout "remindme/internal/http/handlers/auth/log_out"
 	me "remindme/internal/http/handlers/auth/me"
@@ -50,6 +51,7 @@ func InitHttpServer(deps *deps.Deps, s *services.Services) *http.Server {
 	profileRouter := chi.NewRouter()
 	profileRouter.Use(auth.SetAuthTokenToContext)
 	profileRouter.Method(http.MethodGet, "/me", me.New(s.GetUserBySessionToken))
+	profileRouter.Method(http.MethodPut, "/password", changepassword.New(s.ChangePassword))
 
 	channelsRouter := chi.NewRouter()
 	channelsRouter.Use(auth.SetAuthTokenToContext)
