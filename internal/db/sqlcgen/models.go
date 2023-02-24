@@ -15,6 +15,7 @@ type Channel struct {
 	ID                int64
 	UserID            int64
 	CreatedAt         time.Time
+	IsDefault         bool
 	Type              string
 	Settings          pgtype.JSONB
 	VerificationToken sql.NullString

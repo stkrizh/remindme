@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS channel (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES "user" (id) ON DELETE CASCADE,
     created_at TIMESTAMP NOT NULL,
+    is_default BOOLEAN NOT NULL,
     type TEXT NOT NULL,
     settings JSONB NOT NULL,
     verification_token TEXT,

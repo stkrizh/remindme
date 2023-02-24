@@ -1,6 +1,6 @@
 -- name: CreateChannel :one
-INSERT INTO channel (user_id, created_at, type, settings, verification_token, verified_at)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO channel (user_id, created_at, is_default, type, settings, verification_token, verified_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: ReadChanels :many
@@ -8,6 +8,7 @@ SELECT * FROM channel WHERE
     (@all_channel_ids::boolean OR id = ANY(@id_in::bigint[])) 
     AND (@all_user_ids::boolean OR user_id = @user_id_equals::bigint)
     AND (@all_types::boolean OR type = @type_equals::text)
+    AND (@all_is_default::boolean OR is_default = @is_default_equals::boolean)
 ORDER BY 
     CASE WHEN @order_by_id_asc::boolean THEN channel.id ELSE null END ASC,
     CASE WHEN @order_by_id_desc::boolean THEN channel.id ELSE null END DESC,
@@ -21,7 +22,8 @@ SELECT * FROM channel WHERE id = $1;
 SELECT COUNT(id) FROM channel WHERE
     (@all_channel_ids::boolean OR id = ANY(@id_in::bigint[])) 
     AND (@all_user_ids::boolean OR user_id = @user_id_equals::bigint)
-    AND (@all_types::boolean OR type = @type_equals::text);
+    AND (@all_types::boolean OR type = @type_equals::text)
+    AND (@all_is_default::boolean OR is_default = @is_default_equals::boolean);
 
 -- name: UpdateChannel :one
 UPDATE channel 

@@ -17,6 +17,7 @@ type Channel struct {
 	Settings          Settings
 	CreatedBy         user.ID
 	CreatedAt         time.Time
+	IsDefault         bool
 	VerificationToken c.Optional[VerificationToken]
 	VerifiedAt        c.Optional[time.Time]
 }

@@ -145,6 +145,7 @@ func (s *testSuite) TestCreateSuccess() {
 				Settings:          channel.NewEmailSettings("test-1@test.test"),
 				CreatedAt:         time.Now().UTC().Truncate(time.Second),
 				VerificationToken: c.NewOptional(channel.VerificationToken("test-1"), true),
+				IsDefault:         true,
 			},
 		},
 		{
@@ -165,6 +166,7 @@ func (s *testSuite) TestCreateSuccess() {
 				Settings:   channel.NewTelegramSettings("test-1", 1),
 				CreatedAt:  time.Now().UTC().Truncate(time.Second),
 				VerifiedAt: c.NewOptional(Now, true),
+				IsDefault:  true,
 			},
 		},
 		{
@@ -185,6 +187,7 @@ func (s *testSuite) TestCreateSuccess() {
 				Settings:   channel.NewWebsocketSettings(),
 				CreatedAt:  time.Now().UTC().Truncate(time.Second),
 				VerifiedAt: c.NewOptional(time.Now().UTC().Truncate(time.Second), true),
+				IsDefault:  true,
 			},
 		},
 		{
@@ -209,19 +212,20 @@ func (s *testSuite) TestCreateSuccess() {
 		s.Equal(testcase.input.CreatedAt, newChannel.CreatedAt, testcase.id)
 		s.Equal(testcase.input.VerificationToken, newChannel.VerificationToken, testcase.id)
 		s.Equal(testcase.input.VerifiedAt, newChannel.VerifiedAt, testcase.id)
+		s.Equal(testcase.input.IsDefault, newChannel.IsDefault, testcase.id)
 	}
 
 }
 
 func (s *testSuite) TestReadAndCount() {
 	channelIDs := []channel.ID{
-		s.createChannel(channel.Email, s.user),
-		s.createChannel(channel.Email, s.otherUser),
-		s.createChannel(channel.Telegram, s.user),
-		s.createChannel(channel.Telegram, s.otherUser),
-		s.createChannel(channel.Websocket, s.otherUser),
-		s.createChannel(channel.Email, s.user),
-		s.createChannel(channel.Telegram, s.otherUser),
+		s.createChannel(channel.Email, s.user, true),
+		s.createChannel(channel.Email, s.otherUser, false),
+		s.createChannel(channel.Telegram, s.user, false),
+		s.createChannel(channel.Telegram, s.otherUser, true),
+		s.createChannel(channel.Websocket, s.otherUser, false),
+		s.createChannel(channel.Email, s.user, false),
+		s.createChannel(channel.Telegram, s.otherUser, false),
 	}
 
 	cases := []struct {
@@ -358,6 +362,35 @@ func (s *testSuite) TestReadAndCount() {
 			expectedIDs:   []channel.ID{channelIDs[6]},
 			expectedCount: 7,
 		},
+		{
+			id: "17",
+			options: channel.ReadOptions{
+				UserIDEquals:    c.NewOptional(s.user.ID, true),
+				IsDefaultEquals: c.NewOptional(true, true),
+				Limit:           c.NewOptional(uint(1), true),
+			},
+			expectedIDs:   []channel.ID{channelIDs[0]},
+			expectedCount: 1,
+		},
+		{
+			id: "18",
+			options: channel.ReadOptions{
+				UserIDEquals:    c.NewOptional(s.otherUser.ID, true),
+				IsDefaultEquals: c.NewOptional(true, true),
+				Limit:           c.NewOptional(uint(1), true),
+			},
+			expectedIDs:   []channel.ID{channelIDs[3]},
+			expectedCount: 1,
+		},
+		{
+			id: "19",
+			options: channel.ReadOptions{
+				IsDefaultEquals: c.NewOptional(true, true),
+				OrderBy:         channel.OrderByIDDesc,
+			},
+			expectedIDs:   []channel.ID{channelIDs[3], channelIDs[0]},
+			expectedCount: 2,
+		},
 	}
 	for _, testcase := range cases {
 		actualIDs := s.readChannelIDs(testcase.options)
@@ -368,7 +401,7 @@ func (s *testSuite) TestReadAndCount() {
 	}
 }
 
-func (s *testSuite) createChannel(t channel.Type, u user.User) channel.ID {
+func (s *testSuite) createChannel(t channel.Type, u user.User, isDefault bool) channel.ID {
 	s.T().Helper()
 
 	var settings channel.Settings
@@ -390,6 +423,7 @@ func (s *testSuite) createChannel(t channel.Type, u user.User) channel.ID {
 			Settings:          settings,
 			CreatedAt:         Now,
 			VerificationToken: c.NewOptional(channel.VerificationToken("test-2"), true),
+			IsDefault:         isDefault,
 		},
 	)
 	s.Nil(err)
@@ -397,14 +431,15 @@ func (s *testSuite) createChannel(t channel.Type, u user.User) channel.ID {
 }
 
 func (s *testSuite) TestGetByID() {
-	channelOneID := s.createChannel(channel.Email, s.user)
-	channelTwoID := s.createChannel(channel.Email, s.otherUser)
+	channelOneID := s.createChannel(channel.Email, s.user, true)
+	channelTwoID := s.createChannel(channel.Email, s.otherUser, false)
 
 	assert := s.Require()
 	channelOne, err := s.repo.GetByID(context.Background(), channelOneID)
 	assert.Nil(err)
 	assert.Equal(channelOneID, channelOne.ID)
 	assert.Equal(channel.Email, channelOne.Type)
+	assert.True(channelOne.IsDefault)
 	assert.Equal(s.user.ID, channelOne.CreatedBy)
 	assert.Equal(Now, channelOne.CreatedAt)
 
@@ -412,6 +447,7 @@ func (s *testSuite) TestGetByID() {
 	assert.Nil(err)
 	assert.Equal(channelTwoID, channelTwo.ID)
 	assert.Equal(channel.Email, channelTwo.Type)
+	assert.False(channelTwo.IsDefault)
 	assert.Equal(s.otherUser.ID, channelTwo.CreatedBy)
 	assert.Equal(Now, channelTwo.CreatedAt)
 

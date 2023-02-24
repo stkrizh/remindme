@@ -3,6 +3,7 @@ package reminder
 import (
 	"context"
 	"sync"
+	"time"
 )
 
 type TestReminderRepository struct {
@@ -205,4 +206,35 @@ func (s *TestReminderSender) SendReminder(ctx context.Context, reminder Reminder
 	defer s.lock.Unlock()
 	s.Sent = append(s.Sent, reminder)
 	return nil
+}
+
+type TestNLQParser struct {
+	Params     CreateReminderParams
+	ParseError error
+	CalledWith []struct {
+		Query         string
+		UserLocalTime time.Time
+	}
+	lock sync.Mutex
+}
+
+func NewTestNLQParser() *TestNLQParser {
+	return &TestNLQParser{}
+}
+
+func (p *TestNLQParser) Parse(
+	tx context.Context,
+	query string,
+	userLocalTime time.Time,
+) (params CreateReminderParams, err error) {
+	if p.ParseError != nil {
+		return params, p.ParseError
+	}
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	p.CalledWith = append(p.CalledWith, struct {
+		Query         string
+		UserLocalTime time.Time
+	}{Query: query, UserLocalTime: userLocalTime})
+	return p.Params, nil
 }

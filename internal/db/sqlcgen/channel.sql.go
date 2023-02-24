@@ -18,15 +18,18 @@ SELECT COUNT(id) FROM channel WHERE
     ($1::boolean OR id = ANY($2::bigint[])) 
     AND ($3::boolean OR user_id = $4::bigint)
     AND ($5::boolean OR type = $6::text)
+    AND ($7::boolean OR is_default = $8::boolean)
 `
 
 type CountChannelsParams struct {
-	AllChannelIds bool
-	IDIn          []int64
-	AllUserIds    bool
-	UserIDEquals  int64
-	AllTypes      bool
-	TypeEquals    string
+	AllChannelIds   bool
+	IDIn            []int64
+	AllUserIds      bool
+	UserIDEquals    int64
+	AllTypes        bool
+	TypeEquals      string
+	AllIsDefault    bool
+	IsDefaultEquals bool
 }
 
 func (q *Queries) CountChannels(ctx context.Context, arg CountChannelsParams) (int64, error) {
@@ -37,6 +40,8 @@ func (q *Queries) CountChannels(ctx context.Context, arg CountChannelsParams) (i
 		arg.UserIDEquals,
 		arg.AllTypes,
 		arg.TypeEquals,
+		arg.AllIsDefault,
+		arg.IsDefaultEquals,
 	)
 	var count int64
 	err := row.Scan(&count)
@@ -44,14 +49,15 @@ func (q *Queries) CountChannels(ctx context.Context, arg CountChannelsParams) (i
 }
 
 const createChannel = `-- name: CreateChannel :one
-INSERT INTO channel (user_id, created_at, type, settings, verification_token, verified_at)
-VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, user_id, created_at, type, settings, verification_token, verified_at
+INSERT INTO channel (user_id, created_at, is_default, type, settings, verification_token, verified_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING id, user_id, created_at, is_default, type, settings, verification_token, verified_at
 `
 
 type CreateChannelParams struct {
 	UserID            int64
 	CreatedAt         time.Time
+	IsDefault         bool
 	Type              string
 	Settings          pgtype.JSONB
 	VerificationToken sql.NullString
@@ -62,6 +68,7 @@ func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (C
 	row := q.db.QueryRow(ctx, createChannel,
 		arg.UserID,
 		arg.CreatedAt,
+		arg.IsDefault,
 		arg.Type,
 		arg.Settings,
 		arg.VerificationToken,
@@ -72,6 +79,7 @@ func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (C
 		&i.ID,
 		&i.UserID,
 		&i.CreatedAt,
+		&i.IsDefault,
 		&i.Type,
 		&i.Settings,
 		&i.VerificationToken,
@@ -81,7 +89,7 @@ func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (C
 }
 
 const getChannelByID = `-- name: GetChannelByID :one
-SELECT id, user_id, created_at, type, settings, verification_token, verified_at FROM channel WHERE id = $1
+SELECT id, user_id, created_at, is_default, type, settings, verification_token, verified_at FROM channel WHERE id = $1
 `
 
 func (q *Queries) GetChannelByID(ctx context.Context, id int64) (Channel, error) {
@@ -91,6 +99,7 @@ func (q *Queries) GetChannelByID(ctx context.Context, id int64) (Channel, error)
 		&i.ID,
 		&i.UserID,
 		&i.CreatedAt,
+		&i.IsDefault,
 		&i.Type,
 		&i.Settings,
 		&i.VerificationToken,
@@ -100,28 +109,31 @@ func (q *Queries) GetChannelByID(ctx context.Context, id int64) (Channel, error)
 }
 
 const readChanels = `-- name: ReadChanels :many
-SELECT id, user_id, created_at, type, settings, verification_token, verified_at FROM channel WHERE 
+SELECT id, user_id, created_at, is_default, type, settings, verification_token, verified_at FROM channel WHERE 
     ($1::boolean OR id = ANY($2::bigint[])) 
     AND ($3::boolean OR user_id = $4::bigint)
     AND ($5::boolean OR type = $6::text)
+    AND ($7::boolean OR is_default = $8::boolean)
 ORDER BY 
-    CASE WHEN $7::boolean THEN channel.id ELSE null END,
-    CASE WHEN $8::boolean THEN channel.id ELSE null END DESC,
+    CASE WHEN $9::boolean THEN channel.id ELSE null END ASC,
+    CASE WHEN $10::boolean THEN channel.id ELSE null END DESC,
     id ASC
-LIMIT CASE WHEN $9::boolean THEN null ELSE $10::integer END
+LIMIT CASE WHEN $11::boolean THEN null ELSE $12::integer END
 `
 
 type ReadChanelsParams struct {
-	AllChannelIds bool
-	IDIn          []int64
-	AllUserIds    bool
-	UserIDEquals  int64
-	AllTypes      bool
-	TypeEquals    string
-	OrderByIDAsc  bool
-	OrderByIDDesc bool
-	AllRows       bool
-	Limit         int32
+	AllChannelIds   bool
+	IDIn            []int64
+	AllUserIds      bool
+	UserIDEquals    int64
+	AllTypes        bool
+	TypeEquals      string
+	AllIsDefault    bool
+	IsDefaultEquals bool
+	OrderByIDAsc    bool
+	OrderByIDDesc   bool
+	AllRows         bool
+	Limit           int32
 }
 
 func (q *Queries) ReadChanels(ctx context.Context, arg ReadChanelsParams) ([]Channel, error) {
@@ -132,6 +144,8 @@ func (q *Queries) ReadChanels(ctx context.Context, arg ReadChanelsParams) ([]Cha
 		arg.UserIDEquals,
 		arg.AllTypes,
 		arg.TypeEquals,
+		arg.AllIsDefault,
+		arg.IsDefaultEquals,
 		arg.OrderByIDAsc,
 		arg.OrderByIDDesc,
 		arg.AllRows,
@@ -148,6 +162,7 @@ func (q *Queries) ReadChanels(ctx context.Context, arg ReadChanelsParams) ([]Cha
 			&i.ID,
 			&i.UserID,
 			&i.CreatedAt,
+			&i.IsDefault,
 			&i.Type,
 			&i.Settings,
 			&i.VerificationToken,
@@ -173,7 +188,7 @@ SET
     settings = CASE WHEN $6::boolean THEN $7
         ELSE settings END
 WHERE id = $1
-RETURNING id, user_id, created_at, type, settings, verification_token, verified_at
+RETURNING id, user_id, created_at, is_default, type, settings, verification_token, verified_at
 `
 
 type UpdateChannelParams struct {
@@ -201,6 +216,7 @@ func (q *Queries) UpdateChannel(ctx context.Context, arg UpdateChannelParams) (C
 		&i.ID,
 		&i.UserID,
 		&i.CreatedAt,
+		&i.IsDefault,
 		&i.Type,
 		&i.Settings,
 		&i.VerificationToken,

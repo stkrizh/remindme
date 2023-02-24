@@ -47,6 +47,7 @@ func (r *PgxChannelRepository) Create(ctx context.Context, input channel.CreateI
 			UserID:    int64(input.CreatedBy),
 			CreatedAt: input.CreatedAt,
 			Type:      input.Type.String(),
+			IsDefault: input.IsDefault,
 			Settings:  encodedSettings,
 			VerificationToken: sql.NullString{
 				String: string(input.VerificationToken.Value),
@@ -78,16 +79,18 @@ func (r *PgxChannelRepository) Read(
 	dbChannels, err := r.queries.ReadChanels(
 		ctx,
 		sqlcgen.ReadChanelsParams{
-			AllChannelIds: !options.IDIn.IsPresent,
-			IDIn:          channelIDIn,
-			AllUserIds:    !options.UserIDEquals.IsPresent,
-			UserIDEquals:  int64(options.UserIDEquals.Value),
-			AllTypes:      !options.TypeEquals.IsPresent,
-			TypeEquals:    options.TypeEquals.Value.String(),
-			OrderByIDAsc:  options.OrderBy == channel.OrderByIDAsc,
-			OrderByIDDesc: options.OrderBy == channel.OrderByIDDesc,
-			AllRows:       !options.Limit.IsPresent,
-			Limit:         int32(options.Limit.Value),
+			AllChannelIds:   !options.IDIn.IsPresent,
+			IDIn:            channelIDIn,
+			AllUserIds:      !options.UserIDEquals.IsPresent,
+			UserIDEquals:    int64(options.UserIDEquals.Value),
+			AllTypes:        !options.TypeEquals.IsPresent,
+			TypeEquals:      options.TypeEquals.Value.String(),
+			AllIsDefault:    !options.IsDefaultEquals.IsPresent,
+			IsDefaultEquals: options.IsDefaultEquals.Value,
+			OrderByIDAsc:    options.OrderBy == channel.OrderByIDAsc,
+			OrderByIDDesc:   options.OrderBy == channel.OrderByIDDesc,
+			AllRows:         !options.Limit.IsPresent,
+			Limit:           int32(options.Limit.Value),
 		},
 	)
 	if err != nil {
@@ -134,12 +137,14 @@ func (r *PgxChannelRepository) Count(
 	rawCount, err := r.queries.CountChannels(
 		ctx,
 		sqlcgen.CountChannelsParams{
-			AllChannelIds: !options.IDIn.IsPresent,
-			IDIn:          channelIDIn,
-			AllUserIds:    !options.UserIDEquals.IsPresent,
-			UserIDEquals:  int64(options.UserIDEquals.Value),
-			AllTypes:      !options.TypeEquals.IsPresent,
-			TypeEquals:    options.TypeEquals.Value.String(),
+			AllChannelIds:   !options.IDIn.IsPresent,
+			IDIn:            channelIDIn,
+			AllUserIds:      !options.UserIDEquals.IsPresent,
+			UserIDEquals:    int64(options.UserIDEquals.Value),
+			AllTypes:        !options.TypeEquals.IsPresent,
+			TypeEquals:      options.TypeEquals.Value.String(),
+			AllIsDefault:    !options.IsDefaultEquals.IsPresent,
+			IsDefaultEquals: options.IsDefaultEquals.Value,
 		},
 	)
 	if err != nil {
@@ -200,6 +205,7 @@ func decodeChannel(dbChannel sqlcgen.Channel) (domainChannel channel.Channel, er
 		ID:        channel.ID(dbChannel.ID),
 		CreatedBy: user.ID(dbChannel.UserID),
 		CreatedAt: dbChannel.CreatedAt,
+		IsDefault: dbChannel.IsDefault,
 		Type:      channelType,
 		Settings:  settings,
 		VerificationToken: c.NewOptional(

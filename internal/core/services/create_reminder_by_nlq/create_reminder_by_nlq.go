@@ -66,21 +66,17 @@ func New(
 }
 
 func (s *service) Run(ctx context.Context, input Input) (result createreminder.Result, err error) {
-	defaultChannel, err := s.getDefaultChannel(ctx, input.User.ID)
-	if err != nil {
-		logging.Error(ctx, s.log, err, logging.Entry("input", input))
-		return result, err
-	}
-	s.log.Info(
-		ctx,
-		"Found default channel for reminder.",
-		logging.Entry("channelID", defaultChannel.ID),
-	)
-	createParams, err := s.parser.Parse(ctx, input.Query, s.now().In(input.User.TimeZone))
+	userLocalTime := s.now().In(input.User.TimeZone)
+	createParams, err := s.parser.Parse(ctx, input.Query, userLocalTime)
 	if err != nil {
 		switch {
 		case errors.Is(err, reminder.ErrNaturalQueryParsing):
-			// do nothing
+			s.log.Info(
+				ctx,
+				"Could not parse reminder creation params.",
+				logging.Entry("query", input.Query),
+				logging.Entry("err", err),
+			)
 		default:
 			logging.Error(ctx, s.log, err, logging.Entry("input", input))
 		}
@@ -93,25 +89,77 @@ func (s *service) Run(ctx context.Context, input Input) (result createreminder.R
 		logging.Entry("query", input.Query),
 		logging.Entry("params", createParams),
 	)
+	channelIDs, err := s.getChannelIDs(ctx, input.User.ID, createParams.At.Sub(userLocalTime))
+	if err != nil {
+		logging.Error(ctx, s.log, err, logging.Entry("input", input))
+		return result, err
+	}
+	s.log.Info(
+		ctx,
+		"Found channels for sending reminder.",
+		logging.Entry("channelIDs", channelIDs),
+	)
 	result, err = s.createService.Run(ctx, createreminder.Input{
 		UserID:     input.User.ID,
-		At:         createParams.At,
+		At:         createParams.At.In(time.UTC),
 		Body:       createParams.Body,
 		Every:      createParams.Every,
-		ChannelIDs: reminder.NewChannelIDs(defaultChannel.ID),
+		ChannelIDs: channelIDs,
 	})
 	return result, err
 }
 
-func (s *service) getDefaultChannel(ctx context.Context, userID user.ID) (defChannel channel.Channel, err error) {
-	channels, err := s.channelRepo.Read(ctx, channel.ReadOptions{
-		UserIDEquals: c.NewOptional(userID, true),
-		TypeEquals:   c.NewOptional(channel.Websocket, true),
-		OrderBy:      channel.OrderByIDAsc,
-		Limit:        c.NewOptional(uint(1), true),
-	})
+func (s *service) getChannelIDs(
+	ctx context.Context,
+	userID user.ID,
+	reminderWillBeSentAfter time.Duration,
+) (channelIDs reminder.ChannelIDs, err error) {
+	channels, err := s.channelRepo.Read(
+		ctx,
+		channel.ReadOptions{
+			UserIDEquals: c.NewOptional(userID, true),
+			OrderBy:      channel.OrderByIDDesc,
+		},
+	)
 	if err != nil {
-		return defChannel, err
+		return channelIDs, err
 	}
-	return channels[0], err
+
+	channelIDs = make(reminder.ChannelIDs)
+	var emailChannelID channel.ID
+	var tlgChannelID channel.ID
+	var wsChannelID channel.ID
+	for _, ch := range channels {
+		if !ch.IsVerified() {
+			continue
+		}
+		if ch.Type == channel.Email && emailChannelID == 0 {
+			emailChannelID = ch.ID
+			continue
+		}
+		if ch.Type == channel.Telegram && tlgChannelID == 0 {
+			tlgChannelID = ch.ID
+			continue
+		}
+		if ch.Type == channel.Websocket && wsChannelID == 0 {
+			wsChannelID = ch.ID
+			continue
+		}
+	}
+
+	if emailChannelID == 0 && tlgChannelID == 0 && wsChannelID != 0 {
+		channelIDs[wsChannelID] = struct{}{}
+		return channelIDs, nil
+	}
+
+	if reminderWillBeSentAfter <= time.Hour && wsChannelID != 0 {
+		channelIDs[wsChannelID] = struct{}{}
+	}
+	if reminderWillBeSentAfter > time.Hour && emailChannelID != 0 {
+		channelIDs[emailChannelID] = struct{}{}
+	}
+	if tlgChannelID != 0 {
+		channelIDs[tlgChannelID] = struct{}{}
+	}
+	return channelIDs, nil
 }

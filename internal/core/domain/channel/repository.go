@@ -12,17 +12,19 @@ type CreateInput struct {
 	Type              Type
 	Settings          Settings
 	CreatedAt         time.Time
+	IsDefault         bool
 	VerificationToken c.Optional[VerificationToken]
 	VerifiedAt        c.Optional[time.Time]
 }
 
 type ReadOptions struct {
-	IDIn         c.Optional[[]ID]
-	UserIDEquals c.Optional[user.ID]
-	TypeEquals   c.Optional[Type]
-	OrderBy      OrderBy
-	Limit        c.Optional[uint]
-	Offset       uint
+	IDIn            c.Optional[[]ID]
+	UserIDEquals    c.Optional[user.ID]
+	TypeEquals      c.Optional[Type]
+	IsDefaultEquals c.Optional[bool]
+	OrderBy         OrderBy
+	Limit           c.Optional[uint]
+	Offset          uint
 }
 
 type UpdateInput struct {
