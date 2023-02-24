@@ -151,6 +151,10 @@ func (s *service) getChannelIDs(
 		channelIDs[wsChannelID] = struct{}{}
 		return channelIDs, nil
 	}
+	if wsChannelID == 0 && tlgChannelID == 0 && emailChannelID != 0 {
+		channelIDs[emailChannelID] = struct{}{}
+		return channelIDs, nil
+	}
 
 	if reminderWillBeSentAfter <= time.Hour && wsChannelID != 0 {
 		channelIDs[wsChannelID] = struct{}{}

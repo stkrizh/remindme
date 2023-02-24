@@ -9,6 +9,7 @@ import (
 	"remindme/internal/core/services/auth"
 	createemailchannel "remindme/internal/core/services/create_email_channel"
 	createreminder "remindme/internal/core/services/create_reminder"
+	createreminderbynlq "remindme/internal/core/services/create_reminder_by_nlq"
 	createtelegramchannel "remindme/internal/core/services/create_telegram_channel"
 	deletereminder "remindme/internal/core/services/delete_reminder"
 	getuserbysessiontoken "remindme/internal/core/services/get_user_by_session_token"
@@ -46,6 +47,7 @@ type Services struct {
 	VerifyTelegramChannel services.Service[verifytelegramchannel.Input, verifytelegramchannel.Result]
 
 	CreateReminder         services.Service[createreminder.Input, createreminder.Result]
+	CreateReminderByNLQ    services.Service[createreminderbynlq.Input, createreminder.Result]
 	DeleteReminder         services.Service[deletereminder.Input, deletereminder.Result]
 	ListUserReminders      services.Service[listuserreminders.Input, listuserreminders.Result]
 	ScheduleReminders      services.Service[schedulereminders.Input, schedulereminders.Result]
@@ -176,6 +178,21 @@ func InitServices(deps *deps.Deps) *Services {
 			deps.UnitOfWork,
 			deps.ReminderScheduler,
 			deps.Now,
+		),
+	)
+	s.CreateReminderByNLQ = auth.WithAuthentication(
+		deps.SessionRepository,
+		createreminderbynlq.New(
+			deps.Logger,
+			deps.ReminderNLQParser,
+			deps.ChannelRepository,
+			deps.Now,
+			createreminder.New(
+				deps.Logger,
+				deps.UnitOfWork,
+				deps.ReminderScheduler,
+				deps.Now,
+			),
 		),
 	)
 	s.DeleteReminder = auth.WithAuthentication(

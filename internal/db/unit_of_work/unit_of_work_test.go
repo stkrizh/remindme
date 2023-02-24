@@ -205,9 +205,9 @@ func (s *testSuite) createReminders() {
 	_, err = s.uow.db.Exec(
 		context.Background(),
 		`
-		INSERT INTO channel (id, user_id, created_at, type, settings) VALUES
-		(1, 1, now(), 'email', '{}'::jsonb),
-		(2, 1, now(), 'email', '{}'::jsonb);
+		INSERT INTO channel (id, user_id, created_at, is_default, type, settings) VALUES
+		(1, 1, now(), false, 'email', '{}'::jsonb),
+		(2, 1, now(), false, 'email', '{}'::jsonb);
 		`,
 	)
 	s.Nil(err)

@@ -20,6 +20,7 @@ import (
 	passwordresetter "remindme/internal/implementations/password_resetter"
 	randomstringgenerator "remindme/internal/implementations/random_string_generator"
 	ratelimiter "remindme/internal/implementations/rate_limiter"
+	remindernlqparser "remindme/internal/implementations/reminder_nlq_parser"
 	remindersender "remindme/internal/implementations/reminder_sender"
 	telegrambotmessagesender "remindme/internal/implementations/telegram_bot_message_sender"
 	"remindme/internal/rabbitmq"
@@ -64,6 +65,7 @@ type Deps struct {
 
 	ReminderScheduler reminder.Scheduler
 	ReminderSender    reminder.Sender
+	ReminderNLQParser reminder.NaturalLanguageQueryParser
 
 	TelegramBotMessageSender bot.TelegramBotMessageSender
 }
@@ -128,6 +130,7 @@ func InitDeps() (*Deps, func()) {
 		remindersender.NewTelegram(deps.TelegramBotMessageSender),
 		remindersender.NewWebsocket(),
 	)
+	deps.ReminderNLQParser = remindernlqparser.New()
 
 	return deps, func() {
 		closeFuncs := []func(){

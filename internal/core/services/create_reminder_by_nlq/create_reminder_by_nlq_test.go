@@ -136,6 +136,16 @@ func TestReminderCreatedSuccessfully(t *testing.T) {
 			},
 			expectedChannelIDs: []channel.ID{},
 		},
+		{
+			id:           "6",
+			userTimezone: time.UTC,
+			query:        "in 30m",
+			now:          ReminderAt.Add(-30 * time.Minute),
+			readChannels: []channel.Channel{
+				{ID: 100, Type: channel.Email, VerifiedAt: c.NewOptional(ChannelVerifiedAt, true)},
+			},
+			expectedChannelIDs: []channel.ID{100},
+		},
 	}
 
 	for _, testcase := range cases {

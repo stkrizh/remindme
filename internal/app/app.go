@@ -21,6 +21,7 @@ import (
 	verifyemailchannel "remindme/internal/http/handlers/channels/verify_email_channel"
 	cancelreminder "remindme/internal/http/handlers/reminders/cancel_reminder"
 	createreminder "remindme/internal/http/handlers/reminders/create_reminder"
+	createreminderbynlq "remindme/internal/http/handlers/reminders/create_reminder_by_nlq"
 	listuserreminders "remindme/internal/http/handlers/reminders/list_user_reminders"
 	updatereminder "remindme/internal/http/handlers/reminders/update_reminder"
 	updatereminderchannels "remindme/internal/http/handlers/reminders/update_reminder_channels"
@@ -68,6 +69,7 @@ func InitHttpServer(deps *deps.Deps, s *services.Services) *http.Server {
 	reminderRouter := chi.NewRouter()
 	reminderRouter.Use(auth.SetAuthTokenToContext)
 	reminderRouter.Method(http.MethodPost, "/", createreminder.New(s.CreateReminder))
+	reminderRouter.Method(http.MethodPost, "/nlq", createreminderbynlq.New(s.CreateReminderByNLQ))
 	reminderRouter.Method(http.MethodGet, "/", listuserreminders.New(s.ListUserReminders))
 	reminderRouter.Method(http.MethodDelete, "/{reminderID:[0-9]+}", cancelreminder.New(s.DeleteReminder))
 	reminderRouter.Method(http.MethodPatch, "/{reminderID:[0-9]+}", updatereminder.New(s.UpdateReminder))
