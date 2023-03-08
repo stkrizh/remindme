@@ -134,7 +134,7 @@ func (s *testSuite) TestActivationFailsIfTokenIsInvalid() {
 	inactiveUser := s.createInactiveUser()
 	_, err := s.repo.Activate(context.Background(), user.ActivationToken("invalid-activate"), NOW)
 
-	s.True(errors.Is(err, user.ErrUserDoesNotExist))
+	s.True(errors.Is(err, user.ErrInvalidActivationToken))
 
 	u := s.getUserByID(inactiveUser.ID)
 	s.False(u.IsActive())
@@ -148,7 +148,7 @@ func (s *testSuite) TestActivationFailsIfUserAlreadyActivated() {
 	s.True(activatedUser.IsActive())
 
 	_, err = s.repo.Activate(context.Background(), user.ActivationToken(ACTIVATION_TOKEN), NOW)
-	s.True(errors.Is(err, user.ErrUserDoesNotExist))
+	s.True(errors.Is(err, user.ErrInvalidActivationToken))
 }
 
 func (s *testSuite) TestSetPassword() {

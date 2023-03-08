@@ -166,7 +166,7 @@ func (r *FakeUserRepository) Activate(ctx context.Context, token ActivationToken
 			return r.Users[ix], nil
 		}
 	}
-	return u, ErrUserDoesNotExist
+	return u, ErrInvalidActivationToken
 }
 
 func (r *FakeUserRepository) SetPassword(ctx context.Context, id ID, password PasswordHash) error {

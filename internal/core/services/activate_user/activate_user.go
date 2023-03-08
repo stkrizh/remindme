@@ -63,7 +63,7 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 	defer uow.Rollback(ctx)
 
 	u, err := uow.Users().Activate(ctx, input.ActivationToken, s.now())
-	if errors.Is(err, user.ErrUserDoesNotExist) {
+	if errors.Is(err, user.ErrInvalidActivationToken) {
 		return result, err
 	}
 	if err != nil {

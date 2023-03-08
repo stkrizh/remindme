@@ -57,8 +57,8 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		r.Context(),
 		activateuser.Input{ActivationToken: user.ActivationToken(input.Token)},
 	)
-	if errors.Is(err, user.ErrUserDoesNotExist) {
-		response.RenderError(rw, "user does not exist", http.StatusUnprocessableEntity)
+	if errors.Is(err, user.ErrInvalidActivationToken) {
+		response.RenderError(rw, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 	if err != nil {

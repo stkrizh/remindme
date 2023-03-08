@@ -11,6 +11,7 @@ var (
 	ErrUserIsNotActive            = errors.New("user is not active")
 	ErrSessionDoesNotExist        = errors.New("session does not exist")
 	ErrInvalidPasswordFResetToken = errors.New("invalid password reset token")
+	ErrInvalidActivationToken     = errors.New("invalid activation token")
 )
 
 var (

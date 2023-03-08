@@ -109,7 +109,7 @@ func (r *PgxUserRepository) Activate(
 		sqlcgen.ActivateUserParams{ActivationToken: string(token), ActivatedAt: at},
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return u, user.ErrUserDoesNotExist
+		return u, user.ErrInvalidActivationToken
 	}
 	if err != nil {
 		return u, err

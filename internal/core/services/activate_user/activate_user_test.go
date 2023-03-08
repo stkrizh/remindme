@@ -121,7 +121,7 @@ func (s *testSuite) TestActivationTokenInvalid() {
 		context.Background(),
 		Input{ActivationToken: user.ActivationToken("invalid-token")},
 	)
-	s.True(errors.Is(err, user.ErrUserDoesNotExist))
+	s.True(errors.Is(err, user.ErrInvalidActivationToken))
 
 	u, err := s.Uow.Context.UserRepository.GetByID(context.Background(), activeUser.ID)
 	s.Nil(err)
