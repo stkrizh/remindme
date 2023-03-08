@@ -31,6 +31,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 )
 
 func InitHttpServer(deps *deps.Deps, s *services.Services) *http.Server {
@@ -91,6 +92,13 @@ func InitHttpServer(deps *deps.Deps, s *services.Services) *http.Server {
 	)
 
 	router := chi.NewRouter()
+	router.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   deps.Config.AllowedOrigins,
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"*"},
+		AllowCredentials: false,
+		MaxAge:           300, // Maximum value not ignored by any of major browsers
+	}))
 	router.Mount("/auth", authRouter)
 	router.Mount("/profile", profileRouter)
 	router.Mount("/channels", channelsRouter)

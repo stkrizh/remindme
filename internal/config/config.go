@@ -12,6 +12,7 @@ import (
 type Config struct {
 	IsTestMode                      bool          `env:"TEST_MODE" envDefault:"false"`
 	BaseURL                         url.URL       `env:"BASE_URL" envDefault:"localhost"`
+	AllowedOrigins                  []string      `env:"ALLOWED_ORIGINS" envDefault:"*"`
 	Port                            uint16        `env:"PORT" envDefault:"9090"`
 	Secret                          string        `env:"SECRET,notEmpty"`
 	PostgresqlURL                   string        `env:"POSTGRESQL_URL,notEmpty"`
