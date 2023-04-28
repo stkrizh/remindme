@@ -80,14 +80,12 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		at = (*input.At).UTC()
 	}
 	var every c.Optional[reminder.Every]
-	var doEveryUpdate bool
 	if input.DoEveryUpdate && input.Every != nil {
 		e, err := reminder.ParseEvery(*input.Every)
 		if err != nil {
 			response.RenderError(rw, err.Error(), http.StatusBadRequest)
 			return
 		}
-		doEveryUpdate = true
 		every = c.NewOptional(e, true)
 	}
 	var body string
@@ -103,7 +101,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			ReminderID:    reminder.ID(reminderID),
 			DoAtUpdate:    doAtUpdate,
 			At:            at,
-			DoEveryUpdate: doEveryUpdate,
+			DoEveryUpdate: input.DoEveryUpdate,
 			Every:         every,
 			DoBodyUpdate:  doBodyUpdate,
 			Body:          body,
