@@ -24,8 +24,10 @@ func (e *channelSettingsJSONEncoder) VisitTelegram(s *channel.TelegramSettings) 
 	return nil
 }
 
-func (e *channelSettingsJSONEncoder) VisitWebsocket(s *channel.WebsocketSettings) error {
-	e.channel.WebsocketSettings = &WebsocketSettings{}
+func (e *channelSettingsJSONEncoder) VisitInternal(s *channel.InternalSettings) error {
+	e.channel.InternalSettigns = &InternalSettings{
+		Token: string(s.Token),
+	}
 	return nil
 }
 
@@ -38,17 +40,20 @@ type TelegramSettings struct {
 	ChatID int64  `json:"chat_id"`
 }
 
-type WebsocketSettings struct{}
+type InternalSettings struct {
+	Token string `json:"token"`
+}
 
 type Channel struct {
-	ID                int64              `json:"id"`
-	Type              string             `json:"type"`
-	CreatedBy         int64              `json:"created_by"`
-	CreatedAt         time.Time          `json:"created_at"`
-	VerifiedAt        *time.Time         `json:"verified_at"`
-	EmailSettings     *EmailSettings     `json:"email,omitempty"`
-	TelegramSettings  *TelegramSettings  `json:"telegram,omitempty"`
-	WebsocketSettings *WebsocketSettings `json:"websocket,omitempty"`
+	ID                int64             `json:"id"`
+	Type              string            `json:"type"`
+	CreatedBy         int64             `json:"created_by"`
+	CreatedAt         time.Time         `json:"created_at"`
+	VerificationToken *string           `json:"verification_token"`
+	VerifiedAt        *time.Time        `json:"verified_at"`
+	EmailSettings     *EmailSettings    `json:"email,omitempty"`
+	TelegramSettings  *TelegramSettings `json:"telegram,omitempty"`
+	InternalSettigns  *InternalSettings `json:"internal,omitempty"`
 }
 
 func (c *Channel) FromDomainChannel(dc channel.Channel) {
@@ -58,6 +63,10 @@ func (c *Channel) FromDomainChannel(dc channel.Channel) {
 	c.CreatedAt = dc.CreatedAt
 	if dc.VerifiedAt.IsPresent {
 		c.VerifiedAt = &dc.VerifiedAt.Value
+	}
+
+	if dc.Type == channel.Telegram {
+		c.VerificationToken = (*string)(&dc.VerificationToken.Value)
 	}
 
 	settingsEncoder := &channelSettingsJSONEncoder{channel: c}

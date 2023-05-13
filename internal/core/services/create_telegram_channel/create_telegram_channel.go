@@ -25,8 +25,7 @@ func (i Input) WithAuthenticatedUser(u user.User) auth.Input {
 }
 
 type Result struct {
-	Channel           channel.Channel
-	VerificationToken channel.VerificationToken
+	Channel channel.Channel
 }
 
 type service struct {
@@ -154,5 +153,5 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		logging.Entry("userID", input.UserID),
 		logging.Entry("channelID", newChannel.ID),
 	)
-	return Result{Channel: newChannel, VerificationToken: token}, nil
+	return Result{Channel: newChannel}, nil
 }

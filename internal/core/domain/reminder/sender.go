@@ -18,16 +18,16 @@ type TelegramSender interface {
 	SendReminder(ctx context.Context, reminder Reminder, settings *channel.TelegramSettings) error
 }
 
-type WebsocketSender interface {
-	SendReminder(ctx context.Context, reminder Reminder, settings *channel.WebsocketSettings) error
+type InternalSender interface {
+	SendReminder(ctx context.Context, reminder Reminder, settings *channel.InternalSettings) error
 }
 
 type ChannelSender struct {
-	ctx             context.Context
-	reminder        Reminder
-	emailSender     EmailSender
-	telegramSender  TelegramSender
-	websocketSender WebsocketSender
+	ctx            context.Context
+	reminder       Reminder
+	emailSender    EmailSender
+	telegramSender TelegramSender
+	internalSender InternalSender
 }
 
 func NewChannelSender(
@@ -35,7 +35,7 @@ func NewChannelSender(
 	reminder Reminder,
 	emailSender EmailSender,
 	telegramSender TelegramSender,
-	websocketSender WebsocketSender,
+	internalSender InternalSender,
 ) *ChannelSender {
 	if emailSender == nil {
 		panic(e.NewNilArgumentError("emailSender"))
@@ -43,15 +43,15 @@ func NewChannelSender(
 	if telegramSender == nil {
 		panic(e.NewNilArgumentError("telegramSender"))
 	}
-	if websocketSender == nil {
-		panic(e.NewNilArgumentError("websocketSender"))
+	if internalSender == nil {
+		panic(e.NewNilArgumentError("internalSender"))
 	}
 	return &ChannelSender{
-		ctx:             ctx,
-		reminder:        reminder,
-		emailSender:     emailSender,
-		telegramSender:  telegramSender,
-		websocketSender: websocketSender,
+		ctx:            ctx,
+		reminder:       reminder,
+		emailSender:    emailSender,
+		telegramSender: telegramSender,
+		internalSender: internalSender,
 	}
 }
 
@@ -63,8 +63,8 @@ func (s *ChannelSender) VisitTelegram(settings *channel.TelegramSettings) error 
 	return s.telegramSender.SendReminder(s.ctx, s.reminder, settings)
 }
 
-func (s *ChannelSender) VisitWebsocket(settings *channel.WebsocketSettings) error {
-	return s.websocketSender.SendReminder(s.ctx, s.reminder, settings)
+func (s *ChannelSender) VisitInternal(settings *channel.InternalSettings) error {
+	return s.internalSender.SendReminder(s.ctx, s.reminder, settings)
 }
 
 func (s *ChannelSender) SendReminder(settings channel.Settings) error {

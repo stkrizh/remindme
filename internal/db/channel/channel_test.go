@@ -53,9 +53,18 @@ func TestChannelSettingsEncoding(t *testing.T) {
 			},
 		},
 		{
-			id:       "ws-1",
-			chanType: channel.Websocket,
-			settings: &channel.WebsocketSettings{},
+			id:       "internal-1",
+			chanType: channel.Internal,
+			settings: &channel.InternalSettings{
+				Token: channel.InternalChannelToken("test-1"),
+			},
+		},
+		{
+			id:       "internal-2",
+			chanType: channel.Internal,
+			settings: &channel.InternalSettings{
+				Token: channel.InternalChannelToken(""),
+			},
 		},
 	}
 	for _, testcase := range cases {
@@ -180,22 +189,22 @@ func (s *testSuite) TestCreateSuccess() {
 			},
 		},
 		{
-			id: "websocket-1",
+			id: "internal-1",
 			input: channel.CreateInput{
 				CreatedBy:  s.user.ID,
-				Type:       channel.Websocket,
-				Settings:   channel.NewWebsocketSettings(),
+				Type:       channel.Internal,
+				Settings:   channel.NewInternalSettings(channel.InternalChannelToken("test-1")),
 				CreatedAt:  time.Now().UTC().Truncate(time.Second),
 				VerifiedAt: c.NewOptional(time.Now().UTC().Truncate(time.Second), true),
 				IsDefault:  true,
 			},
 		},
 		{
-			id: "websocket-2",
+			id: "internal-2",
 			input: channel.CreateInput{
 				CreatedBy:         s.user.ID,
-				Type:              channel.Websocket,
-				Settings:          channel.NewWebsocketSettings(),
+				Type:              channel.Internal,
+				Settings:          channel.NewInternalSettings(channel.InternalChannelToken("test-2")),
 				CreatedAt:         Now,
 				VerificationToken: c.NewOptional(channel.VerificationToken("test-2"), true),
 			},
@@ -223,7 +232,7 @@ func (s *testSuite) TestReadAndCount() {
 		s.createChannel(channel.Email, s.otherUser, false),
 		s.createChannel(channel.Telegram, s.user, false),
 		s.createChannel(channel.Telegram, s.otherUser, true),
-		s.createChannel(channel.Websocket, s.otherUser, false),
+		s.createChannel(channel.Internal, s.otherUser, false),
 		s.createChannel(channel.Email, s.user, false),
 		s.createChannel(channel.Telegram, s.otherUser, false),
 	}
@@ -266,7 +275,7 @@ func (s *testSuite) TestReadAndCount() {
 		},
 		{
 			id:            "6",
-			options:       channel.ReadOptions{TypeEquals: c.NewOptional(channel.Websocket, true)},
+			options:       channel.ReadOptions{TypeEquals: c.NewOptional(channel.Internal, true)},
 			expectedIDs:   []channel.ID{channelIDs[4]},
 			expectedCount: 1,
 		},
@@ -292,7 +301,7 @@ func (s *testSuite) TestReadAndCount() {
 			id: "9",
 			options: channel.ReadOptions{
 				UserIDEquals: c.NewOptional(s.user.ID, true),
-				TypeEquals:   c.NewOptional(channel.Websocket, true),
+				TypeEquals:   c.NewOptional(channel.Internal, true),
 			},
 			expectedIDs:   []channel.ID{},
 			expectedCount: 0,
@@ -410,8 +419,8 @@ func (s *testSuite) createChannel(t channel.Type, u user.User, isDefault bool) c
 		settings = channel.NewEmailSettings(c.NewEmail("test@test.test"))
 	case channel.Telegram:
 		settings = channel.NewTelegramSettings(channel.TelegramBot("test"), channel.TelegramChatID(123))
-	case channel.Websocket:
-		settings = channel.NewWebsocketSettings()
+	case channel.Internal:
+		settings = channel.NewInternalSettings(channel.InternalChannelToken("internal-settings-token"))
 	default:
 		s.FailNow("unknown channel type", t)
 	}

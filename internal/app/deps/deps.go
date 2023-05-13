@@ -15,6 +15,7 @@ import (
 	dbreminder "remindme/internal/db/reminder"
 	uow "remindme/internal/db/unit_of_work"
 	dbuser "remindme/internal/db/user"
+	internalchanneltoken "remindme/internal/implementations/internal_channel_token"
 	"remindme/internal/implementations/logging"
 	passwordhasher "remindme/internal/implementations/password_hasher"
 	passwordresetter "remindme/internal/implementations/password_resetter"
@@ -30,6 +31,7 @@ import (
 
 	"github.com/go-redis/redis/v9"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/r3labs/sse/v2"
 	"github.com/rabbitmq/amqp091-go"
 )
 
@@ -37,9 +39,10 @@ type Deps struct {
 	Config *config.Config
 	Logger dl.Logger
 
-	DB       *pgxpool.Pool
-	Redis    *redis.Client
-	Rabbitmq *rabbitmq.Connection
+	DB        *pgxpool.Pool
+	Redis     *redis.Client
+	Rabbitmq  *rabbitmq.Connection
+	SseServer *sse.Server
 
 	Now func() time.Time
 
@@ -51,15 +54,17 @@ type Deps struct {
 
 	RateLimiter drl.RateLimiter
 
-	UserActivationTokenGenerator user.ActivationTokenGenerator
-	UserActivationTokenSender    user.ActivationTokenSender
-	UserIdentityGenerator        user.IdentityGenerator
-	UserSessionTokenGenerator    user.SessionTokenGenerator
-	PasswordHasher               user.PasswordHasher
-	PasswordResetter             user.PasswordResetter
-	PasswordResetTokenSender     user.PasswordResetTokenSender
-	DefaultUserLimits            user.Limits
-	DefaultAnonymousUserLimits   user.Limits
+	UserActivationTokenGenerator  user.ActivationTokenGenerator
+	UserActivationTokenSender     user.ActivationTokenSender
+	UserIdentityGenerator         user.IdentityGenerator
+	UserSessionTokenGenerator     user.SessionTokenGenerator
+	PasswordHasher                user.PasswordHasher
+	PasswordResetter              user.PasswordResetter
+	PasswordResetTokenSender      user.PasswordResetTokenSender
+	InternalChannelTokenGenerator channel.InternalChannelTokenGenerator
+	InternalChannelTokenValidator channel.InternalChannelTokenValidator
+	DefaultUserLimits             user.Limits
+	DefaultAnonymousUserLimits    user.Limits
 
 	ChannelVerificationTokenGenerator channel.VerificationTokenGenerator
 
@@ -78,6 +83,7 @@ func InitDeps() (*Deps, func()) {
 	closePgxPool := deps.initPgxPool()
 	closeRedisClient := deps.initRedisClient()
 	closeRabbitmqConn := deps.initRabbitmqConnection()
+	closeSseServer := deps.initSseServer()
 
 	deps.UnitOfWork = uow.NewPgxUnitOfWork(deps.DB)
 	deps.UserRepository = dbuser.NewPgxRepository(deps.DB)
@@ -98,6 +104,8 @@ func InitDeps() (*Deps, func()) {
 		deps.Now,
 	)
 	deps.PasswordResetTokenSender = user.NewFakePasswordResetTokenSender()
+	deps.InternalChannelTokenGenerator = internalchanneltoken.NewHMAC(deps.Config.Secret)
+	deps.InternalChannelTokenValidator = internalchanneltoken.NewHMAC(deps.Config.Secret)
 	deps.DefaultUserLimits = user.Limits{
 		EmailChannelCount:        c.NewOptional(uint32(1), true),
 		TelegramChannelCount:     c.NewOptional(uint32(1), true),
@@ -128,17 +136,18 @@ func InitDeps() (*Deps, func()) {
 		deps.ChannelRepository,
 		remindersender.NewEmail(),
 		remindersender.NewTelegram(deps.TelegramBotMessageSender),
-		remindersender.NewWebsocket(),
+		remindersender.NewInternal(deps.SseServer),
 	)
 	deps.ReminderNLQParser = remindernlqparser.New()
 
 	return deps, func() {
 		closeFuncs := []func(){
-			closeLogger,
-			closePgxPool,
-			closeRedisClient,
-			closeRabbitmqConn,
+			closeSseServer,
 			closeReminderScheduler,
+			closeRabbitmqConn,
+			closeRedisClient,
+			closePgxPool,
+			closeLogger,
 		}
 
 		var wg sync.WaitGroup
@@ -176,7 +185,11 @@ func (deps *Deps) initPgxPool() func() {
 		panic(err)
 	}
 	deps.DB = db
-	return func() { db.Close() }
+	return func() {
+		deps.Logger.Info(context.Background(), "Shutting down DB connection.")
+		db.Close()
+		deps.Logger.Info(context.Background(), "DB connection shut down.")
+	}
 }
 
 func (deps *Deps) initRedisClient() func() {
@@ -187,7 +200,11 @@ func (deps *Deps) initRedisClient() func() {
 	}
 	redisClient := redis.NewClient(redisOpt)
 	deps.Redis = redisClient
-	return func() { redisClient.Close() }
+	return func() {
+		deps.Logger.Info(context.Background(), "Shutting down Redis client.")
+		redisClient.Close()
+		deps.Logger.Info(context.Background(), "Redis client shut down.")
+	}
 }
 
 func (deps *Deps) initRabbitmqConnection() func() {
@@ -197,7 +214,11 @@ func (deps *Deps) initRabbitmqConnection() func() {
 		panic("could not connect to RabbitMQ")
 	}
 	deps.Rabbitmq = rabbitmqConnection
-	return func() { rabbitmqConnection.Close() }
+	return func() {
+		deps.Logger.Info(context.Background(), "Shutting down RabbitMQ connection.")
+		rabbitmqConnection.Close()
+		deps.Logger.Info(context.Background(), "RabbitMQ connection shut down.")
+	}
 }
 
 func (deps *Deps) initRabbitmqReminderScheduler() func() {
@@ -244,5 +265,19 @@ func (deps *Deps) initRabbitmqReminderScheduler() func() {
 		deps.Now,
 	)
 
-	return func() { rabbitmqChannel.Close() }
+	return func() {
+		deps.Logger.Info(context.Background(), "Shutting down reminder scheduller.")
+		rabbitmqChannel.Close()
+		deps.Logger.Info(context.Background(), "Reminder scheduller shut down.")
+	}
+}
+
+func (deps *Deps) initSseServer() func() {
+	deps.SseServer = sse.New()
+	deps.SseServer.AutoReplay = false
+	return func() {
+		deps.Logger.Info(context.Background(), "Shutting down SSE server.")
+		deps.SseServer.Close()
+		deps.Logger.Info(context.Background(), "SSE server shut down.")
+	}
 }

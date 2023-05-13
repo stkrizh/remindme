@@ -128,7 +128,7 @@ func (s *service) getChannelIDs(
 	channelIDs = make(reminder.ChannelIDs)
 	var emailChannelID channel.ID
 	var tlgChannelID channel.ID
-	var wsChannelID channel.ID
+	var internalChannelID channel.ID
 	for _, ch := range channels {
 		if !ch.IsVerified() {
 			continue
@@ -141,23 +141,23 @@ func (s *service) getChannelIDs(
 			tlgChannelID = ch.ID
 			continue
 		}
-		if ch.Type == channel.Websocket && wsChannelID == 0 {
-			wsChannelID = ch.ID
+		if ch.Type == channel.Internal && internalChannelID == 0 {
+			internalChannelID = ch.ID
 			continue
 		}
 	}
 
-	if emailChannelID == 0 && tlgChannelID == 0 && wsChannelID != 0 {
-		channelIDs[wsChannelID] = struct{}{}
+	if emailChannelID == 0 && tlgChannelID == 0 && internalChannelID != 0 {
+		channelIDs[internalChannelID] = struct{}{}
 		return channelIDs, nil
 	}
-	if wsChannelID == 0 && tlgChannelID == 0 && emailChannelID != 0 {
+	if internalChannelID == 0 && tlgChannelID == 0 && emailChannelID != 0 {
 		channelIDs[emailChannelID] = struct{}{}
 		return channelIDs, nil
 	}
 
-	if reminderWillBeSentAfter <= time.Hour && wsChannelID != 0 {
-		channelIDs[wsChannelID] = struct{}{}
+	if reminderWillBeSentAfter <= time.Hour && internalChannelID != 0 {
+		channelIDs[internalChannelID] = struct{}{}
 	}
 	if reminderWillBeSentAfter > time.Hour && emailChannelID != 0 {
 		channelIDs[emailChannelID] = struct{}{}

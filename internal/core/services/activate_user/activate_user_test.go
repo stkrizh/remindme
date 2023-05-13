@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	EMAIL            = "test@test.test"
-	PASSWORD_HASH    = "test-password-hash"
-	ACTIVATION_TOKEN = "test-activation-token"
+	EMAIL                  = "test@test.test"
+	PASSWORD_HASH          = "test-password-hash"
+	ACTIVATION_TOKEN       = "test-activation-token"
+	INTERNAL_CHANNEL_TOKEN = "test-internal-channel-token"
 )
 
 var (
@@ -31,17 +32,20 @@ var (
 
 type testSuite struct {
 	suite.Suite
-	Logger  *logging.FakeLogger
-	Uow     *uow.FakeUnitOfWork
-	Service services.Service[Input, Result]
+	Logger   *logging.FakeLogger
+	Uow      *uow.FakeUnitOfWork
+	TokenGen *channel.TestInternalChannelTokenGenerator
+	Service  services.Service[Input, Result]
 }
 
 func (suite *testSuite) SetupTest() {
 	suite.Logger = logging.NewFakeLogger()
 	suite.Uow = uow.NewFakeUnitOfWork()
+	suite.TokenGen = channel.NewTestInternalChannelTokenGenerator(INTERNAL_CHANNEL_TOKEN)
 	suite.Service = New(
 		suite.Logger,
 		suite.Uow,
+		suite.TokenGen,
 		func() time.Time { return Now },
 		DefaultLimits,
 	)
@@ -92,12 +96,35 @@ func (s *testSuite) TestSuccessEmailChannelCreated() {
 	s.Nil(err)
 
 	createdChannels := s.Uow.Context.ChannelRepository.Created
-	s.Equal(1, len(createdChannels))
-	createdChannel := createdChannels[0]
-	s.Equal(inactiveUser.ID, createdChannel.CreatedBy)
-	s.Equal(channel.Email, createdChannel.Type)
-	s.Equal(inactiveUser.Email.Value, createdChannel.Settings.(*channel.EmailSettings).Email)
-	s.True(createdChannel.IsVerified())
+	s.Equal(2, len(createdChannels))
+	createdEmailChannel := createdChannels[1]
+	s.Equal(inactiveUser.ID, createdEmailChannel.CreatedBy)
+	s.Equal(channel.Email, createdEmailChannel.Type)
+	s.Equal(inactiveUser.Email.Value, createdEmailChannel.Settings.(*channel.EmailSettings).Email)
+	s.True(createdEmailChannel.IsVerified())
+
+	s.True(s.Uow.Context.WasCommitCalled)
+}
+
+func (s *testSuite) TestSuccessInternalChannelCreated() {
+	inactiveUser := s.createInactiveUser()
+
+	_, err := s.Service.Run(
+		context.Background(),
+		Input{ActivationToken: user.ActivationToken(ACTIVATION_TOKEN)},
+	)
+	s.Nil(err)
+
+	createdChannels := s.Uow.Context.ChannelRepository.Created
+	s.Equal(2, len(createdChannels))
+	createdInternalChannel := createdChannels[0]
+	s.Equal(inactiveUser.ID, createdInternalChannel.CreatedBy)
+	s.Equal(channel.Internal, createdInternalChannel.Type)
+	s.Equal(
+		channel.InternalChannelToken(INTERNAL_CHANNEL_TOKEN),
+		createdInternalChannel.Settings.(*channel.InternalSettings).Token,
+	)
+	s.True(createdInternalChannel.IsVerified())
 
 	s.True(s.Uow.Context.WasCommitCalled)
 }

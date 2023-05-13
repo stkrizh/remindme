@@ -16,6 +16,7 @@ import (
 	signupwithemail "remindme/internal/http/handlers/auth/sign_up_with_email"
 	createemailchannel "remindme/internal/http/handlers/channels/create_email_channel"
 	createtlgchannel "remindme/internal/http/handlers/channels/create_telegram_channel"
+	internalchannelevents "remindme/internal/http/handlers/channels/internal_channel_events"
 	listuserchannels "remindme/internal/http/handlers/channels/list_user_channels"
 	verifyemailchannel "remindme/internal/http/handlers/channels/verify_email_channel"
 	cancelreminder "remindme/internal/http/handlers/reminders/cancel_reminder"
@@ -28,7 +29,6 @@ import (
 	changepassword "remindme/internal/http/handlers/user/change_password"
 	me "remindme/internal/http/handlers/user/me"
 	updateuser "remindme/internal/http/handlers/user/update_user"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
@@ -70,6 +70,12 @@ func InitHttpServer(deps *deps.Deps, s *services.Services) *http.Server {
 		"/{channelID:[0-9]+}/verification",
 		verifyemailchannel.New(s.VerifyEmailChannel),
 	)
+	channelsRouter.Method(
+		http.MethodGet,
+		"/internal/events",
+		internalchannelevents.New(deps.Logger, deps.SseServer, deps.InternalChannelTokenValidator),
+	)
+	// TODO: delete channel
 
 	reminderRouter := chi.NewRouter()
 	reminderRouter.Use(auth.SetAuthTokenToContext)
@@ -108,11 +114,7 @@ func InitHttpServer(deps *deps.Deps, s *services.Services) *http.Server {
 	address := fmt.Sprintf("0.0.0.0:%d", deps.Config.Port)
 
 	return &http.Server{
-		Handler:           router,
-		Addr:              address,
-		ReadTimeout:       5 * time.Second,
-		ReadHeaderTimeout: 5 * time.Second,
-		WriteTimeout:      5 * time.Second,
-		IdleTimeout:       5 * time.Second,
+		Handler: router,
+		Addr:    address,
 	}
 }

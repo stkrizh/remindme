@@ -6,8 +6,8 @@ type Type struct {
 
 func ParseType(t string) Type {
 	switch t {
-	case "websocket":
-		return Websocket
+	case "internal":
+		return Internal
 	case "telegram":
 		return Telegram
 	case "email":
@@ -22,8 +22,8 @@ func (t Type) String() string {
 }
 
 var (
-	Unknown   = Type{}
-	Websocket = Type{v: "websocket"}
-	Telegram  = Type{v: "telegram"}
-	Email     = Type{v: "email"}
+	Unknown  = Type{}
+	Internal = Type{v: "internal"}
+	Telegram = Type{v: "telegram"}
+	Email    = Type{v: "email"}
 )

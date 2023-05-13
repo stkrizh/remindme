@@ -18,20 +18,19 @@ import (
 
 func main() {
 	deps, shutdownDeps := deps.InitDeps()
-	defer shutdownDeps()
-
 	services := services.InitServices(deps)
-
 	shutdownConsumers := consumers.InitConsumers(deps, services)
-	defer shutdownConsumers()
-
 	httpServer := app.InitHttpServer(deps, services)
+
 	go start(httpServer, deps)
 
 	stopCh, closeCh := createChannel()
 	defer closeCh()
 
 	<-stopCh
+
+	shutdownConsumers()
+	shutdownDeps()
 	shutdown(context.Background(), httpServer)
 
 	deps.Logger.Info(context.Background(), "Shutdown completed.")

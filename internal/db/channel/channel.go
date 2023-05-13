@@ -20,6 +20,7 @@ const (
 	SETTINGS_EMAIL_EMAIL      = "email"
 	SETTINGS_TELEGRAM_BOT     = "bot"
 	SETTINGS_TELEGRAM_CHAT_ID = "chat_id"
+	SETTINGS_INTERNAL_TOKEN   = "token"
 )
 
 type PgxChannelRepository struct {
@@ -248,8 +249,9 @@ func (c *settingsJSONBEncoder) VisitTelegram(s *channel.TelegramSettings) error 
 	return nil
 }
 
-func (c *settingsJSONBEncoder) VisitWebsocket(s *channel.WebsocketSettings) error {
+func (c *settingsJSONBEncoder) VisitInternal(s *channel.InternalSettings) error {
 	settings := make(map[string]interface{})
+	settings[SETTINGS_INTERNAL_TOKEN] = string(s.Token)
 	if err := c.result.Set(settings); err != nil {
 		return err
 	}
@@ -310,7 +312,16 @@ func (d *settingsJSONBDecoder) VisitTelegram(s *channel.TelegramSettings) error 
 	return nil
 }
 
-func (d *settingsJSONBDecoder) VisitWebsocket(s *channel.WebsocketSettings) error {
+func (d *settingsJSONBDecoder) VisitInternal(s *channel.InternalSettings) error {
+	rawToken, ok := d.encoded[SETTINGS_INTERNAL_TOKEN]
+	if !ok {
+		return fmt.Errorf("could not get internal token from channel settings: %v", d.encoded)
+	}
+	token, ok := rawToken.(string)
+	if !ok {
+		return fmt.Errorf("internal settings token is not a string: %v", d.encoded)
+	}
+	s.Token = channel.InternalChannelToken(token)
 	return nil
 }
 
@@ -325,8 +336,8 @@ func decodeSettings(channelType channel.Type, encoded pgtype.JSONB) (settings ch
 		settings = &channel.EmailSettings{}
 	case channel.Telegram:
 		settings = &channel.TelegramSettings{}
-	case channel.Websocket:
-		settings = &channel.WebsocketSettings{}
+	case channel.Internal:
+		settings = &channel.InternalSettings{}
 	default:
 		return nil, fmt.Errorf("unknown channel settings type: %v", m)
 	}

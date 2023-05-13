@@ -10,11 +10,11 @@ import (
 )
 
 type Sender struct {
-	log             logging.Logger
-	channelRepo     channel.Repository
-	emailSender     reminder.EmailSender
-	telegramSender  reminder.TelegramSender
-	websocketSender reminder.WebsocketSender
+	log            logging.Logger
+	channelRepo    channel.Repository
+	emailSender    reminder.EmailSender
+	telegramSender reminder.TelegramSender
+	internalSender reminder.InternalSender
 }
 
 func New(
@@ -22,7 +22,7 @@ func New(
 	channelRepo channel.Repository,
 	emailSender reminder.EmailSender,
 	telegramSender reminder.TelegramSender,
-	websocketSender reminder.WebsocketSender,
+	internalSender reminder.InternalSender,
 ) *Sender {
 	if log == nil {
 		panic(e.NewNilArgumentError("log"))
@@ -36,15 +36,15 @@ func New(
 	if telegramSender == nil {
 		panic(e.NewNilArgumentError("telegramSender"))
 	}
-	if websocketSender == nil {
-		panic(e.NewNilArgumentError("websocketSender"))
+	if internalSender == nil {
+		panic(e.NewNilArgumentError("internalSender"))
 	}
 	return &Sender{
-		log:             log,
-		channelRepo:     channelRepo,
-		emailSender:     emailSender,
-		telegramSender:  telegramSender,
-		websocketSender: websocketSender,
+		log:            log,
+		channelRepo:    channelRepo,
+		emailSender:    emailSender,
+		telegramSender: telegramSender,
+		internalSender: internalSender,
 	}
 }
 
@@ -62,7 +62,7 @@ func (s *Sender) SendReminder(ctx context.Context, rem reminder.ReminderWithChan
 			rem.Reminder,
 			s.emailSender,
 			s.telegramSender,
-			s.websocketSender,
+			s.internalSender,
 		)
 		err := channelSender.SendReminder(channel.Settings)
 		if err != nil {

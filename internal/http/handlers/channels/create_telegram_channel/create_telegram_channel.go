@@ -27,8 +27,7 @@ func New(
 }
 
 type Result struct {
-	Channel           response.Channel `json:"channel"`
-	VerificationToken string           `json:"token"`
+	Channel response.Channel `json:"channel"`
 }
 
 func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
@@ -53,8 +52,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	response.Render(
 		rw,
 		Result{
-			Channel:           channel,
-			VerificationToken: string(result.VerificationToken),
+			Channel: channel,
 		},
 		http.StatusCreated,
 	)

@@ -11,7 +11,7 @@ type Settings interface {
 type SettingsVisitor interface {
 	VisitEmail(s *EmailSettings) error
 	VisitTelegram(s *TelegramSettings) error
-	VisitWebsocket(s *WebsocketSettings) error
+	VisitInternal(s *InternalSettings) error
 }
 
 type EmailSettings struct {
@@ -43,12 +43,26 @@ func (s *TelegramSettings) Accept(v SettingsVisitor) error {
 	return v.VisitTelegram(s)
 }
 
-type WebsocketSettings struct{}
+type InternalChannelToken string
 
-func NewWebsocketSettings() *WebsocketSettings {
-	return &WebsocketSettings{}
+type InternalSettings struct {
+	Token InternalChannelToken
 }
 
-func (s *WebsocketSettings) Accept(v SettingsVisitor) error {
-	return v.VisitWebsocket(s)
+func NewInternalSettings(token InternalChannelToken) *InternalSettings {
+	return &InternalSettings{
+		Token: token,
+	}
+}
+
+func (s *InternalSettings) Accept(v SettingsVisitor) error {
+	return v.VisitInternal(s)
+}
+
+type InternalChannelTokenGenerator interface {
+	GenerateInternalChannelToken() InternalChannelToken
+}
+
+type InternalChannelTokenValidator interface {
+	ValidateInternalChannelToken(token InternalChannelToken) bool
 }

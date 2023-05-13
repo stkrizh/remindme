@@ -107,7 +107,7 @@ func (s *testSuite) TestSuccess() {
 			assert.Equal(channel.Telegram, createdChannel.Type)
 			assert.Equal(BOT, createdChannel.Settings.(*channel.TelegramSettings).Bot)
 			assert.Equal(c.NewOptional(VERIFICATION_TOKEN, true), createdChannel.VerificationToken)
-			assert.Equal(VERIFICATION_TOKEN, result.VerificationToken)
+			assert.Equal(VERIFICATION_TOKEN, result.Channel.VerificationToken.Value)
 			assert.False(createdChannel.IsVerified())
 
 			assert.True(s.UnitOfWork.Context.WasCommitCalled)
