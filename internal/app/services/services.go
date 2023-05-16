@@ -79,6 +79,7 @@ func InitServices(deps *deps.Deps) *Services {
 		deps.UnitOfWork,
 		deps.UserIdentityGenerator,
 		deps.UserSessionTokenGenerator,
+		deps.InternalChannelTokenGenerator,
 		deps.Now,
 		deps.DefaultAnonymousUserLimits,
 	)
