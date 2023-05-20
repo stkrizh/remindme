@@ -11,6 +11,7 @@ import (
 	"remindme/internal/core/domain/reminder"
 	duow "remindme/internal/core/domain/unit_of_work"
 	"remindme/internal/core/domain/user"
+	"remindme/internal/core/services/captcha"
 	dbchannel "remindme/internal/db/channel"
 	dbreminder "remindme/internal/db/reminder"
 	uow "remindme/internal/db/unit_of_work"
@@ -21,6 +22,7 @@ import (
 	passwordresetter "remindme/internal/implementations/password_resetter"
 	randomstringgenerator "remindme/internal/implementations/random_string_generator"
 	ratelimiter "remindme/internal/implementations/rate_limiter"
+	recaptcha "remindme/internal/implementations/recaptcha"
 	remindernlqparser "remindme/internal/implementations/reminder_nlq_parser"
 	remindersender "remindme/internal/implementations/reminder_sender"
 	telegrambotmessagesender "remindme/internal/implementations/telegram_bot_message_sender"
@@ -63,6 +65,7 @@ type Deps struct {
 	PasswordResetTokenSender      user.PasswordResetTokenSender
 	InternalChannelTokenGenerator channel.InternalChannelTokenGenerator
 	InternalChannelTokenValidator channel.InternalChannelTokenValidator
+	CaptchaValidator              captcha.CaptchaValidator
 	DefaultUserLimits             user.Limits
 	DefaultAnonymousUserLimits    user.Limits
 
@@ -106,6 +109,12 @@ func InitDeps() (*Deps, func()) {
 	deps.PasswordResetTokenSender = user.NewFakePasswordResetTokenSender()
 	deps.InternalChannelTokenGenerator = internalchanneltoken.NewHMAC(deps.Config.Secret)
 	deps.InternalChannelTokenValidator = internalchanneltoken.NewHMAC(deps.Config.Secret)
+	deps.CaptchaValidator = recaptcha.New(
+		deps.Logger,
+		deps.Config.GoogleRecaptchaSecretKey,
+		deps.Config.GoogleRecaptchaScoreThreshold,
+		deps.Config.GoogleRecaptchaRequestTimeout,
+	)
 	deps.DefaultUserLimits = user.Limits{
 		EmailChannelCount:        c.NewOptional(uint32(1), true),
 		TelegramChannelCount:     c.NewOptional(uint32(1), true),

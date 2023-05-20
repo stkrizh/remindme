@@ -7,6 +7,7 @@ import (
 	"remindme/internal/core/services"
 	activateuser "remindme/internal/core/services/activate_user"
 	"remindme/internal/core/services/auth"
+	"remindme/internal/core/services/captcha"
 	changepassword "remindme/internal/core/services/change_password"
 	createemailchannel "remindme/internal/core/services/create_email_channel"
 	createreminder "remindme/internal/core/services/create_reminder"
@@ -63,25 +64,31 @@ type Services struct {
 func InitServices(deps *deps.Deps) *Services {
 	s := &Services{}
 
-	s.SignUpWithEmail = signupwithemail.NewWithActivationTokenSending(
-		deps.Logger,
-		deps.UserActivationTokenSender,
-		signupwithemail.New(
+	s.SignUpWithEmail = captcha.WithCaptcha(
+		deps.CaptchaValidator,
+		signupwithemail.NewWithActivationTokenSending(
 			deps.Logger,
-			deps.UnitOfWork,
-			deps.PasswordHasher,
-			deps.UserActivationTokenGenerator,
-			deps.Now,
+			deps.UserActivationTokenSender,
+			signupwithemail.New(
+				deps.Logger,
+				deps.UnitOfWork,
+				deps.PasswordHasher,
+				deps.UserActivationTokenGenerator,
+				deps.Now,
+			),
 		),
 	)
-	s.SignUpAnonymously = signupanonymously.New(
-		deps.Logger,
-		deps.UnitOfWork,
-		deps.UserIdentityGenerator,
-		deps.UserSessionTokenGenerator,
-		deps.InternalChannelTokenGenerator,
-		deps.Now,
-		deps.DefaultAnonymousUserLimits,
+	s.SignUpAnonymously = captcha.WithCaptcha(
+		deps.CaptchaValidator,
+		signupanonymously.New(
+			deps.Logger,
+			deps.UnitOfWork,
+			deps.UserIdentityGenerator,
+			deps.UserSessionTokenGenerator,
+			deps.InternalChannelTokenGenerator,
+			deps.Now,
+			deps.DefaultAnonymousUserLimits,
+		),
 	)
 	s.ActivateUser = activateuser.New(
 		deps.Logger,

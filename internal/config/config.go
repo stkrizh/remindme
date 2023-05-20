@@ -18,16 +18,19 @@ type Config struct {
 	PostgresqlURL                   string        `env:"POSTGRESQL_URL,notEmpty"`
 	RedisURL                        string        `env:"REDIS_URL,notEmpty"`
 	RabbitmqURL                     string        `env:"RABBITMQ_URL,notEmpty"`
-	RabbitmqDelayedExchange         string        `env:"RABBITMQ_DELAYED_EXHANGE" envDefault:"remindme-delayed"`
-	RabbitmqReminderReadyQueue      string        `env:"RABBITMQ_REMINDER_READY_QUEUE" envDefault:"reminders-ready-for-sending"`
+	RabbitmqDelayedExchange         string        `env:"RABBITMQ_DELAYED_EXHANGE,notEmpty" envDefault:"remindme-delayed"`
+	RabbitmqReminderReadyQueue      string        `env:"RABBITMQ_REMINDER_READY_QUEUE,notEmpty" envDefault:"reminders-ready-for-sending"`
 	BcryptHasherCost                int           `env:"BCRYPT_HASHER_COST" envDefault:"10"`
 	PasswordResetValidDurationHours int           `env:"PASSWORD_RESET_VALIDATION_HOURS" envDefault:"24"`
 	TelegramURLSecret               string        `env:"TELEGRAM_URL_SECRET,notEmpty"`
 	TelegramBaseURL                 url.URL       `env:"TELEGRAM_BASE_URL" envDefault:"https://api.telegram.org"`
 	TelegramBots                    []string      `env:"TELEGRAM_BOTS,notEmpty"`
 	TelegramTokens                  []string      `env:"TELEGRAM_TOKENS,notEmpty"`
-	TelegramRequestTimeout          time.Duration `env:"TELEGRAM_REQUEST_DURATION" envDefault:"30s"`
+	TelegramRequestTimeout          time.Duration `env:"TELEGRAM_REQUEST_TIMEOUT" envDefault:"30s"`
 	RemindersSchedulingPeriod       time.Duration `env:"REMINDERS_SCHEDULING_PERIOD" envDefault:"3h"`
+	GoogleRecaptchaSecretKey        string        `env:"GOOGLE_RECAPTCHA_SECRET_KEY,notEmpty"`
+	GoogleRecaptchaScoreThreshold   float64       `env:"GOOGLE_RECAPTCHA_SCORE_THRESHOLD" envDefault:"0.5"`
+	GoogleRecaptchaRequestTimeout   time.Duration `env:"GOOGLE_RECAPTCHA_REQUEST_TIMEOUT" envDefault:"15s"`
 }
 
 func Load() (*Config, error) {

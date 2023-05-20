@@ -9,6 +9,7 @@ import (
 	e "remindme/internal/core/domain/errors"
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
+	"remindme/internal/core/services/captcha"
 	signupwithemail "remindme/internal/core/services/sign_up_with_email"
 	"remindme/internal/http/handlers/response"
 	"time"
@@ -75,12 +76,16 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			TimeZone: tz,
 		},
 	)
-	if errors.Is(err, user.ErrEmailAlreadyExists) {
-		response.RenderError(rw, "email already exists", http.StatusUnprocessableEntity)
-		return
-	}
+
 	if err != nil {
-		response.RenderInternalError(rw)
+		switch {
+		case errors.Is(err, captcha.ErrInvalidCaptcha):
+			response.RenderError(rw, err.Error(), http.StatusUnprocessableEntity)
+		case errors.Is(err, user.ErrEmailAlreadyExists):
+			response.RenderError(rw, "email already exists", http.StatusUnprocessableEntity)
+		default:
+			response.RenderInternalError(rw)
+		}
 		return
 	}
 

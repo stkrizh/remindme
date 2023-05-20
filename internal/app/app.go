@@ -14,6 +14,7 @@ import (
 	sendpasswordresettoken "remindme/internal/http/handlers/auth/send_password_reset_token"
 	signupanonymously "remindme/internal/http/handlers/auth/sign_up_anonymously"
 	signupwithemail "remindme/internal/http/handlers/auth/sign_up_with_email"
+	"remindme/internal/http/handlers/captcha"
 	createemailchannel "remindme/internal/http/handlers/channels/create_email_channel"
 	createtlgchannel "remindme/internal/http/handlers/channels/create_telegram_channel"
 	internalchannelevents "remindme/internal/http/handlers/channels/internal_channel_events"
@@ -105,6 +106,7 @@ func InitHttpServer(deps *deps.Deps, s *services.Services) *http.Server {
 		AllowCredentials: false,
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}))
+	router.Use(captcha.SetCaptchaTokenToContext)
 	router.Mount("/auth", authRouter)
 	router.Mount("/profile", profileRouter)
 	router.Mount("/channels", channelsRouter)
