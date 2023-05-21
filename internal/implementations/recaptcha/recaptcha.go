@@ -16,9 +16,8 @@ import (
 const RECAPTCHA_VERIFICATION_URL = "https://www.google.com/recaptcha/api/siteverify"
 
 type VerificationResult struct {
-	Success bool    `json:"success"`
-	Score   float64 `json:"score"`
-	Action  string  `json:"action"`
+	Success  bool   `json:"success"`
+	Hostname string `json:"hostname"`
 }
 
 func (r *VerificationResult) FromJSON(reader io.Reader) error {
@@ -86,5 +85,5 @@ func (v *GoogleRecaptchaValidator) ValidateCaptchaToken(ctx context.Context, tok
 		"Recaptcha token has been validated.",
 		logging.Entry("result", result),
 	)
-	return result.Success && result.Score > v.scoreThreshold
+	return result.Success
 }
