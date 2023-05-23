@@ -224,7 +224,7 @@ func (s *testSuite) TestFailIfUserIdModified() {
 		func() time.Time { return NOW },
 	)
 	u := s.users[user.ID(1)]
-	token, err := base64.URLEncoding.DecodeString(string(resetter.GenerateToken(u)))
+	token, err := base64.RawURLEncoding.DecodeString(string(resetter.GenerateToken(u)))
 	s.Nil(err)
 
 	u.ID = user.ID(2)
@@ -242,7 +242,7 @@ func (s *testSuite) TestFailIfTimestampModified() {
 		func() time.Time { return NOW },
 	)
 	u := s.users[user.ID(1)]
-	token, err := base64.URLEncoding.DecodeString(string(resetter.GenerateToken(u)))
+	token, err := base64.RawURLEncoding.DecodeString(string(resetter.GenerateToken(u)))
 	s.Nil(err)
 
 	parts := strings.SplitN(string(token), "-", 4)
@@ -261,7 +261,7 @@ func (s *testSuite) TestFailIfSaltModified() {
 		func() time.Time { return NOW },
 	)
 	u := s.users[user.ID(1)]
-	token, err := base64.URLEncoding.DecodeString(string(resetter.GenerateToken(u)))
+	token, err := base64.RawURLEncoding.DecodeString(string(resetter.GenerateToken(u)))
 	s.Nil(err)
 
 	parts := strings.SplitN(string(token), "-", 4)

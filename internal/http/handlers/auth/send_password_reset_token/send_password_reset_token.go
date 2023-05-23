@@ -10,6 +10,7 @@ import (
 	ratelimiter "remindme/internal/core/domain/rate_limiter"
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
+	"remindme/internal/core/services/captcha"
 	service "remindme/internal/core/services/send_password_reset_token"
 	"remindme/internal/http/handlers/response"
 
@@ -62,16 +63,17 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		r.Context(),
 		service.Input{Email: c.NewEmail(input.Email)},
 	)
-	if errors.Is(err, ratelimiter.ErrRateLimitExceeded) {
-		response.RenderError(rw, "rate limit exceeded", http.StatusTooManyRequests)
-		return
-	}
-	if errors.Is(err, user.ErrUserDoesNotExist) {
-		response.RenderError(rw, "user does not exist", http.StatusUnprocessableEntity)
-		return
-	}
 	if err != nil {
-		response.RenderInternalError(rw)
+		switch {
+		case errors.Is(err, captcha.ErrInvalidCaptcha):
+			response.RenderError(rw, err.Error(), http.StatusUnprocessableEntity)
+		case errors.Is(err, ratelimiter.ErrRateLimitExceeded):
+			response.RenderError(rw, "rate limit exceeded", http.StatusTooManyRequests)
+		case errors.Is(err, user.ErrUserDoesNotExist):
+			response.RenderError(rw, "user does not exist", http.StatusUnprocessableEntity)
+		default:
+			response.RenderInternalError(rw)
+		}
 		return
 	}
 

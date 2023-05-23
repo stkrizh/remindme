@@ -40,7 +40,7 @@ func (i *Input) FromJSON(r io.Reader) error {
 func (i Input) Validate() error {
 	return validation.ValidateStruct(&i,
 		validation.Field(&i.CurrentPassword, validation.Required, validation.Length(0, 256)),
-		validation.Field(&i.NewPassword, validation.Required, validation.Length(6, 256)),
+		validation.Field(&i.NewPassword, validation.Required, validation.Length(8, 256)),
 	)
 }
 

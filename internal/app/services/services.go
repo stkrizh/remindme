@@ -114,15 +114,18 @@ func InitServices(deps *deps.Deps) *Services {
 		deps.Logger,
 		deps.SessionRepository,
 	)
-	s.SendPasswordResetToken = ratelimiting.WithRateLimiting(
-		deps.Logger,
-		deps.RateLimiter,
-		drl.Limit{Interval: drl.Hour, Value: 3},
-		sendpasswordresettoken.New(
+	s.SendPasswordResetToken = captcha.WithCaptcha(
+		deps.CaptchaValidator,
+		ratelimiting.WithRateLimiting(
 			deps.Logger,
-			deps.UserRepository,
-			deps.PasswordResetter,
-			deps.PasswordResetTokenSender,
+			deps.RateLimiter,
+			drl.Limit{Interval: drl.Hour, Value: 3},
+			sendpasswordresettoken.New(
+				deps.Logger,
+				deps.UserRepository,
+				deps.PasswordResetter,
+				deps.PasswordResetTokenSender,
+			),
 		),
 	)
 	s.ResetPassword = resetpassword.New(

@@ -34,12 +34,12 @@ func (h *HMAC) GenerateToken(u user.User) user.PasswordResetToken {
 	nowTs := h.now().Unix()
 	salt := h.getRandomSalt()
 	mac := h.getMac(u.ID, u.PasswordHash.Value, nowTs, salt)
-	b64 := base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%d-%d-%s-%s", u.ID, nowTs, salt, mac)))
+	b64 := base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf("%d-%d-%s-%s", u.ID, nowTs, salt, mac)))
 	return user.PasswordResetToken(b64)
 }
 
 func (h *HMAC) ValidateToken(u user.User, token user.PasswordResetToken) bool {
-	decodedToken, err := base64.URLEncoding.DecodeString(string(token))
+	decodedToken, err := base64.RawURLEncoding.DecodeString(string(token))
 	if err != nil {
 		return false
 	}
@@ -62,7 +62,7 @@ func (h *HMAC) ValidateToken(u user.User, token user.PasswordResetToken) bool {
 }
 
 func (h *HMAC) GetUserID(token user.PasswordResetToken) (userID user.ID, ok bool) {
-	decodedToken, err := base64.URLEncoding.DecodeString(string(token))
+	decodedToken, err := base64.RawURLEncoding.DecodeString(string(token))
 	if err != nil {
 		return userID, false
 	}

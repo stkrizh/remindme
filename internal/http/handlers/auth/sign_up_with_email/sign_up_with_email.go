@@ -47,7 +47,7 @@ func (i *Input) FromJSON(r io.Reader) error {
 func (i Input) Validate() error {
 	return validation.ValidateStruct(&i,
 		validation.Field(&i.Email, validation.Required, is.Email, validation.Length(0, 512)),
-		validation.Field(&i.Password, validation.Required, validation.Length(6, 256)),
+		validation.Field(&i.Password, validation.Required, validation.Length(8, 256)),
 		validation.Field(&i.TimeZone, validation.Required, validation.Length(1, 64)),
 	)
 }

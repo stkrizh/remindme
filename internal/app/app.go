@@ -46,10 +46,10 @@ func InitHttpServer(deps *deps.Deps, s *services.Services) *http.Server {
 	authRouter.Method(http.MethodPost, "/logout", logout.New(s.LogOut))
 	authRouter.Method(
 		http.MethodPost,
-		"/password_reset/send",
+		"/password_reset/token",
 		sendpasswordresettoken.New(s.SendPasswordResetToken, isTestMode),
 	)
-	authRouter.Method(http.MethodPost, "/password_reset", resetpassword.New(s.ResetPassword))
+	authRouter.Method(http.MethodPut, "/password_reset", resetpassword.New(s.ResetPassword))
 
 	profileRouter := chi.NewRouter()
 	profileRouter.Use(auth.SetAuthTokenToContext)
