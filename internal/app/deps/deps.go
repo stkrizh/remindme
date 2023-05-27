@@ -50,6 +50,7 @@ type Deps struct {
 
 	UnitOfWork         duow.UnitOfWork
 	UserRepository     user.UserRepository
+	LimitsRepository   user.LimitsRepository
 	SessionRepository  user.SessionRepository
 	ChannelRepository  channel.Repository
 	ReminderRepository reminder.ReminderRepository
@@ -90,6 +91,7 @@ func InitDeps() (*Deps, func()) {
 
 	deps.UnitOfWork = uow.NewPgxUnitOfWork(deps.DB)
 	deps.UserRepository = dbuser.NewPgxRepository(deps.DB)
+	deps.LimitsRepository = dbuser.NewPgxLimitsRepository(deps.DB)
 	deps.SessionRepository = dbuser.NewPgxSessionRepository(deps.DB)
 	deps.ChannelRepository = dbchannel.NewPgxChannelRepository(deps.DB)
 	deps.ReminderRepository = dbreminder.NewPgxReminderRepository(deps.DB)
@@ -109,12 +111,7 @@ func InitDeps() (*Deps, func()) {
 	deps.PasswordResetTokenSender = user.NewFakePasswordResetTokenSender()
 	deps.InternalChannelTokenGenerator = internalchanneltoken.NewHMAC(deps.Config.Secret)
 	deps.InternalChannelTokenValidator = internalchanneltoken.NewHMAC(deps.Config.Secret)
-	deps.CaptchaValidator = recaptcha.New(
-		deps.Logger,
-		deps.Config.GoogleRecaptchaSecretKey,
-		deps.Config.GoogleRecaptchaScoreThreshold,
-		deps.Config.GoogleRecaptchaRequestTimeout,
-	)
+	deps.CaptchaValidator = deps.initCaptchaValidator()
 	deps.DefaultUserLimits = user.Limits{
 		EmailChannelCount:        c.NewOptional(uint32(1), true),
 		TelegramChannelCount:     c.NewOptional(uint32(1), true),
@@ -289,4 +286,16 @@ func (deps *Deps) initSseServer() func() {
 		deps.SseServer.Close()
 		deps.Logger.Info(context.Background(), "SSE server shut down.")
 	}
+}
+
+func (deps *Deps) initCaptchaValidator() captcha.CaptchaValidator {
+	if deps.Config.IsTestMode {
+		return captcha.NewAllowAlwaysCaptchaValidator()
+	}
+	return recaptcha.New(
+		deps.Logger,
+		deps.Config.GoogleRecaptchaSecretKey,
+		deps.Config.GoogleRecaptchaScoreThreshold,
+		deps.Config.GoogleRecaptchaRequestTimeout,
+	)
 }

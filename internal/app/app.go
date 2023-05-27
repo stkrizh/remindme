@@ -28,6 +28,7 @@ import (
 	updatereminderchannels "remindme/internal/http/handlers/reminders/update_reminder_channels"
 	telegram "remindme/internal/http/handlers/telegram"
 	changepassword "remindme/internal/http/handlers/user/change_password"
+	limits "remindme/internal/http/handlers/user/limits"
 	me "remindme/internal/http/handlers/user/me"
 	updateuser "remindme/internal/http/handlers/user/update_user"
 
@@ -56,6 +57,7 @@ func InitHttpServer(deps *deps.Deps, s *services.Services) *http.Server {
 	profileRouter.Method(http.MethodGet, "/me", me.New(s.GetUserBySessionToken))
 	profileRouter.Method(http.MethodPatch, "/me", updateuser.New(s.UpdateUser))
 	profileRouter.Method(http.MethodPut, "/password", changepassword.New(s.ChangePassword))
+	profileRouter.Method(http.MethodGet, "/limits", limits.New(s.GetUserLimits))
 
 	channelsRouter := chi.NewRouter()
 	channelsRouter.Use(auth.SetAuthTokenToContext)

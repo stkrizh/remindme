@@ -15,6 +15,7 @@ import (
 	createtelegramchannel "remindme/internal/core/services/create_telegram_channel"
 	deletereminder "remindme/internal/core/services/delete_reminder"
 	getuserbysessiontoken "remindme/internal/core/services/get_user_by_session_token"
+	getuserlimits "remindme/internal/core/services/get_user_limits"
 	listuserchannels "remindme/internal/core/services/list_user_channels"
 	listuserreminders "remindme/internal/core/services/list_user_reminders"
 	loginwithemail "remindme/internal/core/services/log_in_with_email"
@@ -38,12 +39,14 @@ type Services struct {
 	SignUpAnonymously      services.Service[signupanonymously.Input, signupanonymously.Result]
 	ActivateUser           services.Service[activateuser.Input, activateuser.Result]
 	LogInWithEmail         services.Service[loginwithemail.Input, loginwithemail.Result]
-	LogOut                 services.Service[logout.Input, logout.Result]
 	SendPasswordResetToken services.Service[sendpasswordresettoken.Input, sendpasswordresettoken.Result]
 	ResetPassword          services.Service[resetpassword.Input, resetpassword.Result]
-	ChangePassword         services.Service[changepassword.Input, changepassword.Result]
-	GetUserBySessionToken  services.Service[getuserbysessiontoken.Input, getuserbysessiontoken.Result]
-	UpdateUser             services.Service[updateuser.Input, updateuser.Result]
+
+	ChangePassword        services.Service[changepassword.Input, changepassword.Result]
+	GetUserBySessionToken services.Service[getuserbysessiontoken.Input, getuserbysessiontoken.Result]
+	UpdateUser            services.Service[updateuser.Input, updateuser.Result]
+	GetUserLimits         services.Service[getuserlimits.Input, getuserlimits.Result]
+	LogOut                services.Service[logout.Input, logout.Result]
 
 	CreateEmailChannel    services.Service[createemailchannel.Input, createemailchannel.Result]
 	CreateTelegramChannel services.Service[createtelegramchannel.Input, createtelegramchannel.Result]
@@ -152,6 +155,16 @@ func InitServices(deps *deps.Deps) *Services {
 	s.GetUserBySessionToken = auth.WithAuthentication(
 		deps.SessionRepository,
 		getuserbysessiontoken.New(),
+	)
+	s.GetUserLimits = auth.WithAuthentication(
+		deps.SessionRepository,
+		getuserlimits.New(
+			deps.Logger,
+			deps.LimitsRepository,
+			deps.ChannelRepository,
+			deps.ReminderRepository,
+			deps.Now,
+		),
 	)
 
 	s.CreateEmailChannel = auth.WithAuthentication(
