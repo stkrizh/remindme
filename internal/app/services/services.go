@@ -14,8 +14,10 @@ import (
 	createreminderbynlq "remindme/internal/core/services/create_reminder_by_nlq"
 	createtelegramchannel "remindme/internal/core/services/create_telegram_channel"
 	deletereminder "remindme/internal/core/services/delete_reminder"
+	getlimitforactivereminders "remindme/internal/core/services/get_limit_for_active_reminders"
+	getlimitforchannels "remindme/internal/core/services/get_limit_for_channels"
+	getlimitforsentreminders "remindme/internal/core/services/get_limit_for_sent_reminders"
 	getuserbysessiontoken "remindme/internal/core/services/get_user_by_session_token"
-	getuserlimits "remindme/internal/core/services/get_user_limits"
 	listuserchannels "remindme/internal/core/services/list_user_channels"
 	listuserreminders "remindme/internal/core/services/list_user_reminders"
 	loginwithemail "remindme/internal/core/services/log_in_with_email"
@@ -42,11 +44,13 @@ type Services struct {
 	SendPasswordResetToken services.Service[sendpasswordresettoken.Input, sendpasswordresettoken.Result]
 	ResetPassword          services.Service[resetpassword.Input, resetpassword.Result]
 
-	ChangePassword        services.Service[changepassword.Input, changepassword.Result]
-	GetUserBySessionToken services.Service[getuserbysessiontoken.Input, getuserbysessiontoken.Result]
-	UpdateUser            services.Service[updateuser.Input, updateuser.Result]
-	GetUserLimits         services.Service[getuserlimits.Input, getuserlimits.Result]
-	LogOut                services.Service[logout.Input, logout.Result]
+	ChangePassword             services.Service[changepassword.Input, changepassword.Result]
+	GetUserBySessionToken      services.Service[getuserbysessiontoken.Input, getuserbysessiontoken.Result]
+	UpdateUser                 services.Service[updateuser.Input, updateuser.Result]
+	GetLimitForActiveReminders services.Service[getlimitforactivereminders.Input, getlimitforactivereminders.Result]
+	GetLimitForSentReminders   services.Service[getlimitforsentreminders.Input, getlimitforsentreminders.Result]
+	GetLimitForChannels        services.Service[getlimitforchannels.Input, getlimitforchannels.Result]
+	LogOut                     services.Service[logout.Input, logout.Result]
 
 	CreateEmailChannel    services.Service[createemailchannel.Input, createemailchannel.Result]
 	CreateTelegramChannel services.Service[createtelegramchannel.Input, createtelegramchannel.Result]
@@ -156,14 +160,29 @@ func InitServices(deps *deps.Deps) *Services {
 		deps.SessionRepository,
 		getuserbysessiontoken.New(),
 	)
-	s.GetUserLimits = auth.WithAuthentication(
+	s.GetLimitForActiveReminders = auth.WithAuthentication(
 		deps.SessionRepository,
-		getuserlimits.New(
+		getlimitforactivereminders.New(
+			deps.Logger,
+			deps.LimitsRepository,
+			deps.ReminderRepository,
+		),
+	)
+	s.GetLimitForSentReminders = auth.WithAuthentication(
+		deps.SessionRepository,
+		getlimitforsentreminders.New(
+			deps.Logger,
+			deps.LimitsRepository,
+			deps.ReminderRepository,
+			deps.Now,
+		),
+	)
+	s.GetLimitForChannels = auth.WithAuthentication(
+		deps.SessionRepository,
+		getlimitforchannels.New(
 			deps.Logger,
 			deps.LimitsRepository,
 			deps.ChannelRepository,
-			deps.ReminderRepository,
-			deps.Now,
 		),
 	)
 

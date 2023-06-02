@@ -75,3 +75,8 @@ type Limits struct {
 	MonthlySentReminderCount c.Optional[uint32]
 	ReminderEveryPerDayCount c.Optional[float64]
 }
+
+type Limit struct {
+	Value  uint32
+	Actual uint32
+}

@@ -6,7 +6,7 @@ import (
 	e "remindme/internal/core/domain/errors"
 	"remindme/internal/core/domain/user"
 	"remindme/internal/core/services"
-	service "remindme/internal/core/services/get_user_limits"
+	service "remindme/internal/core/services/get_limit_for_active_reminders"
 	"remindme/internal/http/handlers/response"
 )
 
@@ -24,8 +24,7 @@ func New(
 }
 
 type Result struct {
-	Limits response.Limits `json:"limits"`
-	Values response.Limits `json:"values"`
+	Limit *response.Limit `json:"limit"`
 }
 
 func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
@@ -42,9 +41,11 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	limits := response.Limits{}
-	limits.FromDomainLimits(result.Limits)
-	values := response.Limits{}
-	values.FromDomainLimits(result.Values)
-	response.Render(rw, Result{Limits: limits, Values: values}, http.StatusOK)
+	res := Result{}
+	if result.Limit.IsPresent {
+		limit := &response.Limit{}
+		limit.FromDomain(result.Limit.Value)
+		res.Limit = limit
+	}
+	response.Render(rw, res, http.StatusOK)
 }
