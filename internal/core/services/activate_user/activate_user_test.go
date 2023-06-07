@@ -32,20 +32,17 @@ var (
 
 type testSuite struct {
 	suite.Suite
-	Logger   *logging.FakeLogger
-	Uow      *uow.FakeUnitOfWork
-	TokenGen *channel.TestInternalChannelTokenGenerator
-	Service  services.Service[Input, Result]
+	Logger  *logging.FakeLogger
+	Uow     *uow.FakeUnitOfWork
+	Service services.Service[Input, Result]
 }
 
 func (suite *testSuite) SetupTest() {
 	suite.Logger = logging.NewFakeLogger()
 	suite.Uow = uow.NewFakeUnitOfWork()
-	suite.TokenGen = channel.NewTestInternalChannelTokenGenerator(INTERNAL_CHANNEL_TOKEN)
 	suite.Service = New(
 		suite.Logger,
 		suite.Uow,
-		suite.TokenGen,
 		func() time.Time { return Now },
 		DefaultLimits,
 	)
@@ -120,10 +117,6 @@ func (s *testSuite) TestSuccessInternalChannelCreated() {
 	createdInternalChannel := createdChannels[0]
 	s.Equal(inactiveUser.ID, createdInternalChannel.CreatedBy)
 	s.Equal(channel.Internal, createdInternalChannel.Type)
-	s.Equal(
-		channel.InternalChannelToken(INTERNAL_CHANNEL_TOKEN),
-		createdInternalChannel.Settings.(*channel.InternalSettings).Token,
-	)
 	s.True(createdInternalChannel.IsVerified())
 
 	s.True(s.Uow.Context.WasCommitCalled)

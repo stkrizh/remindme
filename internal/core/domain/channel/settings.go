@@ -43,26 +43,12 @@ func (s *TelegramSettings) Accept(v SettingsVisitor) error {
 	return v.VisitTelegram(s)
 }
 
-type InternalChannelToken string
+type InternalSettings struct{}
 
-type InternalSettings struct {
-	Token InternalChannelToken
-}
-
-func NewInternalSettings(token InternalChannelToken) *InternalSettings {
-	return &InternalSettings{
-		Token: token,
-	}
+func NewInternalSettings() *InternalSettings {
+	return &InternalSettings{}
 }
 
 func (s *InternalSettings) Accept(v SettingsVisitor) error {
 	return v.VisitInternal(s)
-}
-
-type InternalChannelTokenGenerator interface {
-	GenerateInternalChannelToken() InternalChannelToken
-}
-
-type InternalChannelTokenValidator interface {
-	ValidateInternalChannelToken(token InternalChannelToken) bool
 }

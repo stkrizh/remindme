@@ -22,7 +22,6 @@ type Result struct{}
 type service struct {
 	log           logging.Logger
 	uow           uow.UnitOfWork
-	tokenGen      channel.InternalChannelTokenGenerator
 	now           func() time.Time
 	defaultLimits user.Limits
 }
@@ -30,7 +29,6 @@ type service struct {
 func New(
 	log logging.Logger,
 	uow uow.UnitOfWork,
-	tokenGen channel.InternalChannelTokenGenerator,
 	now func() time.Time,
 	defaultLimits user.Limits,
 ) services.Service[Input, Result] {
@@ -40,16 +38,12 @@ func New(
 	if uow == nil {
 		panic(e.NewNilArgumentError("uow"))
 	}
-	if tokenGen == nil {
-		panic(e.NewNilArgumentError("tokenGen"))
-	}
 	if now == nil {
 		panic(e.NewNilArgumentError("now"))
 	}
 	return &service{
 		log:           log,
 		uow:           uow,
-		tokenGen:      tokenGen,
 		now:           now,
 		defaultLimits: defaultLimits,
 	}
@@ -131,26 +125,24 @@ func (s *service) createInternalChannel(
 	user user.User,
 ) error {
 	now := s.now()
-	token := s.tokenGen.GenerateInternalChannelToken()
 	newChannel, err := uow.Channels().Create(
 		ctx,
 		channel.CreateInput{
 			CreatedBy:  user.ID,
 			Type:       channel.Internal,
-			Settings:   channel.NewInternalSettings(token),
+			Settings:   channel.NewInternalSettings(),
 			CreatedAt:  now,
 			VerifiedAt: c.NewOptional(now, true),
 		},
 	)
 	if err != nil {
-		logging.Error(ctx, s.log, err, logging.Entry("userID", user.ID), logging.Entry("token", token))
+		logging.Error(ctx, s.log, err, logging.Entry("userID", user.ID))
 		return err
 	}
 	s.log.Info(
 		ctx,
 		"Internal channel successfully created for the activated user.",
 		logging.Entry("userID", user.ID),
-		logging.Entry("token", token),
 		logging.Entry("channelID", newChannel.ID),
 	)
 	return nil

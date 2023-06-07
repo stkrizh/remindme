@@ -251,7 +251,6 @@ func (c *settingsJSONBEncoder) VisitTelegram(s *channel.TelegramSettings) error 
 
 func (c *settingsJSONBEncoder) VisitInternal(s *channel.InternalSettings) error {
 	settings := make(map[string]interface{})
-	settings[SETTINGS_INTERNAL_TOKEN] = string(s.Token)
 	if err := c.result.Set(settings); err != nil {
 		return err
 	}
@@ -313,15 +312,6 @@ func (d *settingsJSONBDecoder) VisitTelegram(s *channel.TelegramSettings) error 
 }
 
 func (d *settingsJSONBDecoder) VisitInternal(s *channel.InternalSettings) error {
-	rawToken, ok := d.encoded[SETTINGS_INTERNAL_TOKEN]
-	if !ok {
-		return fmt.Errorf("could not get internal token from channel settings: %v", d.encoded)
-	}
-	token, ok := rawToken.(string)
-	if !ok {
-		return fmt.Errorf("internal settings token is not a string: %v", d.encoded)
-	}
-	s.Token = channel.InternalChannelToken(token)
 	return nil
 }
 

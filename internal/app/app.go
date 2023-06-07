@@ -17,7 +17,6 @@ import (
 	"remindme/internal/http/handlers/captcha"
 	createemailchannel "remindme/internal/http/handlers/channels/create_email_channel"
 	createtlgchannel "remindme/internal/http/handlers/channels/create_telegram_channel"
-	internalchannelevents "remindme/internal/http/handlers/channels/internal_channel_events"
 	listuserchannels "remindme/internal/http/handlers/channels/list_user_channels"
 	verifyemailchannel "remindme/internal/http/handlers/channels/verify_email_channel"
 	cancelreminder "remindme/internal/http/handlers/reminders/cancel_reminder"
@@ -28,6 +27,7 @@ import (
 	updatereminderchannels "remindme/internal/http/handlers/reminders/update_reminder_channels"
 	telegram "remindme/internal/http/handlers/telegram"
 	changepassword "remindme/internal/http/handlers/user/change_password"
+	"remindme/internal/http/handlers/user/events"
 	limitforactivereminders "remindme/internal/http/handlers/user/limit_for_active_reminders"
 	limitforchannels "remindme/internal/http/handlers/user/limit_for_channels"
 	limitforsentreminders "remindme/internal/http/handlers/user/limit_for_sent_reminders"
@@ -85,11 +85,6 @@ func InitHttpServer(deps *deps.Deps, s *services.Services) *http.Server {
 		"/{channelID:[0-9]+}/verification",
 		verifyemailchannel.New(s.VerifyEmailChannel),
 	)
-	channelsRouter.Method(
-		http.MethodGet,
-		"/internal/events",
-		internalchannelevents.New(deps.Logger, deps.SseServer, deps.InternalChannelTokenValidator),
-	)
 	// TODO: delete channel
 
 	reminderRouter := chi.NewRouter()
@@ -126,6 +121,11 @@ func InitHttpServer(deps *deps.Deps, s *services.Services) *http.Server {
 	router.Mount("/channels", channelsRouter)
 	router.Mount("/reminders", reminderRouter)
 	router.Mount("/telegram", telegramRouter)
+	router.Method(
+		http.MethodGet,
+		"/sse/{sessionToken}",
+		events.New(deps.Logger, deps.SseServer, s.GetUserBySessionToken),
+	)
 
 	address := fmt.Sprintf("0.0.0.0:%d", deps.Config.Port)
 

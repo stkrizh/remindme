@@ -55,16 +55,12 @@ func TestChannelSettingsEncoding(t *testing.T) {
 		{
 			id:       "internal-1",
 			chanType: channel.Internal,
-			settings: &channel.InternalSettings{
-				Token: channel.InternalChannelToken("test-1"),
-			},
+			settings: &channel.InternalSettings{},
 		},
 		{
 			id:       "internal-2",
 			chanType: channel.Internal,
-			settings: &channel.InternalSettings{
-				Token: channel.InternalChannelToken(""),
-			},
+			settings: &channel.InternalSettings{},
 		},
 	}
 	for _, testcase := range cases {
@@ -193,7 +189,7 @@ func (s *testSuite) TestCreateSuccess() {
 			input: channel.CreateInput{
 				CreatedBy:  s.user.ID,
 				Type:       channel.Internal,
-				Settings:   channel.NewInternalSettings(channel.InternalChannelToken("test-1")),
+				Settings:   channel.NewInternalSettings(),
 				CreatedAt:  time.Now().UTC().Truncate(time.Second),
 				VerifiedAt: c.NewOptional(time.Now().UTC().Truncate(time.Second), true),
 				IsDefault:  true,
@@ -204,7 +200,7 @@ func (s *testSuite) TestCreateSuccess() {
 			input: channel.CreateInput{
 				CreatedBy:         s.user.ID,
 				Type:              channel.Internal,
-				Settings:          channel.NewInternalSettings(channel.InternalChannelToken("test-2")),
+				Settings:          channel.NewInternalSettings(),
 				CreatedAt:         Now,
 				VerificationToken: c.NewOptional(channel.VerificationToken("test-2"), true),
 			},
@@ -420,7 +416,7 @@ func (s *testSuite) createChannel(t channel.Type, u user.User, isDefault bool) c
 	case channel.Telegram:
 		settings = channel.NewTelegramSettings(channel.TelegramBot("test"), channel.TelegramChatID(123))
 	case channel.Internal:
-		settings = channel.NewInternalSettings(channel.InternalChannelToken("internal-settings-token"))
+		settings = channel.NewInternalSettings()
 	default:
 		s.FailNow("unknown channel type", t)
 	}

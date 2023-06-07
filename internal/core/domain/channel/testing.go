@@ -126,17 +126,3 @@ func (g *FakeVerificationTokenSender) SendVerificationToken(
 	g.SetChannels = append(g.SetChannels, channel)
 	return nil
 }
-
-type TestInternalChannelTokenGenerator struct {
-	Token InternalChannelToken
-}
-
-func NewTestInternalChannelTokenGenerator(token string) *TestInternalChannelTokenGenerator {
-	return &TestInternalChannelTokenGenerator{
-		Token: InternalChannelToken(token),
-	}
-}
-
-func (g *TestInternalChannelTokenGenerator) GenerateInternalChannelToken() InternalChannelToken {
-	return g.Token
-}

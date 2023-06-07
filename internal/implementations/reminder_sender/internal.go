@@ -2,7 +2,6 @@ package remindersender
 
 import (
 	"context"
-	"fmt"
 	"remindme/internal/core/domain/channel"
 	e "remindme/internal/core/domain/errors"
 	"remindme/internal/core/domain/reminder"
@@ -28,9 +27,5 @@ func (s *InternalSender) SendReminder(
 	rem reminder.Reminder,
 	settings *channel.InternalSettings,
 ) error {
-	s.sseServer.Publish(string(settings.Token), &sse.Event{
-		Event: []byte("reminder"),
-		Data:  []byte(fmt.Sprintf("%d:%s", rem.ID, rem.Body)),
-	})
 	return nil
 }

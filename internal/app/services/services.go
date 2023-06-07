@@ -92,7 +92,6 @@ func InitServices(deps *deps.Deps) *Services {
 			deps.UnitOfWork,
 			deps.UserIdentityGenerator,
 			deps.UserSessionTokenGenerator,
-			deps.InternalChannelTokenGenerator,
 			deps.Now,
 			deps.DefaultAnonymousUserLimits,
 		),
@@ -100,7 +99,6 @@ func InitServices(deps *deps.Deps) *Services {
 	s.ActivateUser = activateuser.New(
 		deps.Logger,
 		deps.UnitOfWork,
-		deps.InternalChannelTokenGenerator,
 		deps.Now,
 		deps.DefaultUserLimits,
 	)

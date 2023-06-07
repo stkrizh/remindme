@@ -25,9 +25,7 @@ func (e *channelSettingsJSONEncoder) VisitTelegram(s *channel.TelegramSettings) 
 }
 
 func (e *channelSettingsJSONEncoder) VisitInternal(s *channel.InternalSettings) error {
-	e.channel.InternalSettigns = &InternalSettings{
-		Token: string(s.Token),
-	}
+	e.channel.InternalSettigns = &InternalSettings{}
 	return nil
 }
 
@@ -40,9 +38,7 @@ type TelegramSettings struct {
 	ChatID int64  `json:"chat_id"`
 }
 
-type InternalSettings struct {
-	Token string `json:"token"`
-}
+type InternalSettings struct{}
 
 type Channel struct {
 	ID                int64             `json:"id"`

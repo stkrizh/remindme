@@ -16,7 +16,6 @@ import (
 	dbreminder "remindme/internal/db/reminder"
 	uow "remindme/internal/db/unit_of_work"
 	dbuser "remindme/internal/db/user"
-	internalchanneltoken "remindme/internal/implementations/internal_channel_token"
 	"remindme/internal/implementations/logging"
 	passwordhasher "remindme/internal/implementations/password_hasher"
 	passwordresetter "remindme/internal/implementations/password_resetter"
@@ -57,18 +56,16 @@ type Deps struct {
 
 	RateLimiter drl.RateLimiter
 
-	UserActivationTokenGenerator  user.ActivationTokenGenerator
-	UserActivationTokenSender     user.ActivationTokenSender
-	UserIdentityGenerator         user.IdentityGenerator
-	UserSessionTokenGenerator     user.SessionTokenGenerator
-	PasswordHasher                user.PasswordHasher
-	PasswordResetter              user.PasswordResetter
-	PasswordResetTokenSender      user.PasswordResetTokenSender
-	InternalChannelTokenGenerator channel.InternalChannelTokenGenerator
-	InternalChannelTokenValidator channel.InternalChannelTokenValidator
-	CaptchaValidator              captcha.CaptchaValidator
-	DefaultUserLimits             user.Limits
-	DefaultAnonymousUserLimits    user.Limits
+	UserActivationTokenGenerator user.ActivationTokenGenerator
+	UserActivationTokenSender    user.ActivationTokenSender
+	UserIdentityGenerator        user.IdentityGenerator
+	UserSessionTokenGenerator    user.SessionTokenGenerator
+	PasswordHasher               user.PasswordHasher
+	PasswordResetter             user.PasswordResetter
+	PasswordResetTokenSender     user.PasswordResetTokenSender
+	CaptchaValidator             captcha.CaptchaValidator
+	DefaultUserLimits            user.Limits
+	DefaultAnonymousUserLimits   user.Limits
 
 	ChannelVerificationTokenGenerator channel.VerificationTokenGenerator
 
@@ -109,8 +106,6 @@ func InitDeps() (*Deps, func()) {
 		deps.Now,
 	)
 	deps.PasswordResetTokenSender = user.NewFakePasswordResetTokenSender()
-	deps.InternalChannelTokenGenerator = internalchanneltoken.NewHMAC(deps.Config.Secret)
-	deps.InternalChannelTokenValidator = internalchanneltoken.NewHMAC(deps.Config.Secret)
 	deps.CaptchaValidator = deps.initCaptchaValidator()
 	deps.DefaultUserLimits = user.Limits{
 		EmailChannelCount:        c.NewOptional(uint32(1), true),
@@ -140,6 +135,7 @@ func InitDeps() (*Deps, func()) {
 	deps.ReminderSender = remindersender.New(
 		deps.Logger,
 		deps.ChannelRepository,
+		deps.SseServer,
 		remindersender.NewEmail(),
 		remindersender.NewTelegram(deps.TelegramBotMessageSender),
 		remindersender.NewInternal(deps.SseServer),
@@ -280,6 +276,7 @@ func (deps *Deps) initRabbitmqReminderScheduler() func() {
 
 func (deps *Deps) initSseServer() func() {
 	deps.SseServer = sse.New()
+	deps.SseServer.AutoStream = true
 	deps.SseServer.AutoReplay = false
 	return func() {
 		deps.Logger.Info(context.Background(), "Shutting down SSE server.")

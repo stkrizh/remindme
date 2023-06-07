@@ -25,13 +25,12 @@ type Result struct {
 }
 
 type service struct {
-	log                           logging.Logger
-	uow                           uow.UnitOfWork
-	identityGenerator             user.IdentityGenerator
-	sessionTokenGenerator         user.SessionTokenGenerator
-	internalChannelTokenGenerator channel.InternalChannelTokenGenerator
-	now                           func() time.Time
-	defaultLimits                 user.Limits
+	log                   logging.Logger
+	uow                   uow.UnitOfWork
+	identityGenerator     user.IdentityGenerator
+	sessionTokenGenerator user.SessionTokenGenerator
+	now                   func() time.Time
+	defaultLimits         user.Limits
 }
 
 func New(
@@ -39,7 +38,6 @@ func New(
 	unitOfWork uow.UnitOfWork,
 	identityGenerator user.IdentityGenerator,
 	sessionTokenGenerator user.SessionTokenGenerator,
-	internalChannelTokenGenerator channel.InternalChannelTokenGenerator,
 	now func() time.Time,
 	defaultLimits user.Limits,
 ) services.Service[Input, Result] {
@@ -55,20 +53,16 @@ func New(
 	if sessionTokenGenerator == nil {
 		panic(e.NewNilArgumentError("sessionTokenGenerator"))
 	}
-	if internalChannelTokenGenerator == nil {
-		panic(e.NewNilArgumentError("internalChannelTokenGenerator"))
-	}
 	if now == nil {
 		panic(e.NewNilArgumentError("now"))
 	}
 	return &service{
-		log:                           log,
-		uow:                           unitOfWork,
-		identityGenerator:             identityGenerator,
-		sessionTokenGenerator:         sessionTokenGenerator,
-		internalChannelTokenGenerator: internalChannelTokenGenerator,
-		now:                           now,
-		defaultLimits:                 defaultLimits,
+		log:                   log,
+		uow:                   unitOfWork,
+		identityGenerator:     identityGenerator,
+		sessionTokenGenerator: sessionTokenGenerator,
+		now:                   now,
+		defaultLimits:         defaultLimits,
 	}
 }
 
@@ -152,26 +146,24 @@ func (s *service) createInternalChannel(
 	user user.User,
 ) error {
 	now := s.now()
-	token := s.internalChannelTokenGenerator.GenerateInternalChannelToken()
 	newChannel, err := uow.Channels().Create(
 		ctx,
 		channel.CreateInput{
 			CreatedBy:  user.ID,
 			Type:       channel.Internal,
-			Settings:   channel.NewInternalSettings(token),
+			Settings:   channel.NewInternalSettings(),
 			CreatedAt:  now,
 			VerifiedAt: common.NewOptional(now, true),
 		},
 	)
 	if err != nil {
-		logging.Error(ctx, s.log, err, logging.Entry("userID", user.ID), logging.Entry("token", token))
+		logging.Error(ctx, s.log, err, logging.Entry("userID", user.ID))
 		return err
 	}
 	s.log.Info(
 		ctx,
 		"Internal channel successfully created for the anonymous user.",
 		logging.Entry("userID", user.ID),
-		logging.Entry("token", token),
 		logging.Entry("channelID", newChannel.ID),
 	)
 	return nil
