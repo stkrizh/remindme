@@ -8,6 +8,9 @@ import (
 
 type TestReminderRepository struct {
 	CreateError          error
+	CreatedCount         int
+	Created              Reminder
+	CreatedID            ID
 	GetByIDError         error
 	GetByIDReminder      ReminderWithChannels
 	ReadError            error
@@ -36,14 +39,22 @@ func (r *TestReminderRepository) Create(ctx context.Context, input CreateInput) 
 	if r.CreateError != nil {
 		return rem, r.CreateError
 	}
+	rem.ID = r.CreatedID
 	rem.CreatedBy = input.CreatedBy
 	rem.CreatedAt = input.CreatedAt
 	rem.At = input.At
 	rem.Every = input.Every
 	rem.Status = input.Status
+	rem.Body = input.Body
 	rem.ScheduledAt = input.ScheduledAt
 	rem.SentAt = input.SentAt
 	rem.CanceledAt = input.CanceledAt
+
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.CreatedCount++
+	r.Created = rem
+
 	return rem, err
 }
 

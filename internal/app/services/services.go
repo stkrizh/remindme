@@ -299,10 +299,15 @@ func InitServices(deps *deps.Deps) *Services {
 		deps.ReminderRepository,
 		deps.ReminderSender,
 		deps.Now,
-		sendreminder.NewPrepareService(
+		sendreminder.NewCreateNextPeriodicService(
 			deps.Logger,
 			deps.UnitOfWork,
-			deps.Now,
+			deps.ReminderScheduler,
+			sendreminder.NewPrepareService(
+				deps.Logger,
+				deps.UnitOfWork,
+				deps.Now,
+			),
 		),
 	)
 
