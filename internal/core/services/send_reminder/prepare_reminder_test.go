@@ -105,7 +105,7 @@ func TestReminderNotFound(t *testing.T) {
 
 	// Verify ---
 	assert := require.New(t)
-	assert.ErrorIs(err, reminder.ErrReminderDoesNotExist)
+	assert.Nil(err)
 	assert.False(unitOfWork.Context.WasCommitCalled)
 	assert.True(unitOfWork.Context.WasRollbackCalled)
 }

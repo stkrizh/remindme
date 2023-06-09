@@ -52,7 +52,8 @@ func (s *createNextPeriodicService) Run(ctx context.Context, input Input) (resul
 		s.log.Info(
 			ctx,
 			"Reminder is not periodic, skip the next reminder creation.",
-			logging.Entry("result", result),
+			logging.Entry("input", input),
+			logging.Entry("every", result.Reminder.Every),
 		)
 		return result, err
 	}
@@ -119,7 +120,6 @@ func (s *createNextPeriodicService) Run(ctx context.Context, input Input) (resul
 	s.log.Info(
 		ctx,
 		"Next periodic reminder created.",
-		logging.Entry("result", result),
 		logging.Entry("nextReminder", nextReminder),
 		logging.Entry("nextReminderChannelIDs", nextReminderChannelIDs),
 	)

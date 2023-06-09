@@ -97,19 +97,20 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		return result, reminder.ErrReminderNotActive
 	}
 
+	now := s.now()
 	doStatusUpdate := false
 	status := rem.Status
 	doScheduledAtUpdate := false
 	scheduledAt := rem.ScheduledAt
-	if input.DoAtUpdate {
-		if err := validateAt(input.At, s.now()); err != nil {
+	if doAtUpdate(input, rem.At) {
+		if err := validateAt(input.At, now); err != nil {
 			return result, err
 		}
 		doStatusUpdate = true
 		doScheduledAtUpdate = true
-		if input.At.Sub(s.now()) < reminder.DURATION_FOR_SCHEDULING {
+		if input.At.Sub(now) < reminder.DURATION_FOR_SCHEDULING {
 			status = reminder.StatusScheduled
-			scheduledAt = c.NewOptional(s.now(), true)
+			scheduledAt = c.NewOptional(now, true)
 		} else {
 			status = reminder.StatusCreated
 			scheduledAt = c.Optional[time.Time]{}
@@ -210,4 +211,8 @@ func validateEvery(
 	}
 
 	return nil
+}
+
+func doAtUpdate(input Input, currentAt time.Time) bool {
+	return input.DoAtUpdate && input.At.Round(time.Second) != currentAt.Round(time.Second)
 }

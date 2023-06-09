@@ -26,19 +26,19 @@ func (l *ZapLogger) Sync() {
 }
 
 func (l *ZapLogger) Debug(ctx context.Context, msg string, entries ...logging.LogEntry) {
-	l.sugar.Debugf(msg, prepareArgs(entries...)...)
+	l.sugar.Debugw(msg, prepareArgs(entries...)...)
 }
 
 func (l *ZapLogger) Info(ctx context.Context, msg string, entries ...logging.LogEntry) {
-	l.sugar.Infof(msg, prepareArgs(entries...)...)
+	l.sugar.Infow(msg, prepareArgs(entries...)...)
 }
 
 func (l *ZapLogger) Warning(ctx context.Context, msg string, entries ...logging.LogEntry) {
-	l.sugar.Warnf(msg, prepareArgs(entries...)...)
+	l.sugar.Warnw(msg, prepareArgs(entries...)...)
 }
 
 func (l *ZapLogger) Error(ctx context.Context, msg string, entries ...logging.LogEntry) {
-	l.sugar.Errorf(msg, prepareArgs(entries...)...)
+	l.sugar.Errorw(msg, prepareArgs(entries...)...)
 }
 
 func prepareArgs(entries ...logging.LogEntry) []interface{} {

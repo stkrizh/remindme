@@ -66,7 +66,13 @@ func (s *prepareService) Run(ctx context.Context, input Input) (result Result, e
 	}
 	rem, err := reminderRepo.GetByID(ctx, input.ReminderID)
 	if err != nil {
-		logging.Error(ctx, s.log, err, logging.Entry("input", input))
+		switch {
+		case errors.Is(err, reminder.ErrReminderDoesNotExist):
+			s.log.Info(ctx, "Reminder does not exist, skip sending.")
+			return result, nil
+		default:
+			logging.Error(ctx, s.log, err, logging.Entry("input", input))
+		}
 		return result, err
 	}
 	if rem.Status != reminder.StatusScheduled {

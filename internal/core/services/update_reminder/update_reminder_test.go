@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -306,6 +307,14 @@ func (s *testSuite) TestUpdateSuccess() {
 			scheduled:     0,
 			statusAfter:   reminder.StatusCreated,
 		},
+		{
+			id:           "14",
+			statusBefore: reminder.StatusScheduled,
+			doAtUpdate:   true,
+			at:           Now,
+			scheduled:    0,
+			statusAfter:  reminder.StatusScheduled,
+		},
 	}
 
 	for _, testcase := range cases {
@@ -319,6 +328,7 @@ func (s *testSuite) TestUpdateSuccess() {
 			input.DoBodyUpdate = testcase.doBodyUpdate
 			input.Body = testcase.body
 			s.unitOfWork.Reminders().GetByIDReminder.Status = testcase.statusBefore
+			s.unitOfWork.Reminders().GetByIDReminder.At = Now
 			s.unitOfWork.Reminders().ReminderBeforeUpdate.Status = testcase.statusBefore
 			s.unitOfWork.Reminders().ReminderBeforeUpdate.ScheduledAt = testcase.scheduledAtBefore
 			s.unitOfWork.Reminders().ReminderBeforeUpdate.At = Now
@@ -408,4 +418,45 @@ func mustLoadLocation(name string) *time.Location {
 		panic(err)
 	}
 	return loc
+}
+
+func TestDoAtUpdate(t *testing.T) {
+	cases := []struct {
+		id       string
+		input    Input
+		now      time.Time
+		doUpdate bool
+	}{
+		{
+			id:       "1",
+			input:    Input{DoAtUpdate: true, At: time.Date(2020, 1, 1, 1, 1, 1, 123, time.UTC)},
+			now:      time.Date(2020, 1, 1, 1, 1, 1, 123, time.UTC),
+			doUpdate: false,
+		},
+		{
+			id:       "2",
+			input:    Input{DoAtUpdate: true, At: time.Date(2020, 1, 1, 1, 1, 1, 123, time.UTC)},
+			now:      time.Date(2020, 1, 1, 1, 1, 1, 123456, time.UTC),
+			doUpdate: false,
+		},
+		{
+			id:       "3",
+			input:    Input{DoAtUpdate: false, At: time.Date(2025, 1, 1, 1, 1, 1, 123, time.UTC)},
+			now:      time.Date(2020, 1, 1, 1, 1, 1, 123456, time.UTC),
+			doUpdate: false,
+		},
+		{
+			id:       "4",
+			input:    Input{DoAtUpdate: true, At: time.Date(2025, 1, 1, 1, 1, 2, 123, time.UTC)},
+			now:      time.Date(2020, 1, 1, 1, 1, 1, 123456, time.UTC),
+			doUpdate: true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.id, func(t *testing.T) {
+			assert := require.New(t)
+			assert.Equal(tc.doUpdate, doAtUpdate(tc.input, tc.now))
+		})
+	}
 }
