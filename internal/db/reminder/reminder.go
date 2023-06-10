@@ -52,7 +52,7 @@ func (r *PgxReminderRepository) Create(
 				Time:  input.CanceledAt.Value,
 				Valid: input.CanceledAt.IsPresent,
 			},
-			Status: input.Status.String(),
+			Status: string(input.Status),
 			Body:   input.Body,
 		},
 	)
@@ -89,7 +89,7 @@ func (r *PgxReminderRepository) Read(
 	if options.StatusIn.IsPresent {
 		statusIn = make([]string, len(options.StatusIn.Value))
 		for ix, status := range options.StatusIn.Value {
-			statusIn[ix] = status.String()
+			statusIn[ix] = string(status)
 		}
 	}
 
@@ -135,7 +135,7 @@ func (r *PgxReminderRepository) Count(ctx context.Context, options reminder.Read
 	if options.StatusIn.IsPresent {
 		statusIn = make([]string, len(options.StatusIn.Value))
 		for ix, status := range options.StatusIn.Value {
-			statusIn[ix] = status.String()
+			statusIn[ix] = string(status)
 		}
 	}
 
@@ -175,7 +175,7 @@ func (r *PgxReminderRepository) Update(
 				String: input.Every.Value.String(),
 			},
 			DoStatusUpdate:      input.DoStatusUpdate,
-			Status:              input.Status.String(),
+			Status:              string(input.Status),
 			DoScheduledAtUpdate: input.DoScheduledAtUpdate,
 			ScheduledAt: sql.NullTime{
 				Valid: input.ScheduledAt.IsPresent,
@@ -207,10 +207,10 @@ func (r *PgxReminderRepository) Schedule(
 	input reminder.ScheduleInput,
 ) (reminders []reminder.Reminder, err error) {
 	dbReminders, err := r.queries.ScheduleReminders(ctx, sqlcgen.ScheduleRemindersParams{
-		Status:                reminder.StatusScheduled.String(),
+		Status:                string(reminder.StatusScheduled),
 		AtBefore:              input.AtBefore,
 		ScheduledAt:           input.ScheduledAt,
-		StatusesForScheduling: []string{reminder.StatusCreated.String()},
+		StatusesForScheduling: []string{string(reminder.StatusCreated)},
 	})
 	if err != nil {
 		return reminders, err

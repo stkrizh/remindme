@@ -2,16 +2,14 @@ package reminder
 
 import "errors"
 
-type OrderBy struct {
-	v string
-}
+type OrderBy (string)
 
-var (
-	OrderByNotSet OrderBy = OrderBy{}
-	OrderByIDAsc  OrderBy = OrderBy{v: "id_asc"}
-	OrderByIDDesc OrderBy = OrderBy{v: "id_desc"}
-	OrderByAtAsc  OrderBy = OrderBy{v: "at_asc"}
-	OrderByAtDesc OrderBy = OrderBy{v: "at_desc"}
+const (
+	OrderByNotSet OrderBy = ""
+	OrderByIDAsc  OrderBy = "id_asc"
+	OrderByIDDesc OrderBy = "id_desc"
+	OrderByAtAsc  OrderBy = "at_asc"
+	OrderByAtDesc OrderBy = "at_desc"
 )
 
 var ErrParseOrderBy = errors.New("invalid order")

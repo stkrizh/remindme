@@ -32,7 +32,6 @@ func initReminderReadyForSendingConsumer(deps *deps.Deps, services *services.Ser
 		panic(err)
 	}
 
-	deps.Logger.Info(context.Background(), "Consumer has started.", dl.Entry("queue", queue))
 	return func() { rabbitmqChannel.Close() }
 }
 

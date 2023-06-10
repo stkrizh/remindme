@@ -49,45 +49,65 @@ func (c *Consumer) Consume() error {
 		return err
 	}
 
+	c.log.Info(context.Background(), "Reminder sending consumer has started.", logging.Entry("queue", c.queue))
 	go func() {
 		for delivery := range deliveries {
-			rem := &schema.Reminder{}
-			if err := rem.Unmarshal(delivery.Body); err != nil {
-				c.log.Error(
-					context.Background(),
-					"Could not unmarshal reminder.",
-					logging.Entry("err", err),
-					logging.Entry("delivery", delivery),
-				)
-				c.Ack(delivery)
-				continue
-			}
-
-			c.log.Info(
-				context.Background(),
-				"Got ready for sending reminder.",
-				logging.Entry("reminder", rem),
-			)
-			_, err := c.service.Run(
-				context.Background(),
-				sendreminder.Input{ReminderID: reminder.ID(rem.ID), At: rem.At},
-			)
-			if err != nil {
-				c.log.Error(
-					context.Background(),
-					"Could not send reminder, service returned an error.",
-					logging.Entry("reminder", rem),
-					logging.Entry("err", err),
-				)
-			}
-			c.Ack(delivery)
+			c.processDelivery(delivery)
 		}
+		c.log.Info(context.Background(), "Reminder sending consumer has stopped.", logging.Entry("queue", c.queue))
 	}()
+
 	return nil
 }
 
-func (c *Consumer) Ack(delivery amqp091.Delivery) {
-	if err := delivery.Ack(true); err != nil {
-		c.log.Error(context.Background(), "Could not ACK AMQP message.", logging.Entry("err", err))
+func (c *Consumer) processDelivery(delivery amqp091.Delivery) {
+	// defer c.nack(delivery)
+
+	rem := &schema.Reminder{}
+	if err := rem.Unmarshal(delivery.Body); err != nil {
+		c.log.Error(
+			context.Background(),
+			"Could not unmarshal reminder.",
+			logging.Entry("err", err),
+			logging.Entry("delivery", delivery),
+		)
+		c.ack(delivery)
+		return
+	}
+
+	c.log.Info(
+		context.Background(),
+		"Got ready for sending reminder.",
+		logging.Entry("reminder", rem),
+	)
+	_, err := c.service.Run(
+		context.Background(),
+		sendreminder.Input{ReminderID: reminder.ID(rem.ID), At: rem.At},
+	)
+
+	if err != nil {
+		c.log.Error(
+			context.Background(),
+			"Could not send reminder, service returned an error.",
+			logging.Entry("reminder", rem),
+			logging.Entry("err", err),
+		)
+	}
+	c.ack(delivery)
+}
+
+func (c *Consumer) ack(delivery amqp091.Delivery) {
+	if err := delivery.Ack(false); err != nil {
+		c.log.Error(context.Background(), "Could not Ack AMQP message.", logging.Entry("err", err))
+	}
+}
+
+func (c *Consumer) nack(delivery amqp091.Delivery) {
+	if err := delivery.Nack(false, true); err != nil {
+		c.log.Error(
+			context.Background(),
+			"Could not Nack AMQP delivery.",
+			logging.Entry("err", err),
+		)
 	}
 }

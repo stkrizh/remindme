@@ -29,7 +29,7 @@ func (r *ReminderWithChannels) FromDomainType(dr reminder.ReminderWithChannels) 
 	}
 	r.Body = dr.Body
 	r.CreatedAt = dr.CreatedAt
-	r.Status = dr.Status.String()
+	r.Status = string(dr.Status)
 	if dr.ScheduledAt.IsPresent {
 		r.ScheduledAt = &dr.ScheduledAt.Value
 	}

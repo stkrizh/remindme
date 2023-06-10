@@ -16,9 +16,7 @@ var (
 	ErrParsePeriod  = errors.New("invalid period")
 )
 
-type Period struct {
-	v string
-}
+type Period (string)
 
 func ParsePeriod(value string) (p Period, err error) {
 	switch value {
@@ -39,14 +37,14 @@ func ParsePeriod(value string) (p Period, err error) {
 	}
 }
 
-var (
-	PeriodUnknown Period = Period{}
-	PeriodMinute  Period = Period{v: "minute"}
-	PeriodHour    Period = Period{v: "hour"}
-	PeriodDay     Period = Period{v: "day"}
-	PeriodWeek    Period = Period{v: "week"}
-	PeriodMonth   Period = Period{v: "month"}
-	PeriodYear    Period = Period{v: "year"}
+const (
+	PeriodUnknown Period = Period("")
+	PeriodMinute  Period = Period("minute")
+	PeriodHour    Period = Period("hour")
+	PeriodDay     Period = Period("day")
+	PeriodWeek    Period = Period("week")
+	PeriodMonth   Period = Period("month")
+	PeriodYear    Period = Period("year")
 )
 
 type Every struct {
@@ -55,7 +53,7 @@ type Every struct {
 }
 
 func (e Every) String() string {
-	return fmt.Sprintf("%d %s", e.n, e.period.v)
+	return fmt.Sprintf("%d %s", e.n, e.period)
 }
 
 func (e Every) IsZero() bool {

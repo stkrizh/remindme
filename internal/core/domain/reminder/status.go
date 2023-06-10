@@ -4,13 +4,7 @@ import "errors"
 
 var ErrParseStatus = errors.New("invalid status")
 
-type Status struct {
-	v string
-}
-
-func (s Status) String() string {
-	return s.v
-}
+type Status (string)
 
 func ParseStatus(value string) (Status, error) {
 	switch value {
@@ -33,13 +27,13 @@ func ParseStatus(value string) (Status, error) {
 	}
 }
 
-var (
-	StatusInvalid           = Status{}
-	StatusCreated           = Status{v: "created"}
-	StatusScheduled         = Status{v: "scheduled"}
-	StatusSending           = Status{v: "sending"}
-	StatusSentSuccess       = Status{v: "sent_success"}
-	StatusSentError         = Status{v: "sent_error"}
-	StatusSentLimitExceeded = Status{v: "sent_limit_exceeded"}
-	StatusCanceled          = Status{v: "canceled"}
+const (
+	StatusInvalid           = Status("")
+	StatusCreated           = Status("created")
+	StatusScheduled         = Status("scheduled")
+	StatusSending           = Status("sending")
+	StatusSentSuccess       = Status("sent_success")
+	StatusSentError         = Status("sent_error")
+	StatusSentLimitExceeded = Status("sent_limit_exceeded")
+	StatusCanceled          = Status("canceled")
 )

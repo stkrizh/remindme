@@ -47,7 +47,7 @@ func (r *PgxChannelRepository) Create(ctx context.Context, input channel.CreateI
 		sqlcgen.CreateChannelParams{
 			UserID:    int64(input.CreatedBy),
 			CreatedAt: input.CreatedAt,
-			Type:      input.Type.String(),
+			Type:      string(input.Type),
 			IsDefault: input.IsDefault,
 			Settings:  encodedSettings,
 			VerificationToken: sql.NullString{
@@ -85,7 +85,7 @@ func (r *PgxChannelRepository) Read(
 			AllUserIds:      !options.UserIDEquals.IsPresent,
 			UserIDEquals:    int64(options.UserIDEquals.Value),
 			AllTypes:        !options.TypeEquals.IsPresent,
-			TypeEquals:      options.TypeEquals.Value.String(),
+			TypeEquals:      string(options.TypeEquals.Value),
 			AllIsDefault:    !options.IsDefaultEquals.IsPresent,
 			IsDefaultEquals: options.IsDefaultEquals.Value,
 			OrderByIDAsc:    options.OrderBy == channel.OrderByIDAsc,
@@ -143,7 +143,7 @@ func (r *PgxChannelRepository) Count(
 			AllUserIds:      !options.UserIDEquals.IsPresent,
 			UserIDEquals:    int64(options.UserIDEquals.Value),
 			AllTypes:        !options.TypeEquals.IsPresent,
-			TypeEquals:      options.TypeEquals.Value.String(),
+			TypeEquals:      string(options.TypeEquals.Value),
 			AllIsDefault:    !options.IsDefaultEquals.IsPresent,
 			IsDefaultEquals: options.IsDefaultEquals.Value,
 		},

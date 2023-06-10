@@ -54,7 +54,7 @@ type Channel struct {
 
 func (c *Channel) FromDomainChannel(dc channel.Channel) {
 	c.ID = int64(dc.ID)
-	c.Type = dc.Type.String()
+	c.Type = string(dc.Type)
 	c.CreatedBy = int64(dc.CreatedBy)
 	c.CreatedAt = dc.CreatedAt
 	if dc.VerifiedAt.IsPresent {

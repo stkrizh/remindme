@@ -60,7 +60,7 @@ func (s *sendService) Run(ctx context.Context, input Input) (result Result, err 
 			ctx,
 			"Reminder is skipped due to the status is not 'sending'.",
 			logging.Entry("input", input),
-			logging.Entry("status", prepared.Reminder.Status.String()),
+			logging.Entry("status", prepared.Reminder.Status),
 		)
 		return prepared, nil
 	}

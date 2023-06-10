@@ -7,6 +7,7 @@ import (
 )
 
 func TestChannelType(t *testing.T) {
-	assert.Equal(t, Unknown, Type{})
-	assert.Equal(t, Unknown, Type{v: ""})
+	var type_ Type
+	assert.Equal(t, Unknown, Type(""))
+	assert.Equal(t, Unknown, type_)
 }

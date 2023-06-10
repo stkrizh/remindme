@@ -1,8 +1,6 @@
 package channel
 
-type Type struct {
-	v string
-}
+type Type (string)
 
 func ParseType(t string) Type {
 	switch t {
@@ -17,13 +15,9 @@ func ParseType(t string) Type {
 	}
 }
 
-func (t Type) String() string {
-	return t.v
-}
-
 var (
-	Unknown  = Type{}
-	Internal = Type{v: "internal"}
-	Telegram = Type{v: "telegram"}
-	Email    = Type{v: "email"}
+	Unknown  = Type("")
+	Internal = Type("internal")
+	Telegram = Type("telegram")
+	Email    = Type("email")
 )
