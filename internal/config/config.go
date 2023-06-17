@@ -34,6 +34,11 @@ type Config struct {
 	AwsRegion                       string        `env:"AWS_REGION,notEmpty"`
 	AwsAccessKey                    string        `env:"AWS_ACCESS_KEY,notEmpty"`
 	AwsSecretKey                    string        `env:"AWS_SECRET_KEY,notEmpty"`
+	AwsEmailSender                  string        `env:"AWS_EMAIL_SENDER,notEmpty" envDefault:"no-reply@remindme.one"`
+	AwsEmailReminderTemplate        string        `env:"AWS_EMAIL_REMINDER_TEMPLATE,notEmpty" envDefault:"reminder-v1"`
+	AwsEmailActivateAccountTemplate string        `env:"AWS_EMAIL_ACTIVATE_ACCOUNT_TEMPLATE,notEmpty" envDefault:"signup-activation-v1"`
+	AwsEmailPasswordResetTemplate   string        `env:"AWS_EMAIL_PASSWORD_RESET_TEMPLATE,notEmpty" envDefault:"password-reset-v1"`
+	AwsEmailActivateChannelTemplate string        `env:"AWS_EMAIL_ACTIVATE_CHANNEL_TEMPLATE,notEmpty" envDefault:"email-channel-confirm-v1"`
 }
 
 func Load() (*Config, error) {

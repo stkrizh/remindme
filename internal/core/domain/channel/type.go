@@ -15,7 +15,7 @@ func ParseType(t string) Type {
 	}
 }
 
-var (
+const (
 	Unknown  = Type("")
 	Internal = Type("internal")
 	Telegram = Type("telegram")

@@ -80,10 +80,10 @@ func (s *Sender) SendReminder(ctx context.Context, rem reminder.ReminderWithChan
 		)
 		err := channelSender.SendReminder(c.Settings)
 		if err != nil {
-			logging.Error(
+			s.log.Error(
 				ctx,
-				s.log,
-				err,
+				"Could not send reminder.",
+				logging.Entry("err", err),
 				logging.Entry("reminder", rem),
 				logging.Entry("channeID", c.ID),
 				logging.Entry("channeSettings", c.Settings),

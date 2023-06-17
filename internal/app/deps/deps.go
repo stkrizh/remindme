@@ -30,6 +30,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/go-redis/redis/v9"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/r3labs/sse/v2"
@@ -37,8 +41,9 @@ import (
 )
 
 type Deps struct {
-	Config *config.Config
-	Logger dl.Logger
+	Config    *config.Config
+	AwsConfig aws.Config
+	Logger    dl.Logger
 
 	DB        *pgxpool.Pool
 	Redis     *redis.Client
@@ -80,6 +85,8 @@ func InitDeps() (*Deps, func()) {
 	deps := &Deps{}
 
 	deps.initConfig()
+	deps.initAwsConfig()
+
 	closeLogger := deps.initLogger()
 	closePgxPool := deps.initPgxPool()
 	closeRedisClient := deps.initRedisClient()
@@ -136,7 +143,7 @@ func InitDeps() (*Deps, func()) {
 		deps.Logger,
 		deps.ChannelRepository,
 		deps.SseServer,
-		remindersender.NewEmail(),
+		remindersender.NewEmail(deps.AwsConfig, deps.Config.AwsEmailSender, deps.Config.AwsEmailReminderTemplate),
 		remindersender.NewTelegram(deps.TelegramBotMessageSender),
 		remindersender.NewInternal(deps.SseServer),
 	)
@@ -172,6 +179,30 @@ func (deps *Deps) initConfig() {
 		panic(err)
 	}
 	deps.Config = config
+}
+
+func (deps *Deps) initAwsConfig() {
+	cfg, err := awsConfig.LoadDefaultConfig(
+		context.Background(),
+		awsConfig.WithRegion(deps.Config.AwsRegion),
+		awsConfig.WithCredentialsProvider(
+			credentials.NewStaticCredentialsProvider(
+				deps.Config.AwsAccessKey,
+				deps.Config.AwsSecretKey,
+				"",
+			),
+		),
+		awsConfig.WithRetryer(func() aws.Retryer {
+			return retry.AddWithMaxAttempts(
+				retry.AddWithMaxBackoffDelay(retry.NewStandard(), time.Second*5),
+				3,
+			)
+		}),
+	)
+	if err != nil {
+		panic(err)
+	}
+	deps.AwsConfig = cfg
 }
 
 func (deps *Deps) initLogger() func() {
