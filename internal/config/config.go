@@ -31,6 +31,9 @@ type Config struct {
 	GoogleRecaptchaSecretKey        string        `env:"GOOGLE_RECAPTCHA_SECRET_KEY,notEmpty"`
 	GoogleRecaptchaScoreThreshold   float64       `env:"GOOGLE_RECAPTCHA_SCORE_THRESHOLD" envDefault:"0.5"`
 	GoogleRecaptchaRequestTimeout   time.Duration `env:"GOOGLE_RECAPTCHA_REQUEST_TIMEOUT" envDefault:"15s"`
+	AwsRegion                       string        `env:"AWS_REGION,notEmpty"`
+	AwsAccessKey                    string        `env:"AWS_ACCESS_KEY,notEmpty"`
+	AwsSecretKey                    string        `env:"AWS_SECRET_KEY,notEmpty"`
 }
 
 func Load() (*Config, error) {
