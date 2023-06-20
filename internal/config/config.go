@@ -37,7 +37,9 @@ type Config struct {
 	AwsEmailSender                  string        `env:"AWS_EMAIL_SENDER,notEmpty" envDefault:"no-reply@remindme.one"`
 	AwsEmailReminderTemplate        string        `env:"AWS_EMAIL_REMINDER_TEMPLATE,notEmpty" envDefault:"reminder-v1"`
 	AwsEmailActivateAccountTemplate string        `env:"AWS_EMAIL_ACTIVATE_ACCOUNT_TEMPLATE,notEmpty" envDefault:"signup-activation-v1"`
+	AwsEmailActivationUrl           url.URL       `env:"AWS_EMAIL_ACTIVATION_URL,notEmpty" envDefault:"https://remindme.one/app/auth/activate"`
 	AwsEmailPasswordResetTemplate   string        `env:"AWS_EMAIL_PASSWORD_RESET_TEMPLATE,notEmpty" envDefault:"password-reset-v1"`
+	AwsEmailPasswordResetBaseUrl    url.URL       `env:"AWS_EMAIL_PASSWORD_RESET_BASE_URL,notEmpty" envDefault:"https://remindme.one/app/auth/password_reset"`
 	AwsEmailActivateChannelTemplate string        `env:"AWS_EMAIL_ACTIVATE_CHANNEL_TEMPLATE,notEmpty" envDefault:"email-channel-confirm-v1"`
 }
 

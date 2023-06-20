@@ -75,7 +75,7 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 	}
 
 	token := s.passwordResetter.GenerateToken(u)
-	err = s.sender.SendToken(ctx, u, token)
+	err = s.sender.SendPasswordResetToken(ctx, u, token)
 	if errors.Is(err, context.Canceled) {
 		return result, err
 	}

@@ -316,7 +316,11 @@ func NewFakePasswordResetTokenSender() *FakePasswordResetTokenSender {
 	return &FakePasswordResetTokenSender{}
 }
 
-func (s *FakePasswordResetTokenSender) SendToken(ctx context.Context, user User, token PasswordResetToken) error {
+func (s *FakePasswordResetTokenSender) SendPasswordResetToken(
+	ctx context.Context,
+	user User,
+	token PasswordResetToken,
+) error {
 	if s.ReturnError {
 		return fmt.Errorf("could not send password reset token")
 	}

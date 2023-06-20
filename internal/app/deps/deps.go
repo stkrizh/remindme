@@ -16,6 +16,7 @@ import (
 	dbreminder "remindme/internal/db/reminder"
 	uow "remindme/internal/db/unit_of_work"
 	dbuser "remindme/internal/db/user"
+	"remindme/internal/implementations/email"
 	"remindme/internal/implementations/logging"
 	passwordhasher "remindme/internal/implementations/password_hasher"
 	passwordresetter "remindme/internal/implementations/password_resetter"
@@ -61,6 +62,8 @@ type Deps struct {
 
 	RateLimiter drl.RateLimiter
 
+	EmailSender *email.EmailSender
+
 	UserActivationTokenGenerator user.ActivationTokenGenerator
 	UserActivationTokenSender    user.ActivationTokenSender
 	UserIdentityGenerator        user.IdentityGenerator
@@ -100,10 +103,20 @@ func InitDeps() (*Deps, func()) {
 	deps.ChannelRepository = dbchannel.NewPgxChannelRepository(deps.DB)
 	deps.ReminderRepository = dbreminder.NewPgxReminderRepository(deps.DB)
 
+	deps.EmailSender = email.NewEmailSender(
+		deps.AwsConfig,
+		deps.Config.AwsEmailSender,
+		deps.Config.AwsEmailActivateAccountTemplate,
+		deps.Config.AwsEmailActivationUrl,
+		deps.Config.AwsEmailPasswordResetTemplate,
+		deps.Config.AwsEmailPasswordResetBaseUrl,
+		deps.Config.AwsEmailActivateChannelTemplate,
+	)
+
 	deps.Now = func() time.Time { return time.Now().UTC() }
 	deps.RateLimiter = ratelimiter.NewRedis(deps.Redis, deps.Logger, deps.Now)
 	deps.UserActivationTokenGenerator = randomstringgenerator.NewGenerator()
-	deps.UserActivationTokenSender = user.NewFakeActivationTokenSender()
+	deps.UserActivationTokenSender = deps.EmailSender
 	deps.UserIdentityGenerator = randomstringgenerator.NewGenerator()
 	deps.UserSessionTokenGenerator = randomstringgenerator.NewGenerator()
 	deps.PasswordHasher = passwordhasher.NewBcrypt(deps.Config.Secret, deps.Config.BcryptHasherCost)
@@ -112,7 +125,7 @@ func InitDeps() (*Deps, func()) {
 		time.Duration(deps.Config.PasswordResetValidDurationHours*int(time.Hour)),
 		deps.Now,
 	)
-	deps.PasswordResetTokenSender = user.NewFakePasswordResetTokenSender()
+	deps.PasswordResetTokenSender = deps.EmailSender
 	deps.CaptchaValidator = deps.initCaptchaValidator()
 	deps.DefaultUserLimits = user.Limits{
 		EmailChannelCount:        c.NewOptional(uint32(1), true),

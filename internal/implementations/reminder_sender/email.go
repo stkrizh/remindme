@@ -12,6 +12,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ses/types"
 )
 
+type templateParams struct {
+	ReminderBody string `json:"reminderBody"`
+}
+
 type EmailSender struct {
 	ses *ses.Client
 	// This address must be verified with Amazon SES.
@@ -40,9 +44,7 @@ func (s *EmailSender) SendReminder(
 	if body == "" {
 		body = fmt.Sprintf("#%d", rem.ID)
 	}
-	templateArgsBytes, err := json.Marshal(map[string]string{
-		"reminderBody": body,
-	})
+	templateArgsBytes, err := json.Marshal(templateParams{ReminderBody: body})
 	if err != nil {
 		return err
 	}

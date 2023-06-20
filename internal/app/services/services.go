@@ -2,7 +2,6 @@ package services
 
 import (
 	"remindme/internal/app/deps"
-	"remindme/internal/core/domain/channel"
 	drl "remindme/internal/core/domain/rate_limiter"
 	"remindme/internal/core/services"
 	activateuser "remindme/internal/core/services/activate_user"
@@ -188,7 +187,7 @@ func InitServices(deps *deps.Deps) *Services {
 		deps.SessionRepository,
 		createemailchannel.NewWithVerificationTokenSending(
 			deps.Logger,
-			channel.NewFakeVerificationTokenSender(),
+			deps.EmailSender,
 			createemailchannel.New(
 				deps.Logger,
 				deps.UnitOfWork,

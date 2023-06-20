@@ -11,5 +11,5 @@ type PasswordResetter interface {
 }
 
 type PasswordResetTokenSender interface {
-	SendToken(ctx context.Context, user User, token PasswordResetToken) error
+	SendPasswordResetToken(ctx context.Context, user User, token PasswordResetToken) error
 }
