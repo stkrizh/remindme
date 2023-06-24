@@ -99,7 +99,7 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		s.log.Error(
 			ctx,
 			"Could not create session token for user.",
-			logging.Entry("userId", u.ID),
+			logging.Entry("userID", u.ID),
 			logging.Entry("err", err),
 		)
 		return result, err
@@ -108,7 +108,7 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 	s.log.Info(
 		ctx,
 		"User successfully authenticated, session token created.",
-		logging.Entry("userId", u.ID),
+		logging.Entry("userID", u.ID),
 	)
 	return Result{Token: sessionToken}, nil
 }

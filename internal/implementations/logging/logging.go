@@ -2,8 +2,10 @@ package logging
 
 import (
 	"context"
+	"fmt"
 	"remindme/internal/core/domain/logging"
 
+	"github.com/getsentry/sentry-go"
 	"go.uber.org/zap"
 )
 
@@ -39,6 +41,20 @@ func (l *ZapLogger) Warning(ctx context.Context, msg string, entries ...logging.
 
 func (l *ZapLogger) Error(ctx context.Context, msg string, entries ...logging.LogEntry) {
 	l.sugar.Errorw(msg, prepareArgs(entries...)...)
+	hub := sentry.GetHubFromContext(ctx)
+	if hub == nil {
+		hub = sentry.CurrentHub().Clone()
+	}
+	if hub != nil {
+		hub.WithScope(func(scope *sentry.Scope) {
+			e := make(map[string]interface{}, len(entries))
+			for _, entry := range entries {
+				e[entry.Key] = fmt.Sprintf("%+v", entry.Value)
+			}
+			scope.SetContext("entries", e)
+			hub.CaptureMessage(msg)
+		})
+	}
 }
 
 func prepareArgs(entries ...logging.LogEntry) []interface{} {

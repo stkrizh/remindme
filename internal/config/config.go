@@ -41,6 +41,7 @@ type Config struct {
 	AwsEmailPasswordResetTemplate   string        `env:"AWS_EMAIL_PASSWORD_RESET_TEMPLATE,notEmpty" envDefault:"password-reset-v1"`
 	AwsEmailPasswordResetBaseUrl    url.URL       `env:"AWS_EMAIL_PASSWORD_RESET_BASE_URL,notEmpty" envDefault:"https://remindme.one/app/auth/password_reset"`
 	AwsEmailActivateChannelTemplate string        `env:"AWS_EMAIL_ACTIVATE_CHANNEL_TEMPLATE,notEmpty" envDefault:"email-channel-confirm-v1"`
+	SentryDsn                       *url.URL      `env:"SENTRY_DSN"`
 }
 
 func Load() (*Config, error) {

@@ -124,6 +124,6 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		return result, err
 	}
 
-	s.log.Info(ctx, "New user has been created.", logging.Entry("user", createdUser))
+	s.log.Info(ctx, "New user has been created.", logging.Entry("userID", createdUser.ID))
 	return Result{User: createdUser}, nil
 }

@@ -34,7 +34,10 @@ import (
 	me "remindme/internal/http/handlers/user/me"
 	updateuser "remindme/internal/http/handlers/user/update_user"
 
+	sentryhttp "github.com/getsentry/sentry-go/http"
+
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 )
 
@@ -108,6 +111,8 @@ func InitHttpServer(deps *deps.Deps, s *services.Services) *http.Server {
 	)
 
 	router := chi.NewRouter()
+	router.Use(middleware.Recoverer)
+	router.Use(sentryhttp.New(sentryhttp.Options{Repanic: true}).Handle)
 	router.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   deps.Config.AllowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},

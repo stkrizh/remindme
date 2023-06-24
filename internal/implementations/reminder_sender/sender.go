@@ -85,7 +85,7 @@ func (s *Sender) SendReminder(ctx context.Context, rem reminder.ReminderWithChan
 				"Could not send reminder.",
 				logging.Entry("err", err),
 				logging.Entry("reminder", rem),
-				logging.Entry("channeID", c.ID),
+				logging.Entry("channelID", c.ID),
 				logging.Entry("channeSettings", c.Settings),
 			)
 		} else {
@@ -98,6 +98,8 @@ func (s *Sender) SendReminder(ctx context.Context, rem reminder.ReminderWithChan
 			)
 		}
 	}
+	s.publishSse(rem, isInternalChannel)
+
 	if err != nil {
 		s.log.Error(
 			ctx,
@@ -108,8 +110,6 @@ func (s *Sender) SendReminder(ctx context.Context, rem reminder.ReminderWithChan
 		)
 		return err
 	}
-
-	s.publishSse(rem, isInternalChannel)
 	s.log.Info(ctx, "Reminder has been sent.", logging.Entry("reminderID", rem.ID))
 	return nil
 }

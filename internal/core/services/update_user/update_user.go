@@ -64,7 +64,7 @@ func (s *service) Run(ctx context.Context, input Input) (result Result, err erro
 		ctx,
 		"User successfully updated.",
 		logging.Entry("input", input),
-		logging.Entry("user", updatedUser),
+		logging.Entry("userID", updatedUser.ID),
 	)
 	result.User = updatedUser
 	return result, nil

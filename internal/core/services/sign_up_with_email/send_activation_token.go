@@ -54,7 +54,7 @@ func (s *serviceWithActivationTokenSending) Run(ctx context.Context, input Input
 		s.log.Error(
 			ctx,
 			"Could not send activation token.",
-			logging.Entry("user", result.User),
+			logging.Entry("userID", result.User.ID),
 			logging.Entry("err", err),
 		)
 		return result, err
@@ -63,7 +63,7 @@ func (s *serviceWithActivationTokenSending) Run(ctx context.Context, input Input
 	s.log.Info(
 		ctx,
 		"Activation token has been sent to the user.",
-		logging.Entry("userId", result.User.ID),
+		logging.Entry("userID", result.User.ID),
 		logging.Entry("activationToken", result.User.ActivationToken),
 	)
 	return result, err

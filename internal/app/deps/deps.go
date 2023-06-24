@@ -2,6 +2,7 @@ package deps
 
 import (
 	"context"
+	"fmt"
 	"remindme/internal/config"
 	"remindme/internal/core/domain/bot"
 	"remindme/internal/core/domain/channel"
@@ -35,6 +36,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/getsentry/sentry-go"
 	"github.com/go-redis/redis/v9"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/r3labs/sse/v2"
@@ -62,7 +64,8 @@ type Deps struct {
 
 	RateLimiter drl.RateLimiter
 
-	EmailSender *email.EmailSender
+	EmailSender              *email.EmailSender
+	TelegramBotMessageSender bot.TelegramBotMessageSender
 
 	UserActivationTokenGenerator user.ActivationTokenGenerator
 	UserActivationTokenSender    user.ActivationTokenSender
@@ -80,8 +83,6 @@ type Deps struct {
 	ReminderScheduler reminder.Scheduler
 	ReminderSender    reminder.Sender
 	ReminderNLQParser reminder.NaturalLanguageQueryParser
-
-	TelegramBotMessageSender bot.TelegramBotMessageSender
 }
 
 func InitDeps() (*Deps, func()) {
@@ -162,6 +163,8 @@ func InitDeps() (*Deps, func()) {
 	)
 	deps.ReminderNLQParser = remindernlqparser.New()
 
+	flushSentry := deps.initSentry()
+
 	return deps, func() {
 		closeFuncs := []func(){
 			closeSseServer,
@@ -170,6 +173,7 @@ func InitDeps() (*Deps, func()) {
 			closeRedisClient,
 			closePgxPool,
 			closeLogger,
+			flushSentry,
 		}
 
 		var wg sync.WaitGroup
@@ -339,4 +343,24 @@ func (deps *Deps) initCaptchaValidator() captcha.CaptchaValidator {
 		deps.Config.GoogleRecaptchaScoreThreshold,
 		deps.Config.GoogleRecaptchaRequestTimeout,
 	)
+}
+
+func (deps *Deps) initSentry() func() {
+	if deps.Config.SentryDsn != nil {
+		err := sentry.Init(sentry.ClientOptions{
+			Dsn:              deps.Config.SentryDsn.String(),
+			TracesSampleRate: 0.01,
+		})
+		if err != nil {
+			panic(fmt.Sprintf("could not init Sentry: %v\n", err))
+		}
+		deps.Logger.Info(context.Background(), "Sentry has been successfully initialized.")
+		return func() {
+			ok := sentry.Flush(5 * time.Second)
+			deps.Logger.Info(context.Background(), "Sentry events flushed.", dl.Entry("ok", ok))
+		}
+	}
+
+	deps.Logger.Info(context.Background(), "Sentry is disabled.")
+	return func() {}
 }
